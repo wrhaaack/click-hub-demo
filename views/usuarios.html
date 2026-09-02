@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Click · Usuarios</title>
+<link rel="stylesheet" href="/css/click.css">
+<link rel="stylesheet" href="/css/usuario-barra.css">
+<style>
+  .topbar{
+    background:var(--sur); border-bottom:1px solid var(--bor);
+    padding:12px 24px; display:flex; align-items:center; justify-content:space-between; gap:16px;
+  }
+  .topbar .marca{display:flex; align-items:center; gap:10px; font-family:'Syne',sans-serif; font-weight:600;}
+  .topbar .marca img{height:30px; border-radius:6px; object-fit:cover;}
+  .volver{font-size:12px; color:var(--mut);}
+  .tabs{display:flex; gap:6px; margin-bottom:16px;}
+
+  /* Dato que se muestra pero no se edita, con la nota que explica dónde sí se
+     cambia. Se distingue de un input a propósito: mismo alto y mismo borde, pero
+     fondo apagado y sin cursor de texto, para que no se intente escribir ahí. */
+  .dato-fijo{
+    padding:9px 11px; border:1px solid var(--bor); border-radius:var(--rs);
+    background:var(--sur2); font-size:13px; color:var(--txt);
+  }
+  .dato-fijo.vacio{color:var(--hin);}
+  .dato-nota{font-size:11px; color:var(--mut); margin-top:5px; line-height:1.45;}
+  .tab{
+    padding:7px 15px; border-radius:20px; border:1px solid var(--bor2); background:var(--sur);
+    font-size:13px; color:var(--mut); cursor:pointer; font-family:'DM Sans',sans-serif;
+  }
+  .tab.on{background:var(--tan); color:#fff; border-color:var(--tan); font-weight:500;}
+  .pantalla{display:none;} .pantalla.on{display:block;}
+
+  .permisos-grid{padding:2px 14px; background:var(--bg); border:1px solid var(--bor2); border-radius:var(--rs);}
+  .permiso-fila{
+    display:flex; align-items:flex-start; justify-content:space-between; gap:20px;
+    padding:13px 0; border-bottom:1px solid var(--bor);
+  }
+  .permiso-fila:last-child{border-bottom:none;}
+  .permiso-nombre{display:block; font-size:13px; color:var(--txt); font-weight:500;}
+  .permiso-ayuda{display:block; font-size:11.5px; color:var(--mut); line-height:1.5; margin-top:3px; max-width:58ch;}
+  .permiso-control{display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0;}
+  .permisos-grid select{
+    background:var(--sur); border:1px solid var(--bor2); border-radius:var(--rs);
+    padding:6px 9px; color:var(--txt); font-family:'DM Sans',sans-serif; font-size:12px; min-width:170px;
+  }
+  .permiso-efectivo{font-size:10.5px; color:var(--hin); font-family:'DM Mono',monospace;}
+  .permiso-efectivo.pisado{color:var(--tand);}
+  .leyenda{
+    background:var(--tanl); border-left:3px solid var(--tan); border-radius:0 var(--rs) var(--rs) 0;
+    padding:11px 13px; margin-bottom:11px;
+  }
+  .leyenda p{margin:0 0 6px; font-size:12px; line-height:1.55; color:var(--tand);}
+  .leyenda p:last-child{margin-bottom:0;}
+  .leyenda strong{font-family:'DM Mono',monospace; font-size:11.5px;}
+  .permisos-nota{font-size:11.5px; color:var(--mut); margin:8px 0 0;}
+  .fila-acciones{display:flex; gap:8px; justify-content:flex-end;}
+
+  .rol-card{border:1px solid var(--bor2); border-radius:var(--r); margin-bottom:12px; overflow:hidden;}
+  .rol-head{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:12px 16px; background:var(--sur2); cursor:pointer;
+  }
+  .rol-nom{font-family:'Syne',sans-serif; font-weight:600; font-size:14px;}
+  .rol-resumen{font-size:11.5px; color:var(--mut);}
+  .rol-body{padding:14px 16px; display:none;}
+  .rol-card.abierta .rol-body{display:block;}
+  .aviso-admin{
+    background:#FEF3C7; border-left:3px solid #F59E0B; border-radius:0 var(--rs) var(--rs) 0;
+    padding:11px 13px; margin-bottom:16px; font-size:12.5px; color:#92400E; line-height:1.6;
+  }
+  .aviso-admin ul{margin:6px 0 0; padding-left:18px;}
+  .aviso-admin li{margin-bottom:2px;}
+
+  /* ── Que ande en cualquier pantalla ─────────────────────────────────────── */
+  @media (max-width:820px){
+    .wrap{padding:20px 14px 50px;}
+    .topbar{padding:10px 14px;}
+    /* Cada permiso pasa a dos renglones: la explicación arriba, el selector
+       abajo y a lo ancho. Lado a lado no entra y el texto queda ilegible. */
+    .permiso-fila{flex-direction:column; align-items:stretch; gap:8px;}
+    .permiso-control{align-items:stretch;}
+    .permisos-grid select{min-width:0; width:100%;}
+    .permiso-efectivo{text-align:right;}
+    .rol-head{flex-wrap:wrap; row-gap:4px;}
+  }
+  @media (max-width:560px){
+    h1{font-size:21px;}
+    .panel{padding:16px 14px;}
+    .tabs{overflow-x:auto; padding-bottom:4px;}
+    .tab{white-space:nowrap;}
+    /* El encabezado con el botón "+ Nuevo usuario" se apila. */
+    .wrap>div:first-of-type+div, .cabecera-usuarios{flex-wrap:wrap; gap:10px;}
+    .aviso-admin{font-size:12px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="marca"><img src="/img/logo.jpg" alt="Click"> Usuarios y permisos</div>
+  <a class="volver" href="/hub.html">← Volver al hub</a>
+</div>
+
+<div class="wrap">
+  <div class="tabs">
+    <button type="button" class="tab on" data-pantalla="usuarios">Usuarios</button>
+    <button type="button" class="tab" data-pantalla="roles">Permisos por rol</button>
+  </div>
+
+  <!-- ─────────────────────────── USUARIOS ─────────────────────────── -->
+  <div class="pantalla on" id="pantalla-usuarios">
+    <div class="cabecera-usuarios" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <h1>Usuarios</h1>
+      <button type="button" class="primary" id="btnNuevoUsuario">+ Nuevo usuario</button>
+    </div>
+
+    <div class="panel" id="usuarioPanel" style="display:none;">
+      <h2 id="usuarioPanelTitle">Nuevo usuario</h2>
+      <form id="usuarioForm">
+        <div class="field"><label>Nombre *</label><input type="text" id="u_nombre" required placeholder="Ej: Sofía"></div>
+        <div class="field"><label>Email *</label><input type="email" id="u_email" required placeholder="sofia@click.com"></div>
+        <div class="field" id="u_passwordField">
+          <label id="u_passwordLabel">Contraseña inicial * <span style="color:var(--hin)">(mínimo 10 caracteres)</span></label>
+          <div class="campo-password">
+            <input type="password" id="u_password" autocomplete="new-password">
+            <button type="button" class="btn-ojo" aria-label="Mostrar contraseña" aria-pressed="false" title="Mostrar contraseña">👁️</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Tipo de cuenta</label>
+          <select id="u_rol"><option value="empleado">Equipo</option><option value="admin">Administrador</option></select>
+        </div>
+        <div class="field">
+          <label>Rol <span style="color:var(--hin)">(de acá hereda los permisos)</span></label>
+          <select id="u_rol_id"></select>
+        </div>
+        <div class="field">
+          <label>Equipo</label>
+          <div class="dato-fijo" id="u_miembro"></div>
+          <div class="dato-nota">A quién se suma al equipo se decide en la sección
+            <strong>Equipo</strong> del hub, eligiendo de entre los usuarios ya
+            registrados. Estar en el equipo es lo que hace que le lleguen los
+            avisos de las tareas que se le asignan.</div>
+        </div>
+        <div class="field">
+          <label>Permisos</label>
+          <div class="leyenda">
+            <p>Los permisos vienen del <strong>rol</strong> que le asignes. Si querés, podés hacer una excepción puntual para esta persona en alguna sección; el resto se sigue heredando.</p>
+            <p><strong>Full</strong> — ve la sección y además la modifica. &nbsp;<strong>Limitado</strong> — la ve y la usa, pero no cambia lo de fondo. &nbsp;<strong>Sin acceso</strong> — no le aparece en el menú.</p>
+          </div>
+          <div class="permisos-grid" id="permisosGrid"></div>
+          <p class="permisos-nota" id="permisosNota" style="display:none;">Los administradores tienen acceso total a todo siempre — ni el rol ni las excepciones les aplican.</p>
+        </div>
+        <p class="error-msg" id="usuarioError"></p>
+        <div style="display:flex; gap:10px;">
+          <button type="submit" class="primary" id="btnGuardarUsuario">Crear usuario</button>
+          <button type="button" id="btnCancelarUsuario">Cancelar</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="panel">
+      <!-- La tabla tiene ocho columnas: en pantallas angostas scrollea ella sola
+           en vez de estirar la página entera. -->
+      <div style="overflow-x:auto">
+        <table style="min-width:760px">
+          <thead><tr><th>Nombre</th><th>Email</th><th>Cuenta</th><th>Rol</th><th>Equipo</th><th>Estado</th><th>Último ingreso</th><th></th></tr></thead>
+          <tbody id="usuariosBody"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="emptyState" style="display:none;">Todavía no hay usuarios cargados.</div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────── ROLES ─────────────────────────── -->
+  <div class="pantalla" id="pantalla-roles">
+    <h1 style="margin-bottom:6px;">Permisos por rol</h1>
+    <p style="font-size:13px; color:var(--mut); margin-bottom:16px; max-width:70ch;">
+      Lo que definas acá lo hereda toda persona que tenga ese rol asignado. Cambiar un
+      permiso acá alcanza a todos a la vez, sin que nadie tenga que volver a entrar.
+    </p>
+
+    <div class="aviso-admin">
+      <strong>Lo que solo puede hacer un administrador</strong>, sin importar el rol:
+      <ul id="listaSoloAdmin"></ul>
+    </div>
+
+    <div id="rolesLista"></div>
+    <div style="display:flex; gap:10px; margin-top:14px;">
+      <button type="button" class="primary" id="btnGuardarRoles">Guardar permisos</button>
+      <span id="rolesEstado" style="font-size:12px; color:var(--mut); align-self:center;"></span>
+    </div>
+    <p style="font-size:12px; color:var(--hin); margin-top:12px;">
+      Para crear, renombrar o borrar roles, usá “Editar roles” en la pantalla de Equipo del hub.
+    </p>
+  </div>
+
+  <div class="panel" style="display:flex; align-items:center; justify-content:space-between; gap:16px; margin-top:20px;">
+    <div style="font-size:12px; color:var(--mut);">Tu cuenta y tus notificaciones</div>
+    <div id="barraUsuario" style="min-width:220px;"></div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+(async function(){
+  var me = await montarBarraUsuario('barraUsuario');
+  if (!me) return;
+  activarOjosPassword(document.getElementById('usuarioForm'));
+
+  // Cada "ayuda" describe exactamente lo que deja hacer el backend
+  // (ver requireSectionAccess en cada archivo de src/routes).
+  //
+  // Equipo y Usuarios no figuran a propósito: son admin-only y no se otorgan por
+  // rol ni por excepción (SECCIONES_SOLO_ADMIN en src/middleware/auth.js). Si
+  // aparecieran acá, el desplegable prometería un acceso que el backend niega.
+  var SECCIONES = [
+    { key:'dashboard', label:'Dashboard', niveles:['full','sin_acceso'],
+      ayuda:'La pantalla de inicio: el resumen del mes, la agenda día por día y el registro de lo que hizo cada uno. Muestra nombres de clientes y de tareas, así que si alguien no tiene que verlos, dejalo en Sin acceso.' },
+    { key:'clientes', label:'Clientes', niveles:['full','limitado','sin_acceso'],
+      ayuda:'Limitado: ver la lista de clientes y entrar a cada ficha. Full: además crear y editar clientes, cargar sus links y sus fechas especiales.' },
+    { key:'tareas', label:'Tareas', niveles:['full','limitado','sin_acceso'],
+      ayuda:'No es una vista del menú: manda sobre las tareas donde sea que aparezcan. Sin acceso: las ve pero no las toca. Limitado: mueve el estado y marca el pago. Full: además crear, editar y asignar. Eliminar es solo del admin.' },
+    { key:'calendario', label:'Calendario', niveles:['full','limitado','sin_acceso'],
+      ayuda:'Limitado: ver la grilla del mes con las tareas y los eventos de la agenda de Google. Full: además crear, editar y borrar esos eventos. Conectar la agenda en sí es solo del admin.' },
+    { key:'brainstorm', label:'Brainstorming', niveles:['full','limitado','sin_acceso'],
+      ayuda:'Limitado: leer las ideas y los links de inspiración. Full: además escribirlos, borrarlos y pasar una idea a tarea.' },
+    { key:'delegacion', label:'Delegación', niveles:['full','sin_acceso'],
+      ayuda:'La tabla de quién tiene qué. Lo que se puede tocar acá adentro lo decide el permiso de Tareas.' },
+    { key:'historial', label:'Historial', niveles:['full','sin_acceso'],
+      ayuda:'Lo ya cumplido, por cliente y por mes.' },
+    { key:'comunicacion', label:'Comunicación', niveles:['full','limitado','sin_acceso'],
+      ayuda:'Limitado: leer el chat y las notas por cliente. Full: además escribir, y borrar lo propio.' },
+    { key:'estudio', label:'El estudio', niveles:['full','limitado','sin_acceso'],
+      ayuda:'Limitado: ver los datos y links del estudio. Full: además editarlos.' },
+  ];
+  var NIVEL_LABEL = { full:'Full', limitado:'Limitado', sin_acceso:'Sin acceso' };
+
+  var panel = document.getElementById('usuarioPanel');
+  var cuentaSelect = document.getElementById('u_rol');
+  var rolSelect = document.getElementById('u_rol_id');
+  var miembroInfo = document.getElementById('u_miembro');
+  var editandoId = null;
+  var roles = [];
+
+  // ---------- Pestañas ----------
+  document.querySelectorAll('.tab').forEach(function(t){
+    t.addEventListener('click', function(){
+      document.querySelectorAll('.tab').forEach(function(x){ x.classList.remove('on'); });
+      t.classList.add('on');
+      document.querySelectorAll('.pantalla').forEach(function(p){ p.classList.remove('on'); });
+      document.getElementById('pantalla-' + t.dataset.pantalla).classList.add('on');
+    });
+  });
+
+  // Muestra si la persona está en el equipo. Es solo informativo: desde acá no
+  // se enlaza ni se desenlaza (ver el comentario en src/routes/usuarios.js).
+  function pintarMiembro(u){
+    var m = u && u.miembro;
+    if (m) {
+      miembroInfo.textContent = m.rol ? 'En el equipo como ' + m.rol : 'En el equipo';
+      miembroInfo.classList.remove('vacio');
+    } else {
+      miembroInfo.textContent = u ? 'No está en el equipo' : '— se define en la sección Equipo —';
+      miembroInfo.classList.add('vacio');
+    }
+  }
+
+  async function cargarRoles(){
+    roles = (await ckJson('/api/roles')) || [];
+    rolSelect.innerHTML = '<option value="">— Sin rol (sin acceso a nada) —</option>'
+      + roles.map(function(r){ return '<option value="'+r.id+'">'+escapar(r.nombre)+'</option>'; }).join('');
+    pintarRoles();
+  }
+
+  function rolPorId(id){ return roles.find(function(r){ return String(r.id) === String(id); }) || null; }
+
+  // ---------- Grilla de permisos de un usuario ----------
+  // Cada sección muestra qué le da el rol y deja pisarlo solo si hace falta.
+  function pintarPermisosGrid(excepciones){
+    var rol = rolPorId(rolSelect.value);
+    document.getElementById('permisosGrid').innerHTML = SECCIONES.map(function(s){
+      var delRol = (rol && rol.permisos && rol.permisos[s.key]) || 'sin_acceso';
+      var excepcion = excepciones && excepciones[s.key];
+      var efectivo = excepcion || delRol;
+      return '<div class="permiso-fila">'
+        + '<label for="permiso_'+s.key+'" style="min-width:0">'
+        + '<span class="permiso-nombre">'+s.label+'</span>'
+        + '<span class="permiso-ayuda">'+s.ayuda+'</span></label>'
+        + '<div class="permiso-control">'
+        + '<select class="permiso-select" id="permiso_'+s.key+'" data-seccion="'+s.key+'">'
+        + '<option value=""'+(excepcion?'':' selected')+'>Según el rol ('+NIVEL_LABEL[delRol]+')</option>'
+        + s.niveles.map(function(n){ return '<option value="'+n+'"'+(n===excepcion?' selected':'')+'>Excepción: '+NIVEL_LABEL[n]+'</option>'; }).join('')
+        + '</select>'
+        + '<span class="permiso-efectivo'+(excepcion?' pisado':'')+'" data-efectivo="'+s.key+'">Queda en: '+NIVEL_LABEL[efectivo]+(excepcion?' (excepción)':'')+'</span>'
+        + '</div></div>';
+    }).join('');
+    document.querySelectorAll('.permiso-select').forEach(function(sel){
+      sel.addEventListener('change', refrescarEfectivos);
+    });
+  }
+
+  function refrescarEfectivos(){
+    var rol = rolPorId(rolSelect.value);
+    document.querySelectorAll('.permiso-select').forEach(function(sel){
+      var seccion = sel.dataset.seccion;
+      var delRol = (rol && rol.permisos && rol.permisos[seccion]) || 'sin_acceso';
+      var efectivo = sel.value || delRol;
+      var etiqueta = document.querySelector('[data-efectivo="'+seccion+'"]');
+      etiqueta.textContent = 'Queda en: ' + NIVEL_LABEL[efectivo] + (sel.value ? ' (excepción)' : '');
+      etiqueta.classList.toggle('pisado', !!sel.value);
+      // La opción "Según el rol" también actualiza su texto al cambiar de rol.
+      sel.options[0].textContent = 'Según el rol (' + NIVEL_LABEL[delRol] + ')';
+    });
+  }
+
+  rolSelect.addEventListener('change', refrescarEfectivos);
+
+  function actualizarEstadoPermisos(){
+    var esAdmin = cuentaSelect.value === 'admin';
+    document.getElementById('permisosNota').style.display = esAdmin ? 'block' : 'none';
+    document.querySelectorAll('.permiso-select').forEach(function(sel){ sel.disabled = esAdmin; });
+    rolSelect.disabled = false; // el rol sigue sirviendo para etiquetar, aunque sea admin
+  }
+  cuentaSelect.addEventListener('change', actualizarEstadoPermisos);
+
+  function getExcepciones(){
+    var out = {};
+    document.querySelectorAll('.permiso-select').forEach(function(sel){
+      if (sel.value) out[sel.dataset.seccion] = sel.value;
+    });
+    return out;
+  }
+
+  function abrirParaCrear(){
+    editandoId = null;
+    document.getElementById('usuarioForm').reset();
+    resetearOjosPassword(document.getElementById('usuarioForm'));
+    document.getElementById('usuarioPanelTitle').textContent = 'Nuevo usuario';
+    document.getElementById('btnGuardarUsuario').textContent = 'Crear usuario';
+    document.getElementById('u_passwordLabel').innerHTML = 'Contraseña inicial * <span style="color:var(--hin)">(mínimo 10 caracteres)</span>';
+    document.getElementById('u_password').required = true;
+    cuentaSelect.value = 'empleado';
+    rolSelect.value = '';
+    pintarMiembro(null);
+    pintarPermisosGrid(null);
+    actualizarEstadoPermisos();
+    document.getElementById('usuarioError').style.display = 'none';
+    panel.style.display = 'block';
+  }
+
+  function abrirParaEditar(u){
+    editandoId = u.id;
+    resetearOjosPassword(document.getElementById('usuarioForm'));
+    document.getElementById('u_nombre').value = u.nombre;
+    document.getElementById('u_email').value = u.email;
+    document.getElementById('u_password').value = '';
+    document.getElementById('u_password').required = false;
+    document.getElementById('u_passwordLabel').innerHTML = 'Nueva contraseña <span style="color:var(--hin)">(dejalo vacío para no cambiarla)</span>';
+    cuentaSelect.value = u.rol;
+    rolSelect.value = u.rol_id ? String(u.rol_id) : '';
+    pintarMiembro(u);
+    pintarPermisosGrid(u.permisos || {});
+    actualizarEstadoPermisos();
+    document.getElementById('usuarioPanelTitle').textContent = 'Editar usuario';
+    document.getElementById('btnGuardarUsuario').textContent = 'Guardar cambios';
+    document.getElementById('usuarioError').style.display = 'none';
+    panel.style.display = 'block';
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  document.getElementById('btnNuevoUsuario').addEventListener('click', abrirParaCrear);
+  document.getElementById('btnCancelarUsuario').addEventListener('click', function(){ panel.style.display = 'none'; });
+
+  // Resumen corto de qué le quedó habilitado, para la columna de la tabla.
+  function resumenPermisos(u){
+    if (u.rol === 'admin') return 'Todo';
+    var abiertas = Object.keys(u.efectivos || {}).filter(function(k){ return u.efectivos[k] !== 'sin_acceso'; });
+    if (abiertas.length === 0) return 'Sin acceso a nada';
+    return abiertas.length + ' de ' + Object.keys(u.efectivos).length + ' secciones';
+  }
+
+  async function cargarUsuarios(){
+    var usuarios = await ckJson('/api/usuarios');
+    if (!usuarios) return;
+    var tbody = document.getElementById('usuariosBody');
+    tbody.innerHTML = '';
+    document.getElementById('emptyState').style.display = usuarios.length === 0 ? 'block' : 'none';
+    usuarios.forEach(function(u){
+      var excepciones = Object.keys(u.permisos || {}).length;
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>'+escapar(u.nombre)+'</td>'
+        + '<td style="color:var(--mut)">'+escapar(u.email)+'</td>'
+        + '<td>'+(u.rol === 'admin' ? '<span class="badge admin">Admin</span>' : 'Equipo')+'</td>'
+        + '<td style="color:var(--mut)">'+(u.rol_nombre ? escapar(u.rol_nombre) : '<span style="color:var(--hin)">sin rol</span>')
+          + '<div style="font-size:10.5px;color:var(--hin)">'+resumenPermisos(u)
+          + (excepciones ? ' · '+excepciones+' excepción'+(excepciones>1?'es':'') : '')+'</div></td>'
+        + '<td style="color:var(--mut)">'+(u.miembro ? escapar(u.miembro.nombre) : '—')+'</td>'
+        + '<td><span class="badge '+(u.activo?'ok':'off')+'">'+(u.activo?'Activo':'Inactivo')+'</span></td>'
+        + '<td style="color:var(--mut)">'+(u.ultimo_login ? fmtFecha(u.ultimo_login) : 'Nunca')+'</td>'
+        + '<td><div class="fila-acciones">'
+        + '<button type="button" data-editar style="padding:5px 11px;font-size:12px">Editar</button>'
+        + (u.id !== me.id ? '<button type="button" class="'+(u.activo?'danger':'')+'" data-toggle style="padding:5px 11px;font-size:12px">'+(u.activo?'Desactivar':'Reactivar')+'</button>' : '')
+        + '</div></td>';
+      tr.querySelector('[data-editar]').addEventListener('click', function(){ abrirParaEditar(u); });
+      var toggle = tr.querySelector('[data-toggle]');
+      if (toggle) toggle.addEventListener('click', async function(){
+        // Al desactivar se avisa que además sale del equipo: es una consecuencia
+        // que no se ve desde acá y que después hay que deshacer a mano.
+        var aviso = u.activo
+          ? '¿Desactivar a ' + u.nombre + '?\n\n'
+            + 'No va a poder entrar, y sale del equipo: deja de aparecer para '
+            + 'asignarle tareas. Las que ya tiene asignadas se conservan.\n\n'
+            + 'Si después la reactivás, hay que volver a sumarla al equipo a mano.'
+          : '¿Reactivar a ' + u.nombre + '?\n\n'
+            + 'Va a poder entrar de nuevo, pero NO vuelve al equipo: si querés '
+            + 'asignarle tareas, sumala desde la sección Equipo.';
+        if (!confirm(aviso)) return;
+        var r = await ckJson('/api/usuarios/'+u.id+'/activo', { method:'PATCH', body: JSON.stringify({ activo: !u.activo }) });
+        if (r) cargarUsuarios();
+      });
+      tbody.appendChild(tr);
+    });
+  }
+
+  document.getElementById('usuarioForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    var errorEl = document.getElementById('usuarioError');
+    errorEl.style.display = 'none';
+
+    var body = {
+      nombre: document.getElementById('u_nombre').value.trim(),
+      email: document.getElementById('u_email').value.trim(),
+      rol: cuentaSelect.value,
+      rol_id: rolSelect.value ? parseInt(rolSelect.value, 10) : null,
+      permisos: getExcepciones(),
+    };
+    var password = document.getElementById('u_password').value;
+
+    var res;
+    if (!editandoId) {
+      body.password = password;
+      res = await ckFetch('/api/usuarios', { method:'POST', body: JSON.stringify(body) });
+    } else {
+      res = await ckFetch('/api/usuarios/'+editandoId, { method:'PUT', body: JSON.stringify(body) });
+    }
+    if (!res) return;
+    var data = await res.json().catch(function(){ return {}; });
+    if (!res.ok) { errorEl.textContent = data.error || 'No se pudo guardar.'; errorEl.style.display = 'block'; return; }
+
+    if (editandoId && password) {
+      var resPass = await ckFetch('/api/usuarios/'+editandoId+'/password', { method:'PUT', body: JSON.stringify({ password: password }) });
+      if (!resPass) return;
+      var dataPass = await resPass.json().catch(function(){ return {}; });
+      if (!resPass.ok) {
+        errorEl.textContent = dataPass.error || 'Se guardaron los datos, pero no se pudo cambiar la contraseña.';
+        errorEl.style.display = 'block';
+        return;
+      }
+    }
+
+    editandoId = null;
+    panel.style.display = 'none';
+    document.getElementById('usuarioForm').reset();
+    cargarUsuarios();
+  });
+
+  // ---------- Permisos por rol ----------
+  function pintarRoles(){
+    document.getElementById('rolesLista').innerHTML = roles.map(function(r, i){
+      var abiertas = SECCIONES.filter(function(s){ return (r.permisos||{})[s.key] && r.permisos[s.key] !== 'sin_acceso'; }).length;
+      return '<div class="rol-card'+(i===0?' abierta':'')+'" data-rol="'+r.id+'">'
+        + '<div class="rol-head"><span class="rol-nom">'+escapar(r.nombre)+'</span>'
+        + '<span class="rol-resumen">'+abiertas+' de '+SECCIONES.length+' secciones habilitadas ▾</span></div>'
+        + '<div class="rol-body"><div class="permisos-grid">'
+        + SECCIONES.map(function(s){
+            var nivel = (r.permisos||{})[s.key] || 'sin_acceso';
+            return '<div class="permiso-fila">'
+              + '<label style="min-width:0"><span class="permiso-nombre">'+s.label+'</span>'
+              + '<span class="permiso-ayuda">'+s.ayuda+'</span></label>'
+              + '<div class="permiso-control"><select data-rol="'+r.id+'" data-seccion="'+s.key+'">'
+              + s.niveles.map(function(n){ return '<option value="'+n+'"'+(n===nivel?' selected':'')+'>'+NIVEL_LABEL[n]+'</option>'; }).join('')
+              + '</select></div></div>';
+          }).join('')
+        + '</div></div></div>';
+    }).join('');
+    document.querySelectorAll('.rol-head').forEach(function(h){
+      h.addEventListener('click', function(){ h.parentElement.classList.toggle('abierta'); });
+    });
+  }
+
+  document.getElementById('btnGuardarRoles').addEventListener('click', async function(){
+    var estado = document.getElementById('rolesEstado');
+    estado.textContent = '';
+    var payload = roles.map(function(r){
+      var permisos = {};
+      document.querySelectorAll('select[data-rol="'+r.id+'"]').forEach(function(sel){
+        permisos[sel.dataset.seccion] = sel.value;
+      });
+      return { id: r.id, nombre: r.nombre, permisos: permisos };
+    });
+    var resp = await ckJson('/api/roles', { method:'PUT', body: JSON.stringify({ roles: payload }) });
+    if (!resp) return;
+    roles = resp.roles;
+    pintarRoles();
+    cargarUsuarios();
+    estado.textContent = '✓ Guardado. Ya les aplica a todos los que tengan estos roles.';
+    setTimeout(function(){ estado.textContent = ''; }, 4000);
+  });
+
+  // Espejo de SOLO_ADMIN en src/middleware/auth.js: si allá se agrega o se saca
+  // algo, hay que tocarlo también acá.
+  document.getElementById('listaSoloAdmin').innerHTML = [
+    'Crear, editar y desactivar usuarios, y resetear sus contraseñas',
+    'Crear, renombrar y borrar roles, y definir qué permisos lleva cada uno',
+    'Ver la sección Equipo, y agregar, editar y dar de baja a sus integrantes',
+    'Dar de baja clientes',
+    'Eliminar tareas',
+    'Borrar mensajes y notas escritos por otra persona',
+  ].map(function(t){ return '<li>'+t+'</li>'; }).join('');
+
+  await cargarRoles();
+  cargarUsuarios();
+})();
+</script>
+</body>
+</html>

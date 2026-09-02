@@ -1,0 +1,114 @@
+/* Estilos compartidos por las pantallas que no son el hub (login y usuarios).
+   La paleta es la misma del hub: si querés cambiar el aspecto de todo el
+   sistema, tocá estas variables y las del <style> de views/hub.html. */
+
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap');
+
+/* Misma paleta que views/hub.html: si cambia una, cambian las dos. */
+:root{
+  --bg:#EDEAE5;
+  --sur:#FFFFFF;
+  --sur2:#F1EDE7;
+  --sur3:#F8F7F4;
+  --bor:#DDD8D0;
+  --bor2:#CEC7BD;
+  --txt:#3F3A34;
+  --mut:#7B736A;
+  --hin:#9A9288;
+  --tan:#8E7053;
+  --tand:#7A6045;
+  --tana:#665039;
+  --tanl:#E7DDCF;
+  --tanlt:#6E5742;
+  --red:#B91C1C;
+  --redbg:#FEE2E2;
+  --green:#166534;
+  --r:10px;
+  --rs:6px;
+}
+
+*{box-sizing:border-box; margin:0; padding:0;}
+body{
+  background:var(--bg); color:var(--txt);
+  font-family:'DM Sans',system-ui,sans-serif; font-size:14px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--tand); text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+h1,h2,h3{font-family:'Syne',sans-serif; font-weight:600; margin:0 0 8px;}
+h1{font-size:24px;}
+h2{font-size:18px;}
+h3{font-size:15px;}
+
+.wrap{max-width:1000px; margin:0 auto; padding:28px 24px 60px;}
+
+.panel{
+  background:var(--sur); border:1px solid var(--bor); border-radius:var(--r);
+  padding:22px; margin-bottom:18px;
+}
+
+.field{display:flex; flex-direction:column; gap:6px; margin-bottom:14px;}
+.field label{font-size:12px; color:var(--mut);}
+.field input, .field select, .field textarea{
+  background:var(--bg); border:1px solid var(--bor2); border-radius:var(--rs);
+  padding:9px 11px; color:var(--txt); font-family:'DM Sans',sans-serif; font-size:13px;
+  outline:none;
+}
+.field input:focus, .field select:focus, .field textarea:focus{border-color:var(--tan); background:var(--sur);}
+.field textarea{resize:vertical; min-height:70px;}
+
+/* Campo de contraseña con ojo para mostrar/ocultar lo que se tipea.
+   .field es flex y estira sus hijos solos; adentro de este contenedor hay que
+   pedirle el ancho al input explícitamente o se encoge a su tamaño por defecto. */
+.campo-password{position:relative; display:flex;}
+.campo-password input{width:100%; padding-right:44px;}
+.btn-ojo{
+  position:absolute; right:6px; top:50%; transform:translateY(-50%);
+  width:32px; height:32px; padding:0; margin:0;
+  display:flex; align-items:center; justify-content:center;
+  background:none; border:none; border-radius:var(--rs); cursor:pointer;
+  font-size:15px; line-height:1; color:var(--mut);
+}
+.btn-ojo:hover{background:var(--sur2); color:var(--txt);}
+.btn-ojo:focus-visible{outline:2px solid var(--tan); outline-offset:1px;}
+
+button{
+  font-family:'DM Sans',sans-serif; font-size:13px;
+  border:1px solid var(--bor2); background:transparent; color:var(--mut);
+  border-radius:var(--rs); padding:8px 15px; cursor:pointer; transition:all .15s;
+}
+button:hover{background:var(--sur2); color:var(--txt);}
+button.primary{background:var(--tan); color:#fff; border-color:var(--tan); font-weight:500;}
+button.primary:hover{background:var(--tand); border-color:var(--tand); color:#fff;}
+button.primary:active{background:var(--tana); border-color:var(--tana);}
+button:active{background:var(--bg);}
+button.danger{border-color:transparent; color:var(--red); font-size:12px; padding:6px 12px;}
+button.danger:hover{background:var(--redbg);}
+
+table{width:100%; border-collapse:collapse; font-size:13px;}
+th{
+  text-align:left; color:var(--hin); font-size:10px; text-transform:uppercase;
+  letter-spacing:.06em; padding:9px 12px; border-bottom:1px solid var(--bor);
+}
+td{padding:11px 12px; border-bottom:1px solid var(--bor);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--bg);}
+
+.badge{font-size:10px; padding:2px 8px; border-radius:20px; white-space:nowrap;}
+.badge.ok{background:#D1FAE5; color:#064E3B;}
+.badge.off{background:var(--sur2); color:var(--mut);}
+.badge.admin{background:var(--tanl); color:var(--tand);}
+
+.error-msg{color:var(--red); font-size:12px; margin-top:10px; display:none;}
+.empty-state{color:var(--hin); font-size:13px; padding:30px; text-align:center;}
+
+.mo{
+  position:fixed; inset:0; background:rgba(63,58,52,.38);
+  display:none; align-items:center; justify-content:center; z-index:1000; padding:20px;
+}
+.mo.on{display:flex;}
+.mo-card{
+  background:var(--sur); border-radius:var(--r); padding:22px;
+  width:100%; max-width:420px; max-height:90vh; overflow-y:auto;
+}

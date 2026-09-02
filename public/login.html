@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Click · Ingresar</title>
+<link rel="stylesheet" href="/css/click.css">
+<style>
+  /* padding + 100dvh: en el teléfono la tarjeta no queda pegada a los bordes ni
+     tapada por la barra del navegador. */
+  body{display:flex; align-items:center; justify-content:center; min-height:100dvh; padding:20px;}
+  .login-box{width:100%; max-width:360px;}
+  .login-brand{display:flex; flex-direction:column; align-items:center; gap:10px; margin-bottom:6px;}
+  .login-brand img{height:54px; border-radius:10px; object-fit:cover;}
+  .login-brand h1{margin:0; font-family:'Syne',sans-serif; font-weight:700; font-size:26px; letter-spacing:-.01em;}
+  .login-sub{text-align:center; color:var(--mut); font-size:12px; margin:0 0 22px; font-family:'DM Mono',monospace;}
+  .login-box button[type="submit"]{width:100%; margin-top:4px;}
+</style>
+</head>
+<body>
+  <div class="login-box">
+    <div class="login-brand">
+      <img src="/img/logo.jpg" alt="Click">
+      <h1>Click</h1>
+    </div>
+    <p class="login-sub">Hub de planificación</p>
+    <div class="panel">
+      <form id="loginForm">
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="email" required autocomplete="username">
+        </div>
+        <div class="field">
+          <label>Contraseña</label>
+          <div class="campo-password">
+            <input type="password" id="password" required autocomplete="current-password">
+            <button type="button" class="btn-ojo" id="btnVerPassword" aria-label="Mostrar contraseña" aria-pressed="false" title="Mostrar contraseña">👁️</button>
+          </div>
+        </div>
+        <p class="error-msg" id="errorMsg"></p>
+        <button type="submit" class="primary">Ingresar</button>
+      </form>
+    </div>
+  </div>
+
+<script>
+// Mostrar/ocultar la contraseña. Arranca siempre oculta y no se recuerda el
+// estado: si alguien recarga el login, no queda la contraseña a la vista.
+(function(){
+  var input = document.getElementById('password');
+  var btn = document.getElementById('btnVerPassword');
+  btn.addEventListener('click', function(){
+    var mostrar = input.type === 'password';
+    input.type = mostrar ? 'text' : 'password';
+    btn.textContent = mostrar ? '🙈' : '👁️';
+    btn.setAttribute('aria-pressed', String(mostrar));
+    var etiqueta = mostrar ? 'Ocultar contraseña' : 'Mostrar contraseña';
+    btn.setAttribute('aria-label', etiqueta);
+    btn.setAttribute('title', etiqueta);
+    input.focus();
+  });
+})();
+
+document.getElementById('loginForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  var errorEl = document.getElementById('errorMsg');
+  errorEl.style.display = 'none';
+  var email = document.getElementById('email').value.trim();
+  var password = document.getElementById('password').value;
+  try {
+    var res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ email: email, password: password }),
+    });
+    var data = await res.json();
+    if (!res.ok) {
+      errorEl.textContent = data.error || 'Error al iniciar sesión.';
+      errorEl.style.display = 'block';
+      return;
+    }
+    window.location.href = '/hub.html';
+  } catch (err) {
+    errorEl.textContent = 'No se pudo conectar con el servidor.';
+    errorEl.style.display = 'block';
+  }
+});
+</script>
+</body>
+</html>

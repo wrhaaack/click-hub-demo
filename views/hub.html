@@ -1,0 +1,2223 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Click — Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/usuario-barra.css">
+<style>
+:root{
+  /* ── Fondos ────────────────────────────────────────────────────────────────
+     Tres capas: el fondo general, las superficies (cards, paneles) y una
+     alterna para celdas de fin de semana y filas intercaladas. */
+  --bg:#EDEAE5;        /* fondo general y campos de formulario */
+  --sur:#FFFFFF;       /* cards, paneles, el calendario */
+  --sur2:#F1EDE7;      /* hover y pastillas: se nota tanto sobre blanco como sobre el fondo */
+  --sur3:#F8F7F4;      /* superficie alterna, apenas separada del blanco */
+
+  /* ── Bordes ────────────────────────────────────────────────────────────────
+     Sólidos y no rgba: un borde con alpha se ve distinto según lo que tenga
+     detrás, y acá conviven cards blancas con el fondo general. */
+  --bor:#DDD8D0;       /* suave, para separar dentro de una card */
+  --bor2:#CEC7BD;      /* visible, para delimitar controles */
+
+  /* ── Textos ────────────────────────────────────────────────────────────── */
+  --txt:#3F3A34;       /* principal — 11:1 sobre blanco */
+  --mut:#7B736A;       /* secundario — apenas más oscuro que el #7E766D pedido para llegar a 4.7:1 sobre blanco */
+  --hin:#9A9288;       /* tenue: etiquetas y datos de apoyo */
+
+  /* ── Color principal ─────────────────────────────────────────────────────
+     La rampa va un escalón más oscura que la propuesta (#9A7B5C/#84684E/#725940):
+     sobre el #9A7B5C original el texto blanco del botón quedaba en 3.92:1, y a
+     13px hace falta 4.5:1. Corridos los tres a la vez se conserva la distancia
+     entre reposo, hover y apretado, y el tono sigue siendo el mismo tostado. */
+  --tan:#8E7053;       /* botones y acentos — blanco encima: 4.6:1 */
+  --tand:#7A6045;      /* hover — 5.9:1 */
+  --tana:#665039;      /* activo (mientras se aprieta) — 7.6:1 */
+  --tanl:#E7DDCF;      /* fondo suave: día seleccionado, resaltados */
+  --tanlt:#6E5742;     /* texto sobre ese fondo suave */
+
+  --r:10px;
+  --rs:6px;
+
+  /* ── Menú lateral ──────────────────────────────────────────────────────── */
+  --sb:#9C8163;        /* fondo */
+  --sbh:#93795C;       /* hover */
+  /* El item activo va un punto más oscuro que el #8F775D pedido: así el texto
+     blanco llega a 4.6:1 (el mínimo legible para texto chico) y además queda
+     una progresión clara fondo -> hover -> activo, que con los dos valores
+     originales casi no se distinguía. */
+  --sba:#8A7157;       /* item activo */
+  --sbt:#FFFFFF;       /* texto principal y del item activo */
+  --sbm:#F6F0E7;       /* texto secundario e items en reposo */
+  --sbb:#87704F;       /* separadores */
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;font-size:14px;line-height:1.5}
+.app{display:flex;min-height:100vh}
+.sb{width:220px;min-width:220px;background:var(--sb);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sb-logo{padding:20px 18px 18px;border-bottom:1px solid var(--sbb)}
+.sb-logo img{height:38px;display:block}
+.sb-sub{font-size:11px;color:var(--sbm);margin-top:6px;font-family:'DM Mono',monospace}
+.sb-nav{padding:14px 10px 0}
+.sb-sec{font-size:10px;font-weight:500;color:var(--sbm);letter-spacing:.08em;text-transform:uppercase;padding:0 8px;margin-bottom:5px}
+.nav-btn{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--rs);cursor:pointer;color:var(--sbm);font-size:13px;transition:all .15s;border:none;background:none;width:100%;text-align:left;font-family:'DM Sans',sans-serif;margin-bottom:2px}
+.nav-btn:hover{background:var(--sbh);color:var(--sbt)}
+.nav-btn.on{background:var(--sba);color:var(--sbt);font-weight:500}
+.nav-btn.on .nav-ico{opacity:1}
+.nav-ico{width:15px;height:15px;flex-shrink:0;opacity:.7}
+.nav-btn.on .nav-ico,.nav-btn:hover .nav-ico{opacity:1}
+.sb-div{height:1px;background:var(--sbb);margin:12px 0}
+.sb-cli{padding:0 10px;flex:1;overflow-y:auto;padding-bottom:16px}
+.sb-cl-item{padding:6px 10px;border-radius:var(--rs);font-size:12px;color:var(--sbm);cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:1px}
+.sb-cl-item:hover{background:var(--sbh);color:var(--sbt)}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.topbar{background:var(--sur);border-bottom:1px solid var(--bor);padding:13px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-shrink:0}
+.tl{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ptitle{font-size:15px;font-weight:500;font-family:'Syne',sans-serif}
+.sel{padding:6px 10px;border:1px solid var(--bor2);border-radius:var(--rs);background:var(--sur);font-family:'DM Sans',sans-serif;font-size:12px;color:var(--txt);outline:none}
+.sel:focus{border-color:var(--tan)}
+.btn{padding:7px 14px;border-radius:var(--rs);border:1px solid var(--bor2);background:transparent;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--mut);cursor:pointer;transition:all .15s}
+.btn:hover{background:var(--sur2);color:var(--txt)}
+.btn-p{background:var(--tan);color:#fff;border-color:var(--tan);font-weight:500}
+.btn-p:hover{background:var(--tand);border-color:var(--tand)}
+.btn-p:active{background:var(--tana);border-color:var(--tana)}
+.btn:active{background:var(--bg)}
+.btn-sm{padding:4px 10px;font-size:12px;border-radius:var(--rs);border:1px solid var(--bor2);background:transparent;font-family:'DM Sans',sans-serif;color:var(--mut);cursor:pointer}
+.btn-sm:hover{background:var(--sur2);color:var(--txt)}
+.content{padding:22px 24px;flex:1;overflow-y:auto}
+.scr{display:none}.scr.on{display:block}
+.sumbar{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px}
+.sum-c{background:var(--sur);border:1px solid var(--bor);border-radius:var(--r);padding:14px 16px}
+.sum-l{font-size:10px;color:var(--mut);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em}
+.sum-v{font-size:26px;font-weight:300;font-family:'DM Mono',monospace}
+.badge{font-size:10px;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.bp{background:#FEF3C7;color:#92400E}.bpr{background:#DBEAFE;color:#1E3A5F}.br{background:#EDE9FE;color:#3730A3}.bd{background:#D1FAE5;color:#064E3B}.bc{background:#F0FDF4;color:#166534}.bpag{background:#D1FAE5;color:#064E3B}.bnp{background:#FEE2E2;color:#991B1B}
+.fpill{font-size:10px;padding:1px 7px;border-radius:20px;background:var(--tanl);color:var(--tanlt);white-space:nowrap}
+.tasig{font-size:11px;color:var(--mut);background:var(--sur2);padding:1px 7px;border-radius:20px;white-space:nowrap}
+.tfecha{font-size:11px;color:var(--hin);font-family:'DM Mono',monospace}
+.tlim{font-size:11px;color:#B91C1C;font-family:'DM Mono',monospace}
+.add-btn{width:100%;padding:7px;border:1px dashed var(--bor2);border-radius:var(--rs);background:transparent;font-size:12px;color:var(--mut);cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:12px}
+.add-btn:hover{background:var(--sur2);color:var(--txt)}
+.rol-sec{margin-bottom:14px}.rol-sec:last-child{margin-bottom:0}
+.rol-lbl{font-size:10px;font-weight:500;color:var(--hin);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
+.trow{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--bor)}
+.trow:last-child{border-bottom:none}
+.trow-main{flex:1;min-width:0}
+.trow-desc{font-size:13px;font-weight:500;color:var(--txt)}
+.trow-meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;align-items:center}
+.trow-nota{font-size:11px;color:var(--mut);margin-top:3px;word-break:break-all}
+.trow-acts{display:flex;flex-direction:column;gap:3px;align-items:flex-end;flex-shrink:0}
+.trow-btns{display:flex;gap:4px;margin-top:3px}
+.tbtn{font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid var(--bor2);background:transparent;cursor:pointer;color:var(--mut);font-family:'DM Sans',sans-serif}
+.tbtn:hover{background:var(--sur2)}
+.tbtn-d{border-color:transparent;color:#B91C1C}
+.tbtn-d:hover{background:#FEE2E2}
+.e-sel{display:flex;gap:3px;flex-wrap:wrap;margin-top:5px}
+.ebtn{font-size:10px;padding:3px 8px;border-radius:20px;cursor:pointer;border:1px solid transparent;font-family:'DM Sans',sans-serif;opacity:.4;background:transparent}
+.ebtn:hover{opacity:.75}
+.ebtn.on{opacity:1;font-weight:500}
+.e-p{background:#FEF3C7!important;color:#92400E!important;border-color:#FDE68A!important}
+.e-pr{background:#DBEAFE!important;color:#1E3A5F!important;border-color:#BFDBFE!important}
+.e-r{background:#EDE9FE!important;color:#3730A3!important;border-color:#DDD6FE!important}
+.e-l{background:#D1FAE5!important;color:#064E3B!important;border-color:#A7F3D0!important}
+.e-c{background:#F0FDF4!important;color:#166534!important;border-color:#BBF7D0!important}
+.ccard{background:var(--sur);border:1px solid var(--bor);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:all .15s}
+.ccard:hover{border-color:var(--tan);box-shadow:0 2px 12px rgba(154,123,92,.16)}
+.cc-head{padding:16px 18px;display:flex;align-items:center;justify-content:space-between}
+.cc-nom{font-size:14px;font-weight:500;font-family:'Syne',sans-serif}
+.cc-foot{padding:10px 18px;border-top:1px solid var(--bor);font-size:12px;color:var(--mut);display:flex;align-items:center;justify-content:space-between}
+.cf{display:none;flex-direction:column;flex:1;overflow:hidden;background:var(--bg)}
+.cf.on{display:flex}
+.cf-hdr{background:var(--sur);border-bottom:1px solid var(--bor);padding:13px 24px;display:flex;align-items:center;gap:14px;flex-shrink:0}
+.cf-back{font-size:13px;color:var(--mut);background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;padding:0;display:flex;align-items:center;gap:6px}
+.cf-back:hover{color:var(--txt)}
+.cf-body{flex:1;overflow-y:auto;padding:24px}
+.cf-inner{max-width:900px;margin:0 auto}
+.cf-tabs{display:flex;border-bottom:1px solid var(--bor);background:var(--sur);border-radius:var(--r) var(--r) 0 0}
+.cf-tab{padding:10px 16px;font-size:12px;color:var(--mut);border:none;border-bottom:2px solid transparent;background:none;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:-1px}
+.cf-tab:hover{color:var(--txt)}
+.cf-tab.on{color:var(--tand);border-bottom-color:var(--tan);font-weight:500}
+.cf-pan{display:none;background:var(--sur);border:1px solid var(--bor);border-top:none;border-radius:0 0 var(--r) var(--r);padding:20px}
+.cf-pan.on{display:block}
+.filtros{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.fbtn{padding:5px 13px;border-radius:20px;border:1px solid var(--bor2);background:var(--sur);font-size:12px;color:var(--mut);cursor:pointer;font-family:'DM Sans',sans-serif}
+.fbtn:hover{background:var(--sur2);color:var(--txt)}
+.fbtn.on{background:var(--tan);color:#fff;border-color:var(--tan);font-weight:500}
+.cal-wrap{background:var(--sur);border:1px solid var(--bor);border-radius:var(--r);overflow:hidden}
+.cal-head{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--bor)}
+.cal-dn{padding:9px;font-size:10px;font-weight:500;color:var(--hin);text-align:center;text-transform:uppercase;letter-spacing:.05em}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr)}
+.cal-cell{min-height:80px;padding:7px;border-right:1px solid var(--bor);border-bottom:1px solid var(--bor)}
+.cal-cell:nth-child(7n){border-right:none}
+.cal-cell.om{background:var(--sur3);opacity:.55}
+/* El día de hoy lleva un aro por dentro (box-shadow inset) y no un border:
+   un borde de 2px correría el contenido de la celda y se vería el salto
+   contra las celdas vecinas, que ya tienen 1px de separación. */
+.cal-cell.hoy{background:var(--tanl);box-shadow:inset 0 0 0 2px var(--tan)}
+.cal-cell.hoy .cal-num{color:var(--tanlt);font-weight:600}
+.cal-num{font-size:11px;color:var(--hin);margin-bottom:4px;font-family:'DM Mono',monospace}
+.cal-cell.hoy .cal-num{color:var(--tand);font-weight:500}
+.cal-ev{font-size:10px;padding:2px 5px;border-radius:3px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Las tarjetas del resumen ahora son botones: se abren para mostrar de qué
+   tareas hablan. Se les rehace el aspecto porque un <button> trae lo suyo. */
+.sum-c{font-family:'DM Sans',sans-serif;text-align:left;cursor:pointer;transition:all .15s;width:100%}
+.sum-c:hover{border-color:var(--tan)}
+.sum-c.abierta{border-color:var(--tan);box-shadow:0 2px 12px rgba(154,123,92,.18)}
+.sum-c.abierta .sum-l{color:var(--tand)}
+
+.sum-detalle{display:none;background:var(--sur);border:1px solid var(--tan);border-radius:var(--r);padding:14px 16px;margin-bottom:22px}
+.sum-detalle.on{display:block}
+.sd-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.sd-tit{font-size:13px;font-weight:500;font-family:'Syne',sans-serif}
+.sd-n{font-size:11px;color:var(--mut);font-family:'DM Mono',monospace;font-weight:400}
+.sd-fila{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--bor)}
+.sd-fila:last-child{border-bottom:none}
+.sd-desc{font-size:13px;font-weight:500;flex:1;min-width:120px}
+.sd-cli{font-size:11px;color:var(--mut)}
+.sd-vacio{font-size:12px;color:var(--hin);padding:14px;text-align:center}
+
+.selector-mes{display:flex;gap:10px;align-items:center}
+.cal-google{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.gc-aviso{font-size:11.5px;color:var(--mut)}
+/* Los eventos de Google llevan un borde a la izquierda para no confundirlos
+   con las tareas, que son bloques de color plano. */
+.ev-G{background:#EEF2FF;color:#3730A3;border-left:3px solid #6366F1}
+.cal-ev.editable{cursor:pointer}
+.cal-ev.editable:hover{filter:brightness(.94)}
+.ev-E{background:#DBEAFE;color:#1E3A5F}.ev-D{background:#EDE9FE;color:#3730A3}.ev-C{background:#D1FAE5;color:#064E3B}.ev-S{background:#FEF3C7;color:#92400E}
+.bs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.bs-card{background:var(--sur);border:1px solid var(--bor);border-radius:var(--r);padding:16px}
+.bs-nom{font-size:14px;font-weight:500;font-family:'Syne',sans-serif;margin-bottom:12px}
+.idea-row{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.idea-in{flex:1;padding:6px 10px;border:1px solid var(--bor);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:13px;background:var(--bg);color:var(--txt);outline:none}
+.idea-in:focus{border-color:var(--tan);background:var(--sur)}
+.ibtn{width:26px;height:26px;border:none;background:none;cursor:pointer;color:var(--hin);font-size:13px;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ibtn.c:hover{background:var(--tanl);color:var(--tand)}
+.ibtn.d:hover{background:#FEE2E2;color:#B91C1C}
+.inspo-row{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.in-lbl{width:90px;padding:5px 8px;border:1px solid var(--bor);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:12px;background:var(--bg);color:var(--txt);outline:none}
+.in-url{flex:1;padding:5px 8px;border:1px solid var(--bor);border-radius:var(--rs);font-family:'DM Mono',monospace;font-size:11px;background:var(--bg);color:var(--tand);outline:none}
+.in-lbl:focus,.in-url:focus{border-color:var(--tan)}
+.add-s{width:100%;padding:6px;border:1px dashed var(--bor2);border-radius:var(--rs);background:transparent;font-size:12px;color:var(--mut);cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px}
+.add-s:hover{background:var(--sur2)}
+.bs-sep{height:1px;background:var(--bor);margin:12px 0}
+.del-row{background:var(--sur);border:1px solid var(--bor);border-radius:var(--rs);padding:10px 14px;display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:4px}
+.eq-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.eq-card{background:var(--sur);border:1px solid var(--bor);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:10px}
+.eq-av{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:500;font-family:'Syne',sans-serif;flex-shrink:0}
+.eq-nom{font-size:14px;font-weight:500;font-family:'Syne',sans-serif}
+.hist-cb{background:var(--sur);border:1px solid var(--bor);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
+.hist-ch{padding:12px 16px;border-bottom:1px solid var(--bor);background:var(--sur2);font-size:14px;font-weight:500;font-family:'Syne',sans-serif}
+.hist-ml{font-size:10px;font-weight:500;color:var(--hin);text-transform:uppercase;letter-spacing:.07em;margin:12px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--bor)}
+.hist-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--bor)}
+.hist-row:last-child{border-bottom:none}
+.hist-desc{font-size:13px;text-decoration:line-through;color:var(--mut);flex:1}
+.com-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.com-c{background:var(--sur);border:1px solid var(--bor);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:10px}
+.com-t{font-size:13px;font-weight:500;font-family:'Syne',sans-serif}
+.msg-list{flex:1;min-height:250px;max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
+.msg-b{background:var(--sur2);border-radius:var(--r);padding:10px 12px}
+.msg-a{font-size:11px;font-weight:500;color:var(--tand);margin-bottom:3px}
+.msg-t{font-size:13px;color:var(--txt);line-height:1.5;white-space:pre-wrap;word-break:break-word}
+.msg-f{font-size:10px;color:var(--hin);margin-top:4px;font-family:'DM Mono',monospace}
+.nota-i{background:var(--sur2);border-radius:var(--rs);padding:8px 12px;display:flex;align-items:flex-start;gap:8px}
+.nota-t{flex:1;font-size:13px;color:var(--txt);line-height:1.5}
+.nota-d{width:20px;height:20px;border:none;background:none;cursor:pointer;color:var(--hin);font-size:12px;border-radius:3px;display:flex;align-items:center;justify-content:center}
+.nota-d:hover{background:#FEE2E2;color:#B91C1C}
+.com-in-row{display:flex;gap:8px}
+.com-in{flex:1;padding:8px 10px;border:1px solid var(--bor2);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:13px;background:var(--bg);color:var(--txt);outline:none}
+.com-in:focus{border-color:var(--tan);background:var(--sur)}
+.est-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.est-c{background:var(--sur);border:1px solid var(--bor);border-radius:var(--r);padding:18px}
+.est-c.full{grid-column:1/-1}
+.est-t{font-size:14px;font-weight:500;font-family:'Syne',sans-serif;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.est-f{margin-bottom:10px}
+.est-l{font-size:10px;color:var(--hin);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.est-v{font-size:13px;color:var(--txt)}
+.est-link{font-size:13px;color:var(--tand);text-decoration:none;word-break:break-all}
+.est-link:hover{text-decoration:underline}
+.est-notes{background:var(--sur2);border-radius:var(--rs);padding:10px 12px;font-size:13px;color:var(--mut);line-height:1.6;white-space:pre-wrap;word-break:break-word}
+.est-li{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg);border-radius:var(--rs);border:1px solid var(--bor);margin-bottom:6px}
+.est-ll{font-size:12px;font-weight:500;color:var(--txt);min-width:80px}
+.est-lu{font-size:12px;color:var(--tand);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.est-lu:hover{text-decoration:underline}
+.fe-row{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.fe-d{padding:5px 8px;border:1px solid var(--bor);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:12px;background:var(--bg);color:var(--txt);outline:none;width:140px}
+.fe-l{flex:1;padding:5px 8px;border:1px solid var(--bor);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:12px;background:var(--bg);color:var(--txt);outline:none}
+.fe-d:focus,.fe-l:focus{border-color:var(--tan)}
+.cc-wrap{background:var(--sur);border:1px solid var(--bor);border-radius:var(--rs);overflow:hidden}
+.cc-head{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--bor)}
+.cc-dn{padding:6px 4px;font-size:9px;font-weight:500;color:var(--hin);text-align:center;text-transform:uppercase;background:var(--sur)}
+.cc-grid{display:grid;grid-template-columns:repeat(7,1fr)}
+.cc-cell{min-height:64px;padding:5px 6px;border-right:1px solid var(--bor);border-bottom:1px solid var(--bor);background:var(--sur)}
+.cc-cell:nth-child(7n){border-right:none}
+.cc-cell.om{background:var(--sur3);opacity:.55}
+.cc-cell.hoy{background:var(--tanl);box-shadow:inset 0 0 0 2px var(--tan)}
+.cc-num{font-size:10px;color:var(--hin);margin-bottom:2px;font-family:'DM Mono',monospace}
+.cc-cell.hoy .cc-num{color:var(--tand);font-weight:500}
+.cc-ev{font-size:9px;padding:1px 4px;border-radius:3px;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-esp{font-size:9px;padding:1px 4px;border-radius:3px;margin-bottom:1px;background:#FEF3C7;color:#92400E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mo{display:none;position:fixed;inset:0;background:rgba(63,58,52,.32);z-index:100;align-items:flex-start;justify-content:center;padding-top:50px}
+.mo{display:none;position:fixed;inset:0;background:rgba(63,58,52,.32);z-index:100;align-items:flex-start;justify-content:center;padding-top:50px}
+.mo.on{display:flex}
+.mo-card{background:var(--sur);border:1px solid var(--bor2);border-radius:var(--r);padding:22px 24px;width:440px;max-height:88vh;overflow-y:auto;box-shadow:0 8px 32px rgba(63,58,52,.12)}
+.mo-card h3{font-size:15px;font-weight:500;font-family:'Syne',sans-serif;margin-bottom:16px}
+.f{margin-bottom:11px}
+.f label{font-size:10px;color:var(--hin);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em}
+.f input,.f select,.f textarea{width:100%;padding:8px 10px;border:1px solid var(--bor2);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:13px;background:var(--bg);color:var(--txt);outline:none}
+.f input:focus,.f select:focus,.f textarea:focus{border-color:var(--tan);background:var(--sur)}
+.f-nota{font-size:11px;color:var(--mut);margin-top:5px;line-height:1.45}
+/* Persona que viene de antes y todavía no tiene usuario enlazado. */
+.eq-sinu{background:#FEF3C7;color:#92400E;margin:4px 0 0 5px;display:inline-block}
+.f-nota a{color:var(--tand)}
+/* El nombre de alguien que ya está en el equipo se muestra, no se edita: es el
+   del usuario y se cambia en la pantalla de Usuarios. */
+.f-fijo{padding:8px 10px;border:1px solid var(--bor);border-radius:var(--rs);background:var(--sur2);font-size:13px;color:var(--txt)}
+.f textarea{min-height:65px;resize:vertical}
+.f-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mo-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.sec-div{display:flex;align-items:center;gap:10px;margin:14px 0 10px}
+.sec-div span{font-size:10px;color:var(--hin);text-transform:uppercase;letter-spacing:.07em;white-space:nowrap}
+.sec-div::before,.sec-div::after{content:'';flex:1;height:1px;background:var(--bor2)}
+.lr{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.lr input{flex:1;padding:6px 10px;border:1px solid var(--bor);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:12px;background:var(--bg);color:var(--txt);outline:none}
+.lr input:focus{border-color:var(--tan)}
+.ldel{width:24px;height:24px;border:none;background:none;cursor:pointer;color:var(--hin);font-size:13px;border-radius:4px;display:flex;align-items:center;justify-content:center}
+.ldel:hover{background:#FEE2E2;color:#B91C1C}
+.al-btn{font-size:12px;color:var(--mut);background:none;border:1px dashed var(--bor2);border-radius:var(--rs);padding:5px 10px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px}
+.al-btn:hover{background:var(--sur2)}
+.chk{display:flex;align-items:center;gap:8px;margin-top:4px}
+.chk input[type=checkbox]{width:16px;height:16px;accent-color:var(--tan);cursor:pointer}
+.chk label{font-size:13px;color:var(--txt);cursor:pointer}
+.asig-pills{display:flex;flex-wrap:wrap;gap:6px;padding:8px;background:var(--bg);border:1px solid var(--bor2);border-radius:var(--rs);min-height:40px;margin-top:4px}
+.asig-pill{font-size:12px;padding:4px 12px;border-radius:20px;cursor:pointer;border:1px solid var(--bor2);background:var(--sur2);color:var(--txt);font-family:'DM Sans',sans-serif;transition:all .12s;user-select:none}
+.asig-pill.on{background:var(--tan);color:#fff;border-color:var(--tan)}
+.roles-list{display:flex;flex-direction:column;gap:4px}
+.roles-li{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--bor)}
+/* ── Agregados de la versión con login ─────────────────────────────────────── */
+/* El bloque de usuario va sobre la franja tostada: se le dan vuelta los colores
+   (las clases .ck-* viven en /css/usuario-barra.css). */
+/* El menú es position:sticky, y eso arma su propio contexto de apilamiento: sin
+   un z-index acá, el panel de notificaciones queda por debajo del contenido y se
+   ve el tablero a través de él. Va por debajo de los modales, que usan 100. */
+.sb{z-index:50}
+.sb-user{padding:12px 14px;border-top:1px solid var(--sbb);flex-shrink:0}
+.sb .ck-user{--ck-fg:var(--sbm);--ck-fg-fuerte:var(--sbt);--ck-hover:var(--sbh)}
+.sb-cli{flex:1 1 auto;min-height:0}
+/* Pantalla de carga inicial: mientras llegan los datos del servidor. */
+.cargando{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:2000;font-size:13px;color:var(--mut)}
+.cargando.off{display:none}
+/* Todo lo que solo puede tocar quien tiene permiso "full" se esconde con esto. */
+.solo-full{display:none!important}
+.rol-lbl.otros{color:#B91C1C}
+/* ── Dashboard ─────────────────────────────────────────────────────────────
+   Dos columnas: a la izquierda la agenda del mes día por día, a la derecha el
+   registro de lo que fue pasando. */
+.dash-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:14px;align-items:start}
+.dash-c{background:var(--sur);border:1px solid var(--bor);border-radius:var(--r);padding:16px;min-width:0}
+.dash-t{font-size:13px;font-weight:500;font-family:'Syne',sans-serif;margin-bottom:12px;display:flex;align-items:baseline;gap:8px}
+.dash-sub{font-size:11px;color:var(--hin);font-weight:400;font-family:'DM Mono',monospace;text-transform:lowercase}
+
+.agenda{max-height:520px;overflow-y:auto;padding-right:4px}
+.ag-dia{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--bor)}
+.ag-dia:last-child{border-bottom:none}
+.ag-dia.hoy{background:var(--tanl);border-radius:var(--rs);padding-left:7px;padding-right:7px;box-shadow:inset 0 0 0 2px var(--tan)}
+.ag-dia.finde .ag-num{color:var(--hin)}
+.ag-fecha{width:46px;flex-shrink:0;text-align:center}
+.ag-num{font-size:15px;font-family:'DM Mono',monospace;line-height:1.1}
+.ag-dia.hoy .ag-num{color:var(--tanlt);font-weight:600}
+.ag-dow{font-size:9px;color:var(--hin);text-transform:uppercase;letter-spacing:.06em}
+.ag-items{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;padding-top:1px}
+.ag-item{font-size:12px;line-height:1.35;display:flex;gap:5px;align-items:baseline;flex-wrap:wrap}
+.ag-cli{font-size:10px;color:var(--mut);background:var(--sur2);padding:1px 6px;border-radius:20px;white-space:nowrap}
+.ag-vacio{font-size:11px;color:var(--hin)}
+.ag-esp{font-size:11px;color:#92400E;background:#FEF3C7;padding:1px 6px;border-radius:20px}
+.ag-ev{font-size:11px;color:#1E3A5F;background:#DBEAFE;padding:1px 6px;border-radius:20px}
+
+.act-lista{max-height:520px;overflow-y:auto;padding-right:4px}
+.act-item{display:flex;gap:9px;padding:9px 0;border-bottom:1px solid var(--bor)}
+.act-item:last-child{border-bottom:none}
+.act-punto{width:7px;height:7px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.act-alta{background:#34D399}.act-edicion{background:#60A5FA}.act-baja{background:#F87171}
+.act-cuerpo{flex:1;min-width:0}
+.act-texto{font-size:12.5px;line-height:1.4;word-break:break-word}
+.act-pie{font-size:10px;color:var(--hin);font-family:'DM Mono',monospace;margin-top:2px}
+.act-vacio{font-size:12px;color:var(--hin);text-align:center;padding:26px}
+
+@media (max-width:900px){ .dash-cols{grid-template-columns:1fr} }
+
+/* Puntito de "hay mensajes nuevos" al lado de Comunicación. */
+.nav-punto{width:7px;height:7px;border-radius:50%;background:#F87171;margin-left:auto;flex-shrink:0}
+
+/* ── Botón de menú y fondo oscuro: solo existen en pantallas chicas ───────── */
+.menu-btn{
+  display:none;border:none;background:none;cursor:pointer;padding:6px;
+  border-radius:var(--rs);color:var(--mut);flex-shrink:0;line-height:0
+}
+.menu-btn:hover{background:var(--sur2);color:var(--txt)}
+.sb-fondo{
+  display:none;position:fixed;inset:0;background:rgba(26,23,20,.45);z-index:40
+}
+.sb-fondo.on{display:block}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   DE ACÁ PARA ABAJO: QUE ANDE EN CUALQUIER PANTALLA
+   El diseño de escritorio queda exactamente igual; esto solo entra cuando la
+   ventana se achica. Tres cortes: notebook chica, tablet y teléfono.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Hasta 1100px: se aprovecha mejor el ancho ───────────────────────────── */
+@media (max-width:1100px){
+  .sb{width:190px;min-width:190px}
+  .content{padding:18px 16px}
+  .topbar{padding:12px 16px}
+  .cf-hdr{padding:12px 16px}
+  .cf-body{padding:16px}
+  .sumbar{grid-template-columns:repeat(2,1fr)}
+  .com-grid,.est-wrap{grid-template-columns:1fr}
+}
+
+/* ── Hasta 860px: el menú pasa a ser un cajón que entra desde la izquierda ── */
+@media (max-width:860px){
+  .menu-btn{display:block}
+
+  .sb{
+    position:fixed;top:0;left:0;bottom:0;height:100dvh;width:250px;min-width:250px;
+    transform:translateX(-100%);transition:transform .22s ease;
+    z-index:60;box-shadow:2px 0 18px rgba(63,58,52,.22)
+  }
+  .sb.abierto{transform:translateX(0)}
+
+  .topbar{flex-wrap:wrap;row-gap:10px}
+  /* Los dos botones de alta pasan a ocupar todo el ancho, en su propia fila. */
+  .topbar>div:last-child{width:100%;display:flex;gap:8px}
+  .topbar>div:last-child .btn{flex:1}
+
+  .cf-hdr{flex-wrap:wrap;row-gap:8px}
+  .cf-hdr>div[style*="margin-left:auto"]{margin-left:0!important;width:100%}
+  .cf-hdr>div[style*="margin-left:auto"] .btn{flex:1}
+  /* La barrita vertical decorativa estorba cuando el encabezado se parte. */
+  .cf-hdr>div[style*="width:1px"]{display:none}
+
+  /* El calendario no se puede achicar: 7 columnas necesitan ancho. Se lo deja
+     scrollear en horizontal en vez de aplastar las celdas hasta lo ilegible. */
+  .cal-wrap,.cc-wrap{overflow-x:auto}
+  .cal-head,.cal-grid,.cc-head,.cc-grid{min-width:620px}
+
+  .cf-tabs{overflow-x:auto}
+  .cf-tab{white-space:nowrap}
+
+  .mo{align-items:flex-end;padding:0}
+  .mo-card{
+    width:100%!important;max-width:100%;border-radius:var(--r) var(--r) 0 0;
+    max-height:92dvh;padding:20px 18px
+  }
+}
+
+/* ── Hasta 560px: teléfono ───────────────────────────────────────────────── */
+@media (max-width:560px){
+  .content{padding:14px 12px}
+  .topbar{padding:10px 12px;gap:10px}
+  .sumbar{gap:8px;margin-bottom:16px}
+  .sum-c{padding:11px 12px}
+  .sum-v{font-size:21px}
+  .ptitle{font-size:14px}
+
+  /* Cada tarea ocupa el ancho completo: el estado y los botones abajo, no al
+     costado, que es lo que hacía que se cortaran. */
+  .trow{flex-direction:column;gap:6px}
+  .trow-acts{flex-direction:row;align-items:center;width:100%;justify-content:space-between}
+  .del-row{gap:6px}
+  .del-row>span{min-width:0!important}
+
+  .cf-pan{padding:14px}
+  .hist-row{flex-wrap:wrap;gap:6px}
+  .sd-fila{gap:6px}
+  .sd-desc{flex:1 1 100%}
+  .com-in-row{flex-wrap:wrap}
+  .com-in-row .com-in{min-width:0;flex:1 1 100%}
+  .msg-list{max-height:50dvh}
+  .eq-grid{grid-template-columns:1fr}
+  .bs-grid{grid-template-columns:1fr}
+  .idea-row,.inspo-row,.fe-row{flex-wrap:wrap}
+  .in-lbl,.in-url,.fe-d,.fe-l{min-width:0;flex:1 1 140px}
+  .lr{flex-wrap:wrap}
+  .filtros{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px}
+  .fbtn{white-space:nowrap}
+}
+
+/* ── Hasta 380px: los teléfonos más angostos ─────────────────────────────── */
+@media (max-width:380px){
+  /* .f-row es una grilla de dos columnas. Hasta acá los pares de campos entran
+     bien lado a lado; más angosto que esto, los selectores de fecha se cortan. */
+  .f-row{grid-template-columns:1fr;gap:0}
+  .topbar{gap:8px}
+  .sel{padding:5px 7px;font-size:11px}
+}
+
+/* En pantallas táctiles los objetivos chicos son difíciles de acertar. */
+@media (pointer:coarse){
+  .ebtn,.tbtn,.btn-sm,.ibtn{min-height:30px}
+  .nav-btn{padding:11px 10px}
+  .sb-cl-item{padding:9px 10px}
+}
+</style>
+</head>
+<body>
+<div class="cargando" id="cargando">Cargando…</div>
+<div class="sb-fondo" id="sbFondo" onclick="cerrarMenu()"></div>
+<div class="app">
+<aside class="sb" id="sbMenu">
+  <div class="sb-logo">
+    <img id="sbLogo" src="data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAVGBDgDASIAAhEBAxEB/8QAHAABAAIDAQEBAAAAAAAAAAAAAAcIBAUGAwIB/8QAURABAAEDAgEGBgwKCAYCAwEAAAECAwQFEQYHEiExQVETYXGBobEIFBciMlJVcpGTwdEVFiMzNEJihJTSJDZTgpKywuElQ1RWovBz4jVFdPH/xAAZAQEAAwEBAAAAAAAAAAAAAAAAAwQFAgH/xAAmEQEAAgIBAwQDAQEBAAAAAAAAAQIDEQQSITEUMkFREyIzYUJx/9oADAMBAAIRAxEAPwDagMVqgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA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AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH/2Q==" alt="Click">
+    <div class="sb-sub" id="sbSub">mayo 2026</div>
+  </div>
+  <div class="sb-nav">
+    <div class="sb-sec">Vistas</div>
+    <button class="nav-btn on" data-scr="dashboard" onclick="goScr('dashboard',this)"><svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="1.5"/><path d="M1 6h14M6 6v9"/></svg>Dashboard</button>
+    <button class="nav-btn" data-scr="clientes" onclick="goScr('clientes',this)"><svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>Clientes</button>
+    <button class="nav-btn" data-scr="calendario" onclick="goScr('calendario',this)"><svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="14" height="13" rx="1.5"/><path d="M1 6h14M5 1v2M11 1v2"/></svg>Calendario</button>
+    <button class="nav-btn" data-scr="brainstorm" onclick="goScr('brainstorm',this)"><svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="7" r="4"/><path d="M6 11v4M10 11v4M6 15h4"/></svg>Brainstorming</button>
+    <button class="nav-btn" data-scr="delegacion" onclick="goScr('delegacion',this)"><svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h5"/></svg>Delegación</button>
+    <button class="nav-btn" data-scr="historial" onclick="goScr('historial',this)"><svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>Historial</button>
+    <button class="nav-btn" data-scr="comunicacion" onclick="goScr('comunicacion',this)"><svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2h12a1 1 0 011 1v7a1 1 0 01-1 1H5l-3 3V3a1 1 0 011-1z"/></svg>Comunicación</button>
+    <button class="nav-btn" data-scr="equipo" onclick="goScr('equipo',this)"><svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5" cy="5" r="2.5"/><circle cx="11" cy="5" r="2.5"/><path d="M1 13c0-2.2 1.8-4 4-4s4 1.8 4 4"/></svg>Equipo</button>
+    <button class="nav-btn" data-scr="estudio" onclick="goScr('estudio',this)"><svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>El estudio</button>
+  </div>
+  <div class="sb-div"></div>
+  <div class="sb-cli">
+    <div class="sb-sec">Clientes</div>
+    <div id="sbCli"></div>
+  </div>
+  <div class="sb-user" id="barraUsuario"></div>
+</aside>
+<div class="main">
+  <div class="topbar">
+    <div class="tl">
+      <button class="menu-btn" onclick="alternarMenu()" aria-label="Abrir el menú">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 6h14M3 10h14M3 14h14"/></svg>
+      </button>
+      <span class="ptitle" id="ptitle">Dashboard</span>
+      <div class="selector-mes" id="selectorMes">
+        <select class="sel" id="mesEl" onchange="onFechaChange()">
+          <option value="0">Enero</option><option value="1">Febrero</option><option value="2">Marzo</option>
+          <option value="3">Abril</option><option value="4" selected>Mayo</option><option value="5">Junio</option>
+          <option value="6">Julio</option><option value="7">Agosto</option><option value="8">Septiembre</option>
+          <option value="9">Octubre</option><option value="10">Noviembre</option><option value="11">Diciembre</option>
+        </select>
+        <select class="sel" id="añoEl" onchange="onFechaChange()">
+          <option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option>
+          <option value="2028">2028</option><option value="2029">2029</option><option value="2030">2030</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" id="btnNuevoCliente" onclick="openMoCliente()">+ Cliente</button>
+      <button class="btn btn-p" id="btnNuevaTarea" onclick="openMoTarea(null)">+ Tarea</button>
+    </div>
+  </div>
+  <div class="cf" id="cfDiv">
+    <div class="cf-hdr">
+      <button class="cf-back" onclick="closeCF()">← Volver</button>
+      <div style="width:1px;height:20px;background:var(--bor)"></div>
+      <div style="font-size:15px;font-weight:500;font-family:'Syne',sans-serif" id="cfNom"></div>
+      <div style="font-size:12px;color:var(--mut)" id="cfMes2"></div>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn" id="cfAddBtn">+ Tarea</button>
+        <button class="btn btn-p" id="cfExpBtn">↓ Exportar</button>
+      </div>
+    </div>
+    <div class="cf-body"><div class="cf-inner" id="cfInner"></div></div>
+  </div>
+  <div class="content" id="mainContent">
+    <div class="scr on" id="scr-dashboard">
+      <div class="sumbar" id="sumbar"></div>
+      <div class="sum-detalle" id="sumDetalle"></div>
+      <div class="dash-cols">
+        <div class="dash-c">
+          <div class="dash-t">Fechas del mes <span class="dash-sub" id="dashMes"></span></div>
+          <div class="agenda" id="dashAgenda"></div>
+        </div>
+        <div class="dash-c">
+          <div class="dash-t">Últimas actividades</div>
+          <div class="act-lista" id="dashActividad"></div>
+        </div>
+      </div>
+    </div>
+    <div class="scr" id="scr-clientes"><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px" id="cGrid"></div></div>
+    <div class="scr" id="scr-calendario">
+      <div class="cal-google" id="calGoogle"></div>
+      <div class="filtros" id="calF"><button class="fbtn on" onclick="setCalF(&quot;todo&quot;,this)">Todo</button><button class="fbtn" onclick="setCalF('E',this)">Editor</button><button class="fbtn" onclick="setCalF('D',this)">Diseñadora</button><button class="fbtn" onclick="setCalF('C',this)">CM</button><button class="fbtn" onclick="setCalF('S',this)">SMM</button></div>
+      <div class="cal-wrap"><div class="cal-head" id="calHead"></div><div class="cal-grid" id="calGrid"></div></div>
+    </div>
+    <div class="scr" id="scr-brainstorm"><div class="bs-grid" id="bsGrid"></div></div>
+    <div class="scr" id="scr-delegacion">
+      <div class="filtros" id="delF"><button class="fbtn on" onclick="setDelF(null,this)">Todo</button></div>
+      <div id="delTable"></div>
+    </div>
+    <div class="scr" id="scr-historial">
+      <div class="filtros" id="histF"><button class="fbtn on" onclick="setHistF(null,this)">Todo</button></div>
+      <div style="display:flex;gap:8px;margin-bottom:14px"><button class="fbtn on" id="hvL" onclick="setHV(&quot;lista&quot;)">Lista</button><button class="fbtn" id="hvC" onclick="setHV(&quot;cal&quot;)">Calendario</button></div>
+      <div id="histContent"></div>
+    </div>
+    <div class="scr" id="scr-comunicacion">
+      <div class="com-grid">
+        <div class="com-c"><div class="com-t">Chat general</div><div class="msg-list" id="chatList"></div>
+          <div class="com-in-row" id="chatForm"><span class="tasig" id="chatYo" title="Los mensajes salen con tu nombre"></span><input class="com-in" id="chatTxt" placeholder="Escribí un mensaje..." onkeydown="if(event.key==='Enter')sendMsg()"><button class="btn btn-p" onclick="sendMsg()">Enviar</button></div></div>
+        <div class="com-c">
+          <div style="display:flex;align-items:center;justify-content:space-between"><div class="com-t">Notas por cliente</div><select class="sel" id="notasCli" onchange="renderNotas()"></select></div>
+          <div class="msg-list" id="notasList"></div>
+          <div class="com-in-row" id="notaForm"><input class="com-in" id="notaTxt" placeholder="Agregar nota..." onkeydown="if(event.key==='Enter')addNota()"><button class="btn btn-p" onclick="addNota()">+</button></div></div>
+      </div>
+    </div>
+    <div class="scr" id="scr-equipo">
+      <div class="eq-grid" id="eqGrid"></div>
+      <div style="margin-top:14px;display:flex;gap:8px">
+        <button class="btn btn-p" id="btnAgregarPersona" onclick="openMoPersona(null)">+ Sumar al equipo</button>
+        <button class="btn" id="btnEditarRoles" onclick="openMoRoles()" title="Los roles llevan los permisos, así que solo los edita un administrador">Editar roles</button>
+      </div>
+      <div style="margin-top:16px;background:var(--sur);border:1px solid var(--bor);border-radius:var(--r);padding:16px">
+        <div style="font-size:11px;font-weight:500;color:var(--hin);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Roles actuales</div>
+        <div id="rolesList"></div>
+      </div>
+    </div>
+    <div class="scr" id="scr-estudio"><div class="est-wrap" id="estWrap"></div></div>
+  </div>
+</div>
+</div>
+
+<!-- MODAL TAREA -->
+<div class="mo" id="moTarea">
+  <div class="mo-card">
+    <h3 id="moTareaTit">Nueva tarea</h3>
+    <div class="f"><label>Cliente</label><select id="mtCli"></select></div>
+    <div class="f"><label>Descripción</label><input type="text" id="mtDesc" placeholder="Ej: Reels de producto"></div>
+    <div class="f-row">
+      <div class="f"><label>Rol</label><select id="mtRol"></select></div>
+      <div class="f"><label>Formato</label>
+        <select id="mtFmt"><option value="">— Sin formato —</option><option>Story</option><option>Reel</option><option>Post</option><option>Carrusel</option><option>Video Story</option></select>
+      </div>
+    </div>
+    <div class="f">
+      <label>Asignado a <span style="font-size:10px;color:var(--hin);text-transform:none">(podés elegir varios)</span></label>
+      <div class="asig-pills" id="mtAsigPills"></div>
+    </div>
+    <div class="f-row">
+      <div class="f"><label>Fecha límite</label><input type="date" id="mtLim"></div>
+      <div class="f"><label>Fecha de publicación</label><input type="date" id="mtFecha"></div>
+    </div>
+    <div class="f"><label>Notas / links</label><textarea id="mtNotas" placeholder="Links, instrucciones, accesos..."></textarea></div>
+    <div class="chk"><input type="checkbox" id="mtPag"><label for="mtPag">Ya está pagado</label></div>
+    <div class="mo-btns">
+      <button class="btn" id="mtDelBtn" style="margin-right:auto;color:#B91C1C;border-color:transparent;display:none" onclick="deleteTareaFromModal()">Eliminar</button>
+      <button class="btn" onclick="closeMo('moTarea')">Cancelar</button>
+      <button class="btn btn-p" onclick="saveTarea()">Guardar</button>
+    </div>
+  </div>
+</div>
+<!-- MODAL CLIENTE -->
+<div class="mo" id="moCliente">
+  <div class="mo-card" style="width:460px">
+    <h3 id="moCliTit">Nuevo cliente</h3>
+    <div class="f"><label>Nombre</label><input type="text" id="mcNom" placeholder="Ej: Restaurante El Solar"></div>
+    <div class="f-row">
+      <div class="f"><label>Instagram</label><input type="text" id="mcIg" placeholder="@usuario"></div>
+      <div class="f"><label>Contacto</label><input type="text" id="mcCont" placeholder="Nombre"></div>
+    </div>
+    <div class="f"><label>Teléfono</label><input type="text" id="mcTel" placeholder="+54 9 ..."></div>
+    <div class="sec-div"><span>Links útiles</span></div>
+    <div id="mcLinks"></div><button class="al-btn" onclick="addCliLink()">+ Agregar link</button>
+    <div class="sec-div"><span>Notas</span></div>
+    <div class="f"><textarea id="mcNotas" placeholder="Briefing, tono de voz..." style="min-height:70px"></textarea></div>
+    <div class="mo-btns">
+      <button class="btn" id="mcDelBtn" style="margin-right:auto;color:#B91C1C;border-color:transparent;display:none" onclick="darDeBajaCliente()">Dar de baja</button>
+      <button class="btn" onclick="closeMo('moCliente')">Cancelar</button>
+      <button class="btn btn-p" onclick="saveCliente()">Guardar</button>
+    </div>
+  </div>
+</div>
+<!-- MODAL PERSONA -->
+<div class="mo" id="moPersona">
+  <div class="mo-card" style="width:360px">
+    <h3 id="moPerTit">Sumar al equipo</h3>
+    <div class="f" id="mpNombreF" style="display:none">
+      <label>Nombre</label>
+      <div class="f-fijo" id="mpNombre"></div>
+      <div class="f-nota" id="mpNombreNota"></div>
+    </div>
+    <div class="f" id="mpUsuarioF">
+      <label>Usuario</label>
+      <select id="mpUsuario"></select>
+      <div class="f-nota" id="mpNota"></div>
+    </div>
+    <div class="f"><label>Rol</label><select id="mpRol"></select></div>
+    <div class="mo-btns">
+      <button class="btn" id="mpDelBtn" style="margin-right:auto;color:#B91C1C;border-color:transparent;display:none" onclick="deletePersona()">Eliminar</button>
+      <button class="btn" onclick="closeMo('moPersona')">Cancelar</button>
+      <button class="btn btn-p" onclick="savePersona()">Guardar</button>
+    </div>
+  </div>
+</div>
+<!-- MODAL ROLES -->
+<div class="mo" id="moRoles">
+  <div class="mo-card" style="width:360px">
+    <h3>Editar roles</h3>
+    <div id="rolesEdit"></div>
+    <button class="al-btn" style="margin-top:8px" onclick="addRoleEdit()">+ Agregar rol</button>
+    <div class="mo-btns">
+      <button class="btn" onclick="closeMo('moRoles')">Cancelar</button>
+      <button class="btn btn-p" onclick="saveRoles()">Guardar</button>
+    </div>
+  </div>
+</div>
+<!-- MODAL EVENTO DE GOOGLE CALENDAR -->
+<div class="mo" id="moEvento">
+  <div class="mo-card" style="width:420px">
+    <h3 id="moEvTit">Nuevo evento</h3>
+    <div class="f"><label>Título</label><input type="text" id="mevTitulo" placeholder="Ej: Reunión con Boutique Lumá"></div>
+    <div class="f"><label>Fecha</label><input type="date" id="mevFecha"></div>
+    <div class="f-row">
+      <div class="f"><label>Hora de inicio <span style="font-size:10px;color:var(--hin);text-transform:none">(vacío = todo el día)</span></label><input type="time" id="mevIni"></div>
+      <div class="f"><label>Hora de fin</label><input type="time" id="mevFin"></div>
+    </div>
+    <div class="f"><label>Descripción</label><textarea id="mevDesc" placeholder="Detalles, link de la videollamada..."></textarea></div>
+    <a id="mevLink" href="#" target="_blank" style="font-size:12px;color:var(--tand);display:none">Abrir en Google Calendar ↗</a>
+    <div class="mo-btns">
+      <button class="btn" id="mevDelBtn" style="margin-right:auto;color:#B91C1C;border-color:transparent;display:none" onclick="delEvento()">Eliminar</button>
+      <button class="btn" onclick="closeMo('moEvento')">Cancelar</button>
+      <button class="btn btn-p" onclick="saveEvento()">Guardar</button>
+    </div>
+  </div>
+</div>
+<!-- MODAL ESTUDIO -->
+<div class="mo" id="moEstudio">
+  <div class="mo-card" style="width:500px">
+    <h3>Editar info del estudio</h3>
+    <div class="f"><label>Nombre</label><input type="text" id="meNom"></div>
+    <div class="f-row">
+      <div class="f"><label>Instagram</label><input type="text" id="meIg"></div>
+      <div class="f"><label>Email</label><input type="text" id="meEmail"></div>
+    </div>
+    <div class="f-row">
+      <div class="f"><label>Teléfono</label><input type="text" id="meTel"></div>
+      <div class="f"><label>WhatsApp</label><input type="text" id="meWa"></div>
+    </div>
+    <div class="sec-div"><span>Links útiles</span></div>
+    <div id="meLinks"></div><button class="al-btn" onclick="addEstLink()">+ Agregar link</button>
+    <div class="sec-div"><span>Notas internas</span></div>
+    <div class="f"><textarea id="meNotas" style="min-height:80px"></textarea></div>
+    <div class="mo-btns">
+      <button class="btn" onclick="closeMo('moEstudio')">Cancelar</button>
+      <button class="btn btn-p" onclick="saveEstudio()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+// ── CONSTANTS & STATE ────────────────────────────────────────────────────────
+const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const DIAS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+const ESTADOS = [
+  {k:'pendiente',   l:'Pendiente',   c:'e-p',  b:'bp'},
+  {k:'en progreso', l:'En progreso', c:'e-pr', b:'bpr'},
+  {k:'revisión',    l:'Revisión',    c:'e-r',  b:'br'},
+  {k:'listo',       l:'Listo',       c:'e-l',  b:'bd'},
+  {k:'cumplido',    l:'✓ Cumplido',  c:'e-c',  b:'bc'}
+];
+const BG = ['#DBEAFE','#EDE9FE','#D1FAE5','#FEF3C7','#FCE7F3','#E7DDCF','#FEF9C3'];
+const TC = ['#1E3A5F','#3730A3','#064E3B','#92400E','#831843','#6E5742','#713F12'];
+const CAL_CLS = ['ev-E','ev-D','ev-C','ev-S','ev-E','ev-D','ev-C'];
+
+// El estado arranca vacío: ahora los datos vienen del servidor (GET /api/estado),
+// no de localStorage. Las estructuras son exactamente las mismas de antes, así
+// que todo lo que dibuja la pantalla quedó igual; lo único que cambió es de
+// dónde salen y a dónde se guardan.
+let ROLES = [];        // ['Editor','Diseñadora',...] — el orden define los colores
+let clientes = [];
+let tareas = [];
+let ideas = {};
+let equipo = [];
+let estudio = {nombre:'',ig:'',email:'',tel:'',wa:'',links:[],notas:''};
+let mensajes = [];
+let notasCliente = {};
+let fechasEspeciales = {};
+let YO = null;         // usuario logueado: {id, nombre, rol, permisos}
+let curScr = 'dashboard';   // es la primera del menú y la que abre por defecto
+let curCF = null;
+let curCFTab = 'tareas';
+let calF = 'todo';
+let delF = null;
+let histF = null;
+let histV = 'lista';
+let histMes = null;
+let editTid = null;
+let editCid = null;
+let editPid = null;
+let tmpCliLinks = [];
+let tmpEstLinks = [];
+let tmpRoles = [];
+
+// ── PERMISOS ─────────────────────────────────────────────────────────────────
+// Espejo de lo que hace el backend (src/middleware/auth.js). Acá solo sirve para
+// no mostrar botones que el servidor va a rechazar: la decisión real es del
+// servidor, esto es comodidad para el que usa el hub.
+function puedo(seccion, nivel) { return puedeSeccion(YO, seccion, nivel || 'limitado'); }
+// Hay acciones que no dependen de los permisos por sección sino de ser admin:
+// borrar tareas, dar de baja clientes, editar los roles y toda la sección
+// Equipo. Ver SOLO_ADMIN en src/middleware/auth.js.
+function soyAdmin() { return !!YO && YO.rol === 'admin'; }
+
+// ── DATOS: CARGA Y GUARDADO ──────────────────────────────────────────────────
+// Antes había un saveAll() que volcaba todo a localStorage después de cada
+// cambio. Ahora cada acción manda su propio pedido a la API y actualiza el
+// estado local con lo que respondió el servidor, que es la fuente de verdad.
+
+async function cargarEstado() {
+  const data = await ckJson('/api/estado');
+  if (!data) return false;
+  YO = data.yo;
+  ROLES = data.roles || [];
+  clientes = data.clientes || [];
+  tareas = data.tareas || [];
+  ideas = data.ideas || {};
+  equipo = data.equipo || [];
+  estudio = data.estudio || estudio;
+  mensajes = data.mensajes || [];
+  notasCliente = data.notasCliente || {};
+  fechasEspeciales = data.fechasEspeciales || {};
+  normalizarTareas();
+  return true;
+}
+
+// asig tiene que ser siempre un array: lo dan por sentado el render y el modal.
+function normalizarTareas() {
+  tareas.forEach(function(t) {
+    if (!t.asig) t.asig = [];
+    else if (!Array.isArray(t.asig)) t.asig = [t.asig];
+    if (!t.asigIds) t.asigIds = [];
+  });
+}
+
+// Mete o reemplaza una tarea en el estado local con la versión del servidor.
+function upsertTarea(t) {
+  if (!t) return;
+  if (!Array.isArray(t.asig)) t.asig = t.asig ? [t.asig] : [];
+  if (!Array.isArray(t.asigIds)) t.asigIds = [];
+  var i = tareas.findIndex(function(x) { return x.id === t.id; });
+  if (i >= 0) tareas[i] = t; else tareas.push(t);
+}
+
+// Vuelve a pedirle al servidor todo el estado y redibuja. Se usa después de los
+// cambios que tocan varias cosas a la vez (roles, equipo, borrar un cliente).
+async function recargarYRender() {
+  if (await cargarEstado()) { aplicarPermisos(); renderAll(); }
+}
+
+// ── HELPERS ──────────────────────────────────────────────────────────────────
+function getMes() { return parseInt(document.getElementById('mesEl').value); }
+function getAno() { return parseInt(document.getElementById('añoEl').value); }
+function getPrefix() { return getAno() + '-' + String(getMes()+1).padStart(2,'0'); }
+
+function getRolIdx(rol) { var i = ROLES.indexOf(rol); return i >= 0 ? i : 0; }
+function getRolBg(rol) { return BG[getRolIdx(rol) % BG.length]; }
+function getRolTc(rol) { return TC[getRolIdx(rol) % TC.length]; }
+function getRolCalCls(rol) { return CAL_CLS[getRolIdx(rol) % CAL_CLS.length]; }
+function getEstado(k) { return ESTADOS.find(function(e){return e.k===k;}) || ESTADOS[0]; }
+
+function asigHtml(asig) {
+  if(!asig || !asig.length) return '';
+  var arr = Array.isArray(asig) ? asig : [asig];
+  return arr.map(function(a){ return '<span class="tasig">'+esc(a)+'</span>'; }).join('');
+}
+function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+// Tolerantes a que el modal no exista: el de "Mi cuenta" lo dibuja /js/api.js
+// recién cuando termina de cargar la sesión.
+function closeMo(id) { var el=document.getElementById(id); if(el) el.classList.remove('on'); }
+function openMo(id) { var el=document.getElementById(id); if(el) el.classList.add('on'); }
+
+// Quien no puede mover el estado ve solamente el estado en el que está, sin los
+// otros botones: no tiene sentido ofrecer un click que el servidor va a negar.
+function estadoSel(tid, estado) {
+  if(!puedo('tareas','limitado')) {
+    var e = getEstado(estado);
+    return '<div class="e-sel"><span class="ebtn on '+e.c+'">'+e.l+'</span></div>';
+  }
+  var h = '<div class="e-sel">';
+  ESTADOS.forEach(function(e) {
+    h += '<button class="ebtn ' + e.c + (estado===e.k?' on':'') + '" onclick="setEstado(' + tid + ',&quot;' + e.k + '&quot;)">' + e.l + '</button>';
+  });
+  return h + '</div>';
+}
+
+// El cambio se pinta enseguida y recién después se confirma contra el servidor.
+// Si el servidor lo rechaza (por permisos, o porque otro la borró), se vuelve
+// atrás y se avisa: nunca queda un estado en pantalla que no esté guardado.
+async function setEstado(tid, estado) {
+  var t = tareas.find(function(x){return x.id===tid;});
+  if(!t || t.estado === estado) return;
+  var anterior = t.estado;
+  t.estado = estado;
+  renderAll();
+  var actualizada = await ckJson('/api/tareas/'+tid+'/estado', {
+    method: 'PATCH', body: JSON.stringify({estado: estado})
+  });
+  if(!actualizada) { t.estado = anterior; renderAll(); return; }
+  upsertTarea(actualizada);
+  renderAll();
+}
+
+// ── MENÚ EN PANTALLAS CHICAS ─────────────────────────────────────────────────
+// Debajo de 860px el menú lateral se convierte en un cajón. Se abre con el botón
+// de la barra superior y se cierra al elegir algo, al tocar afuera o con Escape.
+function menuEsCajon() { return window.matchMedia('(max-width:860px)').matches; }
+function alternarMenu() {
+  var abierto = document.getElementById('sbMenu').classList.toggle('abierto');
+  document.getElementById('sbFondo').classList.toggle('on', abierto);
+}
+function cerrarMenu() {
+  document.getElementById('sbMenu').classList.remove('abierto');
+  document.getElementById('sbFondo').classList.remove('on');
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────────
+// El selector de mes solo aparece donde se lo cambia a mano. En el resto de las
+// vistas el mes sigue valiendo (es un estado global), pero se elige desde acá.
+var VISTAS_CON_MES = ['clientes', 'calendario'];
+function pintarSelectorDeMes(){
+  var el = document.getElementById('selectorMes');
+  if(el) el.style.display = VISTAS_CON_MES.indexOf(curScr) >= 0 ? '' : 'none';
+}
+
+var PAGE = {dashboard:'Dashboard',clientes:'Clientes',calendario:'Calendario',brainstorm:'Brainstorming',delegacion:'Delegación',historial:'Historial',comunicacion:'Comunicación',equipo:'Equipo',estudio:'El estudio'};
+function goScr(name, el) {
+  if(YO && !puedo(SCR_SECCION[name])) return;  // sección no habilitada para este usuario
+  if(menuEsCajon()) cerrarMenu();
+  closeCF();
+  document.querySelectorAll('.scr').forEach(function(s){s.classList.remove('on');});
+  document.querySelectorAll('.nav-btn').forEach(function(b){b.classList.remove('on');});
+  document.getElementById('scr-'+name).classList.add('on');
+  if(el) el.classList.add('on');
+  curScr = name;
+  document.getElementById('ptitle').textContent = PAGE[name];
+  pintarSelectorDeMes();
+  if(name==='dashboard') renderDash();
+  else if(name==='calendario') { renderCal(); pintarBarraGoogle(); refrescarEventosSiHaceFalta(); }
+  else if(name==='brainstorm') renderBS();
+  else if(name==='delegacion') renderDel();
+  else if(name==='historial') renderHist();
+  else if(name==='comunicacion') renderCom();
+  else if(name==='equipo') renderEq();
+  else if(name==='estudio') renderEst();
+}
+function onFechaChange() {
+  document.getElementById('sbSub').textContent = MESES[getMes()].toLowerCase()+' '+getAno();
+  renderAll();
+  if(curCF) renderCF();
+  // Los eventos de Google se piden por mes: al cambiarlo hay que traer los del nuevo.
+  refrescarEventosSiHaceFalta();
+}
+
+// Trae los eventos de Google solo si cambió el mes desde la última vez.
+async function refrescarEventosSiHaceFalta(){
+  if(!google.conectado) return;
+  if(googleMesCargado === getPrefix()) return;
+  await googleRefrescarMes();
+  if(curScr === 'calendario') renderCal();
+  if(curScr === 'dashboard') renderDash();
+}
+
+// ── FULLSCREEN CLIENTE ────────────────────────────────────────────────────────
+function openCF(cid) {
+  var c = clientes.find(function(x){return x.id===cid;});
+  if(!c) return;
+  if(menuEsCajon()) cerrarMenu();
+  curCF = cid;
+  curCFTab = 'tareas';
+  document.getElementById('cfNom').textContent = c.nombre;
+  document.getElementById('cfMes2').textContent = MESES[getMes()]+' '+getAno();
+  var addBtn = document.getElementById('cfAddBtn');
+  addBtn.onclick = function(){ openMoTarea(cid); };
+  addBtn.style.display = puedo('tareas','full') ? '' : 'none';
+  document.getElementById('cfExpBtn').onclick = function(){ exportar(cid); };
+  document.getElementById('cfDiv').classList.add('on');
+  document.getElementById('mainContent').style.display = 'none';
+  renderCF();
+}
+function closeCF() {
+  curCF = null;
+  document.getElementById('cfDiv').classList.remove('on');
+  document.getElementById('mainContent').style.display = '';
+}
+function setCFTab(tab) { curCFTab = tab; renderCF(); }
+function renderCF() {
+  if(!curCF) return;
+  var cid = curCF;
+  var c = clientes.find(function(x){return x.id===cid;});
+  var prefix = getPrefix();
+  var tabs = [{k:'tareas',l:'Tareas'},{k:'calendario',l:'Calendario'},{k:'historial',l:'Historial'},{k:'info',l:'Info'}];
+  var tabsH = tabs.map(function(t){
+    return '<button class="cf-tab'+(curCFTab===t.k?' on':'')+'" onclick="setCFTab(&quot;'+t.k+'&quot;)">'+t.l+'</button>';
+  }).join('');
+  document.getElementById('cfInner').innerHTML = '<div class="cf-tabs">'+tabsH+'</div><div class="cf-pan on" id="cfPan"></div>';
+  var pan = document.getElementById('cfPan');
+  if(!pan) return;
+
+  if(curCFTab==='tareas') {
+    var ts = tareas.filter(function(t){return t.cid===cid&&t.fecha&&t.fecha.startsWith(prefix)&&t.estado!=='cumplido';});
+    var h = '';
+    // Se agrupa por rol, y al final se agrega un grupo con las que quedaron
+    // etiquetadas con un rol que ya no existe: sin esto, borrar un rol hacía
+    // desaparecer de la pantalla tareas que seguían estando.
+    var grupos = ROLES.slice();
+    var huerfanas = ts.filter(function(t){ return ROLES.indexOf(t.rol) < 0; });
+    if(huerfanas.length) grupos.push(null);
+    grupos.forEach(function(rol){
+      var rt = rol === null ? huerfanas : ts.filter(function(t){return t.rol===rol;});
+      if(!rt.length) return;
+      h += '<div class="rol-sec"><div class="rol-lbl'+(rol===null?' otros':'')+'">'+(rol===null?'Sin rol asignado':esc(rol))+'</div>';
+      rt.forEach(function(t){
+        var conPago = ['Editor','Diseñadora'].indexOf(t.rol) >= 0;
+        h += '<div class="trow"><div class="trow-main"><div class="trow-desc">'+esc(t.desc)+'</div>'
+          +'<div class="trow-meta">'
+          +(t.formato?'<span class="fpill">'+esc(t.formato)+'</span>':'')
+          +asigHtml(t.asig)
+          +(t.fechaLimite?'<span class="tlim">límite: '+t.fechaLimite.slice(8)+'/'+t.fechaLimite.slice(5,7)+'</span>':'')
+          +(t.fecha?'<span class="tfecha">pub: '+t.fecha.slice(8)+'/'+t.fecha.slice(5,7)+'</span>':'')
+          +'</div>'
+          +(t.notas?'<div class="trow-nota">'+esc(t.notas)+'</div>':'')
+          +estadoSel(t.id, t.estado)
+          +'</div><div class="trow-acts">'
+          +(conPago?'<button onclick="togglePago('+t.id+')" class="badge '+(t.pagado?'bpag':'bnp')+'" style="border:none;cursor:'+(puedo('tareas','limitado')?'pointer':'default')+';font-family:inherit"'+(puedo('tareas','limitado')?'':' disabled')+'>'+(t.pagado?'pagado':'sin pagar')+'</button>':'')
+          +((puedo('tareas','full')||soyAdmin())?'<div class="trow-btns">'+(puedo('tareas','full')?'<button class="tbtn" onclick="openMoTarea('+t.id+',true)">Editar</button>':'')+(soyAdmin()?'<button class="tbtn tbtn-d" onclick="delTareaById('+t.id+')">✕</button>':'')+'</div>':'')
+          +'</div></div>';
+      });
+      h += '</div>';
+    });
+    if(!h) h = '<p style="color:var(--hin);font-size:13px;padding:20px;text-align:center">Sin tareas este mes</p>';
+    if(puedo('tareas','full')) h += '<button class="add-btn" onclick="openMoTarea('+cid+')">+ Agregar tarea</button>';
+    pan.innerHTML = h;
+  } else if(curCFTab==='calendario') {
+    pan.innerHTML = renderCliCalHtml(cid);
+  } else if(curCFTab==='historial') {
+    var cum = tareas.filter(function(t){return t.cid===cid&&t.estado==='cumplido';}).sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');});
+    var byM = {};
+    cum.forEach(function(t){var k=t.fecha?t.fecha.slice(0,7):'sf';if(!byM[k])byM[k]=[];byM[k].push(t);});
+    var h = '';
+    if(!cum.length) h = '<p style="color:var(--hin);font-size:13px;padding:20px;text-align:center">Sin tareas cumplidas</p>';
+    else Object.keys(byM).sort().reverse().forEach(function(m){
+      var lbl = m!=='sf'?MESES[parseInt(m.slice(5,7))-1]+' '+m.slice(0,4):'Sin fecha';
+      h += '<div class="hist-ml">'+lbl+'</div>';
+      byM[m].forEach(function(t){
+        h += '<div class="hist-row"><div class="hist-desc">'+esc(t.desc)+'</div>'
+          +'<div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">'+(t.formato?'<span class="fpill">'+esc(t.formato)+'</span>':'')+'<span class="badge bc">✓</span></div>'
+          +(soyAdmin()?'<button class="tbtn tbtn-d" onclick="delTareaById('+t.id+')">✕ Borrar</button>':'')+'</div>';
+      });
+    });
+    pan.innerHTML = h;
+  } else if(curCFTab==='info') {
+    var links = c.links&&c.links.length?c.links.map(function(l){return '<a href="'+esc(l.url)+'" target="_blank" style="font-size:13px;color:var(--tand);display:block;margin-bottom:5px">'+esc(l.label||l.url)+'</a>';}).join(''):'';
+    pan.innerHTML = '<div style="max-width:500px;display:flex;flex-direction:column;gap:12px">'
+      +(c.ig?'<div><div class="rol-lbl">Instagram</div><div style="font-size:13px">'+esc(c.ig)+'</div></div>':'')
+      +(c.contacto?'<div><div class="rol-lbl">Contacto</div><div style="font-size:13px">'+esc(c.contacto)+'</div></div>':'')
+      +(c.tel?'<div><div class="rol-lbl">Teléfono</div><div style="font-size:13px">'+esc(c.tel)+'</div></div>':'')
+      +(links?'<div><div class="rol-lbl">Links</div>'+links+'</div>':'')
+      +(c.notas?'<div style="background:var(--sur2);border-radius:var(--rs);padding:12px;font-size:12px;color:var(--mut);white-space:pre-wrap">'+esc(c.notas)+'</div>':'')
+      +(puedo('clientes','full')?'<button class="btn-sm" style="align-self:flex-start" onclick="openMoClienteEdit('+cid+')">Editar info</button>':'')
+      +'</div>';
+  }
+}
+
+function renderCliCalHtml(cid) {
+  var mes=getMes(),ano=getAno(),prefix=getPrefix();
+  var pd=new Date(ano,mes,1).getDay(), dm=new Date(ano,mes+1,0).getDate(), hoy=new Date();
+  var ts=tareas.filter(function(t){return t.cid===cid&&t.fecha&&t.fecha.startsWith(prefix);});
+  var feKey='fe-'+cid+'-'+prefix;
+  var fes=(fechasEspeciales[feKey]||[]).filter(function(f){return f.fecha&&f.label;});
+  var h='<div class="cc-wrap"><div class="cc-head">'+DIAS.map(function(d){return '<div class="cc-dn">'+d+'</div>';}).join('')+'</div><div class="cc-grid">';
+  for(var i=0;i<pd;i++) h+='<div class="cc-cell om"></div>';
+  for(var d=1;d<=dm;d++){
+    var ds=prefix+'-'+String(d).padStart(2,'0');
+    var eh=hoy.getDate()===d&&hoy.getMonth()===mes&&hoy.getFullYear()===ano;
+    var dt=ts.filter(function(t){return t.fecha===ds;});
+    var df=fes.filter(function(f){return f.fecha===ds;});
+    h+='<div class="cc-cell'+(eh?' hoy':'')+'"><div class="cc-num">'+d+'</div>';
+    df.forEach(function(f){h+='<div class="cc-esp">★ '+esc(f.label.substring(0,12))+'</div>';});
+    dt.forEach(function(t){h+='<div class="cc-ev '+getRolCalCls(t.rol)+'">'+(t.formato?t.formato+': ':'')+esc(t.desc.substring(0,13))+(t.desc.length>13?'…':'')+'</div>';});
+    h+='</div>';
+  }
+  h+='</div></div>';
+  var fesAll=fechasEspeciales[feKey]||[];
+  // Las fechas especiales solo las edita quien tiene "full" en Clientes.
+  var editaFe=puedo('clientes','full'), roFe=editaFe?'':' readonly';
+  h+='<div style="margin-top:16px"><div class="rol-lbl" style="margin-bottom:8px">Fechas especiales</div><div id="fesList-'+cid+'">';
+  fesAll.forEach(function(f,i){
+    h+='<div class="fe-row"><input class="fe-d"'+roFe+' type="date" value="'+esc(f.fecha||'')+'" onchange="updateFe('+cid+','+i+',&quot;fecha&quot;,this.value)"><input class="fe-l"'+roFe+' type="text" value="'+esc(f.label||'')+'" onchange="updateFe('+cid+','+i+',&quot;label&quot;,this.value)" placeholder="Ej: Lanzamiento...">'+(editaFe?'<button class="ibtn d" onclick="delFe('+cid+','+i+')">✕</button>':'')+'</div>';
+  });
+  h+='</div>'+(editaFe?'<button class="add-s" onclick="addFe('+cid+')">+ Agregar fecha especial</button>':'')+'</div>';
+  return h;
+}
+
+// ── RENDER SUMMARY & CLIENTES GRID ───────────────────────────────────────────
+// Las cuatro tarjetas del resumen. Cada una se puede abrir para ver de qué
+// tareas está hablando; abrir una cierra la anterior, y volver a tocar la misma
+// la cierra. El filtro elegido se guarda en sumAbierta.
+var TARJETAS = [
+  {clave:'todas',       titulo:'Tareas del mes', filtra:function(){ return true; }},
+  {clave:'pendiente',   titulo:'Pendientes',     filtra:function(t){ return t.estado==='pendiente'; }},
+  {clave:'en progreso', titulo:'En progreso',    filtra:function(t){ return t.estado==='en progreso'; }},
+  {clave:'listo',       titulo:'Listos',         filtra:function(t){ return t.estado==='listo'; }},
+];
+var sumAbierta = null;
+
+function tareasDelMes(){
+  var prefix = getPrefix();
+  return tareas.filter(function(t){ return t.fecha && t.fecha.startsWith(prefix); });
+}
+
+function renderSum() {
+  var ts = tareasDelMes();
+  document.getElementById('sumbar').innerHTML = TARJETAS.map(function(c){
+    var n = ts.filter(c.filtra).length;
+    return '<button type="button" class="sum-c'+(sumAbierta===c.clave?' abierta':'')+'" '
+      + 'onclick="abrirDetalle(&quot;'+c.clave+'&quot;)" '
+      + 'aria-expanded="'+(sumAbierta===c.clave)+'">'
+      + '<div class="sum-l">'+c.titulo+'</div><div class="sum-v">'+n+'</div></button>';
+  }).join('');
+  renderSumDetalle();
+}
+
+function abrirDetalle(clave){
+  sumAbierta = (sumAbierta === clave) ? null : clave;
+  renderSum();
+}
+
+function renderSumDetalle(){
+  var el = document.getElementById('sumDetalle');
+  if(!el) return;
+  if(!sumAbierta){ el.innerHTML = ''; el.classList.remove('on'); return; }
+  el.classList.add('on');
+
+  var tarjeta = TARJETAS.find(function(c){ return c.clave === sumAbierta; });
+  var lista = tareasDelMes().filter(tarjeta.filtra)
+    .sort(function(a,b){ return (a.fecha||'').localeCompare(b.fecha||''); });
+
+  var cabecera = '<div class="sd-top"><span class="sd-tit">'+tarjeta.titulo
+    + ' · ' + MESES[getMes()].toLowerCase() + ' ' + getAno()
+    + ' <span class="sd-n">' + lista.length + '</span></span>'
+    + '<button class="btn-sm" onclick="abrirDetalle(&quot;'+sumAbierta+'&quot;)">Cerrar ✕</button></div>';
+
+  if(!lista.length){
+    el.innerHTML = cabecera + '<div class="sd-vacio">No hay tareas en este estado.</div>';
+    return;
+  }
+
+  el.innerHTML = cabecera + lista.map(function(t){
+    var c = clientes.find(function(x){ return x.id === t.cid; });
+    var e = getEstado(t.estado);
+    return '<div class="sd-fila">'
+      + '<span class="badge '+e.b+'">'+e.l+'</span>'
+      + '<span class="sd-desc">'+esc(t.desc)+'</span>'
+      + (t.formato ? '<span class="fpill">'+esc(t.formato)+'</span>' : '')
+      + (c ? '<span class="sd-cli">'+esc(c.nombre)+'</span>' : '')
+      + asigHtml(t.asig)
+      + (t.fecha ? '<span class="tfecha">'+t.fecha.slice(8)+'/'+t.fecha.slice(5,7)+'</span>' : '')
+      + (puedo('tareas','full') ? '<button class="tbtn" onclick="openMoTarea('+t.id+',true)">Editar</button>' : '')
+      + '</div>';
+  }).join('');
+}
+function renderCli() {
+  document.getElementById('sbCli').innerHTML=clientes.map(function(c){return '<div class="sb-cl-item" onclick="openCF('+c.id+')">'+esc(c.nombre)+'</div>';}).join('');
+  var prefix=getPrefix();
+  document.getElementById('cGrid').innerHTML=clientes.map(function(c){
+    var ts=tareas.filter(function(t){return t.cid===c.id&&t.fecha&&t.fecha.startsWith(prefix);});
+    var bp=ts.filter(function(t){return t.estado==='pendiente';}).length;
+    var bpr=ts.filter(function(t){return t.estado==='en progreso';}).length;
+    var br=ts.filter(function(t){return t.estado==='revisión';}).length;
+    var bd=ts.filter(function(t){return t.estado==='listo';}).length;
+    return '<div class="ccard" onclick="openCF('+c.id+')">'
+      +'<div class="cc-head"><span class="cc-nom">'+esc(c.nombre)+'</span><span style="display:flex;gap:4px">'
+      +(bp?'<span class="badge bp">'+bp+'</span>':'')+(bpr?'<span class="badge bpr">'+bpr+'</span>':'')+(br?'<span class="badge br">'+br+'</span>':'')+(bd?'<span class="badge bd">'+bd+'</span>':'')
+      +'</span></div>'
+      +'<div class="cc-foot"><span>'+ts.length+' tarea'+(ts.length!==1?'s':'')+' este mes</span>'
+      +(puedo('clientes','full')?'<button class="btn-sm" onclick="event.stopPropagation();openMoClienteEdit('+c.id+')">Editar</button>':'')+'</div>'
+      +'</div>';
+  }).join('');
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────────
+// Dos paneles: la agenda del mes día por día, y el registro de lo que fue
+// pasando. Los datos se piden al abrir la vista y al cambiar de mes.
+var dashCargando = false;
+
+async function renderDash(){
+  var mesEl = document.getElementById('dashMes');
+  if(mesEl) mesEl.textContent = MESES[getMes()].toLowerCase()+' '+getAno();
+  if(dashCargando) return;
+  dashCargando = true;
+  try {
+    var periodo = getPrefix();
+    var agenda = await ckJson('/api/dashboard/agenda?periodo='+periodo);
+    var actividad = await ckJson('/api/dashboard/actividad?limite=40');
+    // Los eventos de Google se piden aparte: si Google no contesta, la agenda
+    // igual se dibuja con las tareas y las fechas especiales.
+    var eventos = await googleEventosDelMes(periodo);
+    if(periodo !== getPrefix()) return;   // cambiaste de mes mientras cargaba
+    pintarAgenda(agenda, eventos);
+    pintarActividad(actividad);
+  } finally {
+    dashCargando = false;
+  }
+}
+
+function pintarAgenda(datos, eventos){
+  var el = document.getElementById('dashAgenda');
+  if(!el) return;
+  if(!datos){ el.innerHTML='<div class="act-vacio">No se pudo cargar la agenda.</div>'; return; }
+
+  var mes=getMes(), ano=getAno(), prefix=getPrefix();
+  var diasDelMes = new Date(ano, mes+1, 0).getDate();
+  var hoy = new Date();
+
+  // Se agrupa todo por día antes de dibujar, para recorrer el mes una sola vez.
+  var porDia = {};
+  function meter(fecha, html){
+    if(!fecha) return;
+    if(!porDia[fecha]) porDia[fecha]=[];
+    porDia[fecha].push(html);
+  }
+  (datos.especiales||[]).forEach(function(f){
+    meter(f.fecha, '<div class="ag-item"><span class="ag-esp">★ '+esc(f.label||'Fecha especial')+'</span><span class="ag-cli">'+esc(f.cliente)+'</span></div>');
+  });
+  (eventos||[]).forEach(function(ev){
+    var hora = ev.horaInicio ? ev.horaInicio+' ' : '';
+    meter(ev.fecha, '<div class="ag-item"><span class="ag-ev">'+esc(hora)+esc(ev.titulo)+'</span></div>');
+  });
+  (datos.tareas||[]).forEach(function(t){
+    meter(t.fecha, '<div class="ag-item"><span>'+(t.formato?esc(t.formato)+': ':'')+esc(t.descripcion)+'</span><span class="ag-cli">'+esc(t.cliente)+'</span></div>');
+  });
+
+  var h='';
+  for(var d=1; d<=diasDelMes; d++){
+    var iso = prefix+'-'+String(d).padStart(2,'0');
+    var fecha = new Date(ano, mes, d);
+    var dow = fecha.getDay();
+    var esHoy = hoy.getDate()===d && hoy.getMonth()===mes && hoy.getFullYear()===ano;
+    var items = porDia[iso] || [];
+    h += '<div class="ag-dia'+(esHoy?' hoy':'')+((dow===0||dow===6)?' finde':'')+'">'
+      +'<div class="ag-fecha"><div class="ag-num">'+d+'</div><div class="ag-dow">'+DIAS[dow]+'</div></div>'
+      +'<div class="ag-items">'+(items.length ? items.join('') : '<span class="ag-vacio">—</span>')+'</div>'
+      +'</div>';
+  }
+  el.innerHTML = h;
+
+  // Se deja el día de hoy a la vista, que es lo que uno viene a mirar.
+  var hoyEl = el.querySelector('.ag-dia.hoy');
+  if(hoyEl) el.scrollTop = Math.max(0, hoyEl.offsetTop - el.offsetTop - 60);
+}
+
+function pintarActividad(lista){
+  var el = document.getElementById('dashActividad');
+  if(!el) return;
+  if(!lista || !lista.length){
+    el.innerHTML = '<div class="act-vacio">Todavía no pasó nada por acá.</div>';
+    return;
+  }
+  el.innerHTML = lista.map(function(a){
+    return '<div class="act-item">'
+      +'<span class="act-punto act-'+esc(a.accion)+'"></span>'
+      +'<div class="act-cuerpo"><div class="act-texto">'+esc(a.descripcion)+'</div>'
+      +'<div class="act-pie">'+esc(a.fecha)+'</div></div>'
+      +'</div>';
+  }).join('');
+}
+
+// ── RENDER CALENDARIO ─────────────────────────────────────────────────────────
+var calHead = null;
+function initCalHead() {
+  if(!calHead) { document.getElementById('calHead').innerHTML=DIAS.map(function(d){return '<div class="cal-dn">'+d+'</div>';}).join(''); calHead=true; }
+}
+function renderCal() {
+  initCalHead();
+  var mes=getMes(),ano=getAno(),prefix=getPrefix();
+  var pd=new Date(ano,mes,1).getDay(),dm=new Date(ano,mes+1,0).getDate(),hoy=new Date();
+  var h='';
+  for(var i=0;i<pd;i++) h+='<div class="cal-cell om"></div>';
+  for(var d=1;d<=dm;d++){
+    var ds=prefix+'-'+String(d).padStart(2,'0');
+    var eh=hoy.getDate()===d&&hoy.getMonth()===mes&&hoy.getFullYear()===ano;
+    var evs=tareas.filter(function(t){return t.fecha===ds&&t.estado!=='cumplido'&&(calF==='todo'||getRolIdx(t.rol)===getRolIdx(calF));});
+    h+='<div class="cal-cell'+(eh?' hoy':'')+'"><div class="cal-num">'+d+'</div>';
+    // Los eventos de Google van primero y con su propio color: son otra cosa
+    // que las tareas, y conviene distinguirlos de un vistazo.
+    if(calF==='todo'){
+      googleEventos.filter(function(ev){return ev.fecha===ds;}).forEach(function(ev){
+        var hora = ev.horaInicio ? ev.horaInicio+' ' : '';
+        h+='<div class="cal-ev ev-G'+(google.puedeEditar?' editable':'')+'" title="'+esc(ev.titulo)+'"'
+          +(google.puedeEditar?' onclick="openMoEvento(&quot;'+esc(ev.id)+'&quot;)"':'')+'>'
+          +esc(hora)+esc(ev.titulo.substring(0,14))+(ev.titulo.length>14?'…':'')+'</div>';
+      });
+    }
+    evs.forEach(function(t){var cn=clientes.find(function(c){return c.id===t.cid;});h+='<div class="cal-ev '+getRolCalCls(t.rol)+'" title="'+esc(t.desc)+'">'+(cn?esc(cn.nombre.split(' ')[0])+': ':'')+esc(t.desc.substring(0,13))+(t.desc.length>13?'…':'')+'</div>';});
+    h+='</div>';
+  }
+  document.getElementById('calGrid').innerHTML=h;
+}
+function setCalF(f,el){calF=f;document.querySelectorAll('#calF .fbtn').forEach(function(b){b.classList.remove('on');});el.classList.add('on');renderCal();}
+
+// ── GOOGLE CALENDAR ───────────────────────────────────────────────────────────
+// El estudio conecta UNA agenda (lo hace un admin, una sola vez) y desde acá
+// todo el equipo le agrega, edita y borra eventos. Los eventos son una capa
+// aparte de las tareas: se ven juntos en la grilla, con colores distintos.
+var google = { configurado:false, conectado:false, puedeEditar:false, puedeConectar:false, email:null };
+var googleEventos = [];      // los del mes que se está mirando
+var googleMesCargado = null;
+var editEventoId = null;
+
+async function googleCargarEstado(){
+  var e = await ckJson('/api/google/estado');
+  if(e) google = e;
+  return google;
+}
+
+// Trae los eventos del mes pedido. Devuelve [] si no hay agenda conectada, así
+// el resto de la pantalla no tiene que preocuparse por eso.
+async function googleEventosDelMes(periodo){
+  if(!google.conectado) return [];
+  var ano = parseInt(periodo.slice(0,4),10), mes = parseInt(periodo.slice(5,7),10);
+  var ultimo = new Date(ano, mes, 0).getDate();
+  var res = await ckFetch('/api/google/eventos?desde='+periodo+'-01&hasta='+periodo+'-'+String(ultimo).padStart(2,'0'));
+  if(!res) return [];
+  var datos = await res.json().catch(function(){ return null; });
+  if(res.ok) return datos || [];
+
+  // 409 = la conexión con Google caducó. No es un error pasajero: hay que
+  // reconectar la agenda, así que se refleja en la barra en vez de dejar el
+  // calendario en un estado que miente.
+  if(res.status === 409){
+    google.conectado = false;
+    google.caducado = true;
+    pintarBarraGoogle();
+  }
+  avisar((datos && datos.error) || 'No se pudieron traer los eventos de Google.');
+  return [];
+}
+
+async function googleRefrescarMes(){
+  var periodo = getPrefix();
+  googleEventos = await googleEventosDelMes(periodo);
+  googleMesCargado = periodo;
+  return googleEventos;
+}
+
+// Barra de arriba del calendario: el botón de agregar evento, o el cartel de
+// que todavía no hay agenda conectada.
+function pintarBarraGoogle(){
+  var el = document.getElementById('calGoogle');
+  if(!el) return;
+  if(!google.configurado){
+    el.innerHTML = google.puedeConectar
+      ? '<span class="gc-aviso">Google Calendar todavía no está configurado en el servidor (ver DESPLIEGUE.md).</span>'
+      : '';
+    return;
+  }
+  if(!google.conectado){
+    var texto = google.caducado
+      ? 'La conexión con Google caducó y hay que rehacerla.'
+      : 'Conectá la agenda del estudio para que el equipo cargue eventos.';
+    el.innerHTML = google.puedeConectar
+      ? '<button class="btn" onclick="googleConectar()">'+(google.caducado?'Reconectar':'Conectar')+' Google Calendar</button>'
+        + '<span class="gc-aviso">'+texto+'</span>'
+      : '<span class="gc-aviso">'+(google.caducado
+          ? 'La conexión con Google caducó. Pedile a un administrador que la rehaga.'
+          : 'La agenda de Google todavía no está conectada. Pedíselo a un administrador.')+'</span>';
+    return;
+  }
+  el.innerHTML = (google.puedeEditar ? '<button class="btn btn-p" onclick="openMoEvento(null)">+ Evento</button>' : '')
+    + '<span class="gc-aviso">Agenda: ' + esc(google.email || 'Google Calendar') + '</span>'
+    + (google.puedeConectar ? '<button class="btn-sm" onclick="googleDesconectar()">Desconectar</button>' : '');
+}
+
+async function googleConectar(){
+  var r = await ckJson('/api/google/conectar');
+  if(!r || !r.url) return;
+  // Se abre en la misma pestaña: Google no deja el consentimiento en un iframe
+  // y una ventana emergente suele quedar bloqueada.
+  window.location.href = r.url;
+}
+
+async function googleDesconectar(){
+  if(!confirm('¿Desconectar la agenda de Google?\n\nLos eventos no se borran de Google: el hub deja de mostrarlos.')) return;
+  var r = await ckJson('/api/google/conexion', {method:'DELETE'});
+  if(!r) return;
+  google.conectado = false;
+  googleEventos = [];
+  pintarBarraGoogle();
+  renderCal();
+}
+
+// ── Modal de evento ──
+function openMoEvento(id){
+  editEventoId = id;
+  var ev = id ? googleEventos.find(function(x){ return x.id === id; }) : null;
+  document.getElementById('moEvTit').textContent = ev ? 'Editar evento' : 'Nuevo evento';
+  document.getElementById('mevTitulo').value = ev ? ev.titulo : '';
+  document.getElementById('mevDesc').value = ev ? ev.descripcion : '';
+  document.getElementById('mevFecha').value = ev ? ev.fecha : (getPrefix()+'-'+String(new Date().getDate()).padStart(2,'0'));
+  document.getElementById('mevIni').value = ev ? ev.horaInicio : '';
+  document.getElementById('mevFin').value = ev ? ev.horaFin : '';
+  document.getElementById('mevDelBtn').style.display = ev ? '' : 'none';
+  var link = document.getElementById('mevLink');
+  link.style.display = (ev && ev.link) ? '' : 'none';
+  if(ev && ev.link) link.href = ev.link;
+  openMo('moEvento');
+}
+
+async function saveEvento(){
+  var datos = {
+    titulo: document.getElementById('mevTitulo').value.trim(),
+    descripcion: document.getElementById('mevDesc').value.trim(),
+    fecha: document.getElementById('mevFecha').value,
+    horaInicio: document.getElementById('mevIni').value,
+    horaFin: document.getElementById('mevFin').value,
+  };
+  if(!datos.titulo){ avisar('Poné un título para el evento'); return; }
+  if(!datos.fecha){ avisar('Elegí la fecha del evento'); return; }
+
+  var guardado = editEventoId
+    ? await ckJson('/api/google/eventos/'+encodeURIComponent(editEventoId), {method:'PUT', body: JSON.stringify(datos)})
+    : await ckJson('/api/google/eventos', {method:'POST', body: JSON.stringify(datos)});
+  if(!guardado) return;
+  closeMo('moEvento');
+  await googleRefrescarMes();
+  renderCal();
+  if(curScr === 'dashboard') renderDash();
+}
+
+async function delEvento(){
+  if(!editEventoId) return;
+  var ev = googleEventos.find(function(x){ return x.id === editEventoId; });
+  if(!confirm('¿Eliminar el evento' + (ev ? ' "'+ev.titulo+'"' : '') + ' de la agenda de Google?')) return;
+  var r = await ckJson('/api/google/eventos/'+encodeURIComponent(editEventoId)+'?titulo='+encodeURIComponent(ev ? ev.titulo : ''), {method:'DELETE'});
+  if(!r) return;
+  closeMo('moEvento');
+  await googleRefrescarMes();
+  renderCal();
+  if(curScr === 'dashboard') renderDash();
+}
+
+// ── BRAINSTORM ────────────────────────────────────────────────────────────────
+function bsKey(cid){return cid+'-'+getPrefix();}
+function bsInit(cid){var k=bsKey(cid);if(!ideas[k])ideas[k]={ideas:[],inspo:[]};return ideas[k];}
+function genKey(){return 'gen-'+getPrefix();}
+function genInit(){var k=genKey();if(!ideas[k])ideas[k]={ideas:[],inspo:[]};return ideas[k];}
+
+function renderBS(){
+  var gd=genInit();
+  // Con permiso "limitado" el brainstorming se ve pero no se toca: los campos
+  // quedan de solo lectura y desaparecen los botones de agregar y borrar.
+  var editable=puedo('brainstorm','full');
+  var ro=editable?'':' readonly';
+  function ideaRows(d, cid, isGen){
+    return (d.ideas||[]).map(function(v,i){
+      var cidStr=isGen?'&quot;gen&quot;':cid;
+      return '<div class="idea-row"><input class="idea-in"'+ro+' value="'+esc(v)+'" onchange="bsUpdateIdea('+cidStr+','+i+',this.value)" placeholder="Idea...">'
+        +((!isGen&&puedo('tareas','full'))?'<button class="ibtn c" onclick="ideaToTarea('+cid+','+i+')" title="→ Tarea">→</button>':'')
+        +(editable?'<button class="ibtn d" onclick="bsDelIdea('+cidStr+','+i+')">✕</button>':'')+'</div>';
+    }).join('');
+  }
+  function inspoRows(d, cid, isGen){
+    var cidStr=isGen?'&quot;gen&quot;':cid;
+    return (d.inspo||[]).map(function(l,i){
+      return '<div class="inspo-row"><input class="in-lbl"'+ro+' value="'+esc(l.label||'')+'" onchange="bsUpdateInspo('+cidStr+','+i+',&quot;label&quot;,this.value)" placeholder="Etiqueta"><input class="in-url"'+ro+' value="'+esc(l.url||'')+'" onchange="bsUpdateInspo('+cidStr+','+i+',&quot;url&quot;,this.value)" placeholder="https://...">'
+        +(l.url?'<a href="'+esc(l.url)+'" target="_blank" style="font-size:16px;color:var(--tand);text-decoration:none">↗</a>':'<span style="width:18px"></span>')
+        +(editable?'<button class="ibtn d" onclick="bsDelInspo('+cidStr+','+i+')">✕</button>':'')+'</div>';
+    }).join('');
+  }
+  var genHtml='<div class="bs-card" style="border-color:var(--tan);grid-column:1/-1"><div class="bs-nom">Ideas generales del mes</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">'
+    +'<div><div style="font-size:10px;color:var(--hin);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Ideas</div>'+ideaRows(gd,null,true)+(editable?'<button class="add-s" onclick="bsAddIdea(&quot;gen&quot;)">+ Agregar idea</button>':'')+'</div>'
+    +'<div><div style="font-size:10px;color:var(--hin);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Links de inspo</div>'+inspoRows(gd,null,true)+(editable?'<button class="add-s" onclick="bsAddInspo(&quot;gen&quot;)">+ Agregar link</button>':'')+'</div>'
+    +'</div></div>';
+  var cliHtml=clientes.map(function(c){
+    var d=bsInit(c.id);
+    return '<div class="bs-card"><div class="bs-nom">'+esc(c.nombre)+'</div>'
+      +'<div style="font-size:10px;color:var(--hin);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Ideas</div>'
+      +ideaRows(d,c.id,false)+(editable?'<button class="add-s" onclick="bsAddIdea('+c.id+')">+ Agregar idea</button>':'')
+      +'<div class="bs-sep"></div>'
+      +'<div style="font-size:10px;color:var(--hin);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Links de inspo</div>'
+      +inspoRows(d,c.id,false)+(editable?'<button class="add-s" onclick="bsAddInspo('+c.id+')">+ Agregar link</button>':'')
+      +'</div>';
+  }).join('');
+  document.getElementById('bsGrid').innerHTML=genHtml+cliHtml;
+}
+function bsGet(cid){return cid==='gen'?genInit():bsInit(cid);}
+// El bloque de ideas se guarda entero y con un respiro de medio segundo: si no,
+// escribir una idea larga dispararía un pedido por cada tecla.
+var bsTimers = {};
+function guardarBS(cid){
+  var d = bsGet(cid), periodo = getPrefix(), clave = cid + '-' + periodo;
+  clearTimeout(bsTimers[clave]);
+  bsTimers[clave] = setTimeout(function(){
+    ckJson('/api/brainstorm', {method:'PUT', body: JSON.stringify({
+      cliente: cid === 'gen' ? 'gen' : cid, periodo: periodo, ideas: d.ideas, inspo: d.inspo
+    })});
+  }, 500);
+}
+function bsAddIdea(cid){var d=bsGet(cid);d.ideas.push('');guardarBS(cid);renderBS();setTimeout(function(){var el=document.getElementById('bsGrid');var ins=el?el.querySelectorAll('.idea-in'):[];if(ins.length)ins[ins.length-1].focus();},50);}
+function bsUpdateIdea(cid,i,v){bsGet(cid).ideas[i]=v;guardarBS(cid);}
+function bsDelIdea(cid,i){bsGet(cid).ideas.splice(i,1);guardarBS(cid);renderBS();}
+function bsAddInspo(cid){var d=bsGet(cid);d.inspo.push({label:'',url:''});guardarBS(cid);renderBS();}
+function bsUpdateInspo(cid,i,f,v){bsGet(cid).inspo[i][f]=v;guardarBS(cid);}
+function bsDelInspo(cid,i){bsGet(cid).inspo.splice(i,1);guardarBS(cid);renderBS();}
+function ideaToTarea(cid,i){var d=bsInit(cid);var desc=d.ideas[i];if(!desc||!desc.trim())return;openMoTarea(cid);document.getElementById('mtDesc').value=desc;}
+
+// ── DELEGACION ────────────────────────────────────────────────────────────────
+function renderDelFiltros(){
+  var h='<button class="fbtn'+(delF===null?' on':'')+'" onclick="setDelF(null,this)">Todo</button>';
+  ROLES.forEach(function(r){h+='<button class="fbtn'+(delF===r?' on':'')+'" onclick="setDelF(&quot;'+r+'&quot;,this)">'+esc(r)+'</button>';});
+  document.getElementById('delF').innerHTML=h;
+}
+function renderDel(){
+  renderDelFiltros();
+  var prefix=getPrefix();
+  var ts=tareas.filter(function(t){return t.fecha&&t.fecha.startsWith(prefix)&&t.estado!=='cumplido'&&(delF===null||t.rol===delF);}).sort(function(a,b){return (a.fecha||'').localeCompare(b.fecha||'');});
+  if(!ts.length){document.getElementById('delTable').innerHTML='<p style="color:var(--hin);font-size:13px;padding:24px;text-align:center">Sin tareas este mes</p>';return;}
+  var bc={};ROLES.forEach(function(r,i){bc[r]=['bpr','br','bd','bp','bc'][i%5];});
+  document.getElementById('delTable').innerHTML=ts.map(function(t){
+    var c=clientes.find(function(x){return x.id===t.cid;});
+    return '<div class="del-row">'
+      +'<span style="min-width:85px"><span class="badge '+(bc[t.rol]||'bp')+'">'+esc(t.rol)+'</span></span>'
+      +'<span style="flex:1;min-width:120px"><div style="font-size:13px;font-weight:500">'+esc(t.desc)+'</div>'+(t.notas?'<div style="font-size:11px;color:var(--mut)">'+esc(t.notas)+'</div>':'')+'</span>'
+      +'<span style="font-size:12px;color:var(--mut)">'+(c?esc(c.nombre):'')+'</span>'
+      +asigHtml(t.asig)
+      +(t.fechaLimite?'<span class="tlim">↯ '+esc(t.fechaLimite)+'</span>':'')
+      +(t.fecha?'<span class="tfecha">'+esc(t.fecha)+'</span>':'')
+      +estadoSel(t.id,t.estado)
+      +(puedo('tareas','full')?'<button class="tbtn" onclick="openMoTarea('+t.id+',true)">Editar</button>':'')
+      +'</div>';
+  }).join('');
+}
+function setDelF(f,el){delF=f;document.querySelectorAll('#delF .fbtn').forEach(function(b){b.classList.remove('on');});el.classList.add('on');renderDel();}
+
+// ── HISTORIAL ─────────────────────────────────────────────────────────────────
+function renderHistFiltros(){
+  var h='<button class="fbtn'+(histF===null?' on':'')+'" onclick="setHistF(null,this)">Todo</button>';
+  ROLES.forEach(function(r){h+='<button class="fbtn'+(histF===r?' on':'')+'" onclick="setHistF(&quot;'+r+'&quot;,this)">'+esc(r)+'</button>';});
+  document.getElementById('histF').innerHTML=h;
+}
+function renderHist(){
+  renderHistFiltros();
+  var ts=tareas.filter(function(t){return t.estado==='cumplido'&&(histF===null||t.rol===histF);});
+  var el=document.getElementById('histContent');
+  if(histV==='lista'){
+    if(!ts.length){el.innerHTML='<p style="color:var(--hin);font-size:13px;padding:40px;text-align:center">No hay tareas cumplidas todavía</p>';return;}
+    var byC={};ts.forEach(function(t){if(!byC[t.cid])byC[t.cid]={};var m=t.fecha?t.fecha.slice(0,7):'sf';if(!byC[t.cid][m])byC[t.cid][m]=[];byC[t.cid][m].push(t);});
+    var h='';
+    clientes.forEach(function(c){
+      if(!byC[c.id])return;
+      h+='<div class="hist-cb"><div class="hist-ch">'+esc(c.nombre)+'</div><div style="padding:12px 16px">';
+      Object.keys(byC[c.id]).sort().reverse().forEach(function(m){
+        var lbl=m!=='sf'?MESES[parseInt(m.slice(5,7))-1]+' '+m.slice(0,4):'Sin fecha';
+        h+='<div class="hist-ml">'+lbl+'</div>';
+        byC[c.id][m].forEach(function(t){
+          h+='<div class="hist-row"><div class="hist-desc">'+esc(t.desc)+'</div>'
+            +'<div style="display:flex;gap:5px;align-items:center">'+(t.formato?'<span class="fpill">'+esc(t.formato)+'</span>':'')+'<span class="badge bc">✓</span>'+(t.fecha?'<span class="tfecha">'+esc(t.fecha.slice(8)+'/'+t.fecha.slice(5,7))+'</span>':'')+'</div>'
+            +(soyAdmin()?'<button class="tbtn tbtn-d" onclick="delTareaById('+t.id+')">✕ Borrar</button>':'')+'</div>';
+        });
+      });
+      h+='</div></div>';
+    });
+    el.innerHTML=h;
+  } else {
+    if(!histMes){var hm=ts.filter(function(t){return t.fecha;}).map(function(t){return t.fecha.slice(0,7);});histMes=hm.length?{mes:parseInt(hm.sort().reverse()[0].slice(5,7))-1,ano:parseInt(hm[0].slice(0,4))}:{mes:getMes(),ano:getAno()};}
+    var mes=histMes.mes,ano=histMes.ano,prefix=ano+'-'+String(mes+1).padStart(2,'0');
+    var mt=ts.filter(function(t){return t.fecha&&t.fecha.startsWith(prefix);});
+    var h='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><button onclick="navHM(-1)" class="btn-sm">←</button><span style="font-size:14px;font-weight:500;font-family:Syne,sans-serif">'+MESES[mes]+' '+ano+'</span><button onclick="navHM(1)" class="btn-sm">→</button></div>'
+      +'<div class="cal-wrap"><div class="cal-head">'+DIAS.map(function(d){return '<div class="cal-dn">'+d+'</div>';}).join('')+'</div><div class="cal-grid">';
+    var pd=new Date(ano,mes,1).getDay(),dm=new Date(ano,mes+1,0).getDate();
+    for(var i=0;i<pd;i++) h+='<div class="cal-cell om"></div>';
+    for(var d=1;d<=dm;d++){
+      var ds=prefix+'-'+String(d).padStart(2,'0');
+      var dt=mt.filter(function(t){return t.fecha===ds;});
+      h+='<div class="cal-cell'+(dt.length?' hoy':'')+'"><div class="cal-num">'+d+'</div>';
+      dt.forEach(function(t){var cn=clientes.find(function(c){return c.id===t.cid;});h+='<div class="cal-ev '+getRolCalCls(t.rol)+'" style="text-decoration:line-through;opacity:.8">'+(cn?esc(cn.nombre.split(' ')[0])+': ':'')+esc(t.desc.substring(0,12))+'</div>';});
+      h+='</div>';
+    }
+    h+='</div></div>';
+    el.innerHTML=h;
+  }
+}
+function setHistF(f,el){histF=f;document.querySelectorAll('#histF .fbtn').forEach(function(b){b.classList.remove('on');});el.classList.add('on');renderHist();}
+function setHV(v){histV=v;document.getElementById('hvL').classList.toggle('on',v==='lista');document.getElementById('hvC').classList.toggle('on',v==='cal');renderHist();}
+function navHM(d){if(!histMes)return;histMes.mes+=d;if(histMes.mes<0){histMes.mes=11;histMes.ano--;}if(histMes.mes>11){histMes.mes=0;histMes.ano++;}renderHist();}
+
+// ── COMUNICACION ──────────────────────────────────────────────────────────────
+// Ya no hay selector de autor: los mensajes y las notas salen con el nombre de
+// quien está logueado, y solo esa persona (o un admin) los puede borrar. El
+// botón de borrar aparece únicamente en lo propio.
+function renderCom(){
+  chatMarcarLeido();
+  var yo=document.getElementById('chatYo');
+  if(yo) yo.textContent = YO ? YO.nombre : '';
+  var ns=document.getElementById('notasCli');
+  if(ns){var cv2=ns.value;ns.innerHTML=clientes.map(function(c){return '<option value="'+c.id+'"'+(c.id==cv2?' selected':'')+'>'+esc(c.nombre)+'</option>';}).join('');}
+  renderMsgs();renderNotas();
+}
+function puedoBorrarPropio(item){ return !!YO && (YO.rol==='admin' || item.usuario_id===YO.id); }
+
+// ── Chat en vivo ─────────────────────────────────────────────────────────────
+// El chat lo usan varias personas a la vez, así que no puede depender de que
+// recargues la página: cada pocos segundos se pregunta si hay algo nuevo.
+// Se pide solo lo posterior al último mensaje que ya tenemos (?desde=), o sea
+// que cuando no pasó nada la respuesta es una lista vacía.
+var chatUltimoId = 0;   // el mensaje más nuevo que tenemos
+var chatVistoId = 0;    // hasta dónde miró el usuario
+var chatTimer = null;
+var CHAT_CADA = 5000;
+
+function chatMarcarLeido(){
+  chatVistoId = chatUltimoId;
+  pintarPuntoChat();
+}
+
+// Puntito al lado de "Comunicación" cuando hay mensajes que no viste.
+function pintarPuntoChat(){
+  var btn = document.querySelector('.nav-btn[data-scr="comunicacion"]');
+  if(!btn) return;
+  var hay = chatUltimoId > chatVistoId;
+  var punto = btn.querySelector('.nav-punto');
+  if(hay && !punto){
+    punto = document.createElement('span');
+    punto.className = 'nav-punto';
+    btn.appendChild(punto);
+  } else if(!hay && punto){
+    punto.remove();
+  }
+}
+
+async function chatBuscarNuevos(){
+  if(document.hidden) return;              // pestaña en segundo plano: no molestamos
+  if(!puedo('comunicacion')) return;
+  var nuevos = await ckJson('/api/comunicacion/mensajes?desde=' + chatUltimoId);
+  if(!nuevos || !nuevos.length) return;
+  nuevos.forEach(function(m){
+    if(!mensajes.some(function(x){ return x.id === m.id; })) mensajes.push(m);
+    chatUltimoId = Math.max(chatUltimoId, m.id);
+  });
+  if(curScr === 'comunicacion'){
+    renderMsgs();
+    renderNotas();
+    chatMarcarLeido();
+  } else {
+    pintarPuntoChat();
+  }
+}
+
+function chatArrancarSondeo(){
+  chatUltimoId = mensajes.reduce(function(max, m){ return Math.max(max, m.id || 0); }, 0);
+  chatVistoId = chatUltimoId;
+  if(chatTimer) clearInterval(chatTimer);
+  chatTimer = setInterval(chatBuscarNuevos, CHAT_CADA);
+  // Al volver a la pestaña se mira enseguida, sin esperar el turno.
+  document.addEventListener('visibilitychange', function(){
+    if(!document.hidden) chatBuscarNuevos();
+  });
+}
+function renderMsgs(){
+  var el=document.getElementById('chatList');if(!el)return;
+  // Si estabas leyendo mensajes viejos, el refresco no te tira para abajo:
+  // solo se sigue al final si ya estabas al final.
+  var pegadoAbajo = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+  if(!mensajes.length){el.innerHTML='<div style="font-size:13px;color:var(--hin);text-align:center;padding:20px">Sin mensajes</div>';return;}
+  el.innerHTML=mensajes.slice(-50).map(function(m){return '<div class="msg-b"><div style="display:flex;justify-content:space-between"><div class="msg-a">'+esc(m.autor)+'</div>'+(puedoBorrarPropio(m)?'<button onclick="delMsg('+m.id+')" style="font-size:10px;color:var(--hin);background:none;border:none;cursor:pointer">✕</button>':'')+'</div><div class="msg-t">'+esc(m.texto)+'</div><div class="msg-f">'+esc(m.fecha)+'</div></div>';}).join('');
+  if(pegadoAbajo) el.scrollTop=el.scrollHeight;
+}
+async function sendMsg(){
+  var input=document.getElementById('chatTxt'), t=input.value.trim();
+  if(!t) return;
+  input.value='';
+  var msg=await ckJson('/api/comunicacion/mensajes',{method:'POST',body:JSON.stringify({texto:t})});
+  if(!msg){ input.value=t; return; }   // falló: se le devuelve el texto al usuario
+  mensajes.push(msg);
+  chatUltimoId = Math.max(chatUltimoId, msg.id);
+  chatVistoId = chatUltimoId;
+  var lista=document.getElementById('chatList');
+  if(lista) lista.scrollTop = lista.scrollHeight;   // lo propio siempre lleva al final
+  renderMsgs();
+}
+async function delMsg(id){
+  var r=await ckJson('/api/comunicacion/mensajes/'+id,{method:'DELETE'});
+  if(!r) return;
+  mensajes=mensajes.filter(function(m){return m.id!==id;});
+  renderMsgs();
+}
+function renderNotas(){var s=document.getElementById('notasCli');if(!s)return;var cid=parseInt(s.value),k=cid+'-'+getPrefix(),notas=notasCliente[k]||[],el=document.getElementById('notasList');if(!el)return;if(!notas.length){el.innerHTML='<div style="font-size:13px;color:var(--hin);text-align:center;padding:20px">Sin notas este mes</div>';return;}el.innerHTML=notas.map(function(n){return '<div class="nota-i"><div class="nota-t">'+esc(n.texto)+'<div class="msg-f">'+esc(n.autor)+' · '+esc(n.fecha)+'</div></div>'+(puedoBorrarPropio(n)?'<button class="nota-d" onclick="delNota('+n.id+')">✕</button>':'')+'</div>';}).join('');}
+async function addNota(){
+  var s=document.getElementById('notasCli'), input=document.getElementById('notaTxt'), t=input.value.trim();
+  if(!t||!s||!s.value) return;
+  var cid=parseInt(s.value), periodo=getPrefix(), k=cid+'-'+periodo;
+  input.value='';
+  var nota=await ckJson('/api/comunicacion/notas',{method:'POST',body:JSON.stringify({cliente:cid,periodo:periodo,texto:t})});
+  if(!nota){ input.value=t; return; }
+  if(!notasCliente[k]) notasCliente[k]=[];
+  notasCliente[k].push(nota);
+  renderNotas();
+}
+async function delNota(id){
+  var r=await ckJson('/api/comunicacion/notas/'+id,{method:'DELETE'});
+  if(!r) return;
+  Object.keys(notasCliente).forEach(function(k){
+    notasCliente[k]=notasCliente[k].filter(function(n){return n.id!==id;});
+  });
+  renderNotas();
+}
+
+// ── EQUIPO ─────────────────────────────────────────────────────────────────────
+function renderEq(){
+  document.getElementById('eqGrid').innerHTML=equipo.map(function(p){
+    var ini=p.nombre.split(' ').map(function(w){return w[0];}).join('').toUpperCase().slice(0,2);
+    var bg=getRolBg(p.rol),tc=getRolTc(p.rol);
+    return '<div class="eq-card"><div style="display:flex;align-items:center;gap:12px"><div class="eq-av" style="background:'+bg+';color:'+tc+'">'+ini+'</div><div><div class="eq-nom">'+esc(p.nombre)+'</div><span class="badge" style="background:'+bg+';color:'+tc+';margin-top:4px;display:inline-block">'+esc(p.rol)+'</span>'+(p.usuario_id?'':'<span class="badge eq-sinu" title="No tiene usuario enlazado: no le llegan los avisos de sus tareas. Editala para enlazarlo.">sin usuario</span>')+'</div></div>'+(soyAdmin()?'<button class="btn-sm" onclick="openMoPersona('+p.id+')">Editar</button>':'')+'</div>';
+  }).join('');
+  renderRolesList();
+}
+function renderRolesList(){
+  var el=document.getElementById('rolesList');if(!el)return;
+  el.innerHTML=ROLES.map(function(r,i){
+    return '<div class="roles-li"><div style="width:12px;height:12px;border-radius:3px;background:'+BG[i%BG.length]+';flex-shrink:0"></div><span style="font-size:13px;flex:1">'+esc(r)+'</span></div>';
+  }).join('');
+}
+
+// ── ESTUDIO ───────────────────────────────────────────────────────────────────
+function renderEst(){
+  var e=estudio;
+  var lh=e.links&&e.links.length?e.links.map(function(l){return '<div class="est-li"><span class="est-ll">'+esc(l.label)+'</span><a class="est-lu" href="'+esc(l.url)+'" target="_blank">'+esc(l.url)+'</a></div>';}).join(''):'<div style="font-size:13px;color:var(--hin)">Sin links</div>';
+  document.getElementById('estWrap').innerHTML=
+    '<div class="est-c"><div class="est-t">Datos del estudio '+(puedo('estudio','full')?'<button class="btn-sm" onclick="openMoEstudio()">Editar</button>':'')+'</div>'
+    +(e.nombre?'<div class="est-f"><div class="est-l">Nombre</div><div class="est-v">'+esc(e.nombre)+'</div></div>':'')
+    +(e.ig?'<div class="est-f"><div class="est-l">Instagram</div><div class="est-v">'+esc(e.ig)+'</div></div>':'')
+    +(e.email?'<div class="est-f"><div class="est-l">Email</div><div class="est-v">'+esc(e.email)+'</div></div>':'')
+    +(e.tel?'<div class="est-f"><div class="est-l">Teléfono</div><div class="est-v">'+esc(e.tel)+'</div></div>':'')
+    +(e.wa?'<div class="est-f"><div class="est-l">WhatsApp</div><div class="est-v">'+esc(e.wa)+'</div></div>':'')
+    +'</div>'
+    +'<div class="est-c"><div class="est-t">Links útiles</div>'+lh+'</div>'
+    +(e.notas?'<div class="est-c full"><div class="est-t">Notas internas</div><div class="est-notes">'+esc(e.notas)+'</div></div>':'');
+}
+
+// ── FECHAS ESPECIALES ─────────────────────────────────────────────────────────
+function feKey(cid){return 'fe-'+cid+'-'+getPrefix();}
+// Igual que el brainstorm: se manda la lista completa del cliente+mes, con un
+// respiro para no disparar un pedido por cada tecla mientras se escribe.
+var feTimers = {};
+function guardarFe(cid){
+  var periodo=getPrefix(), k='fe-'+cid+'-'+periodo, items=fechasEspeciales[k]||[];
+  clearTimeout(feTimers[k]);
+  feTimers[k]=setTimeout(function(){
+    ckJson('/api/fechas',{method:'PUT',body:JSON.stringify({cliente:cid,periodo:periodo,items:items})});
+  },500);
+}
+function addFe(cid){var k=feKey(cid);if(!fechasEspeciales[k])fechasEspeciales[k]=[];fechasEspeciales[k].push({fecha:'',label:''});guardarFe(cid);renderCF();}
+function updateFe(cid,i,field,val){var k=feKey(cid);if(fechasEspeciales[k]){fechasEspeciales[k][i][field]=val;guardarFe(cid);}}
+function delFe(cid,i){var k=feKey(cid);if(fechasEspeciales[k]){fechasEspeciales[k].splice(i,1);guardarFe(cid);renderCF();}}
+
+// ── MODAL TAREA ───────────────────────────────────────────────────────────────
+function fillRolSelect(sel, current) {
+  sel.innerHTML = ROLES.map(function(r){ return '<option value="'+esc(r)+'"'+(r===current?' selected':'')+'>'+esc(r)+'</option>'; }).join('');
+}
+// Las pastillas guardan el id de la persona, no el nombre: así renombrar a
+// alguien en Equipo no rompe las asignaciones que ya existen.
+function fillAsigPills(selectedIds) {
+  var c = document.getElementById('mtAsigPills');
+  if(!c) return;
+  if(!equipo.length) { c.innerHTML='<span style="font-size:12px;color:var(--hin)">Primero agregá personas en Equipo</span>'; return; }
+  var sel = (selectedIds || []).map(Number);
+  c.innerHTML = equipo.map(function(p) {
+    var on = sel.indexOf(Number(p.id)) >= 0;
+    return '<button type="button" class="asig-pill'+(on?' on':'')+'" data-id="'+p.id+'" onclick="toggleAsigPill(this)">'+esc(p.nombre)+'</button>';
+  }).join('');
+}
+function toggleAsigPill(el) {
+  el.classList.toggle('on');
+}
+function getAsigSelected() {
+  var c = document.getElementById('mtAsigPills');
+  if(!c) return [];
+  return Array.from(c.querySelectorAll('.asig-pill.on')).map(function(b){ return parseInt(b.dataset.id, 10); });
+}
+
+function openMoTarea(cidOrTid, isEdit) {
+  editTid = null;
+  // Reset all fields
+  document.getElementById('mtDesc').value = '';
+  document.getElementById('mtNotas').value = '';
+  document.getElementById('mtFecha').value = '';
+  document.getElementById('mtLim').value = '';
+  document.getElementById('mtPag').checked = false;
+  document.getElementById('mtFmt').value = '';
+  document.getElementById('mtDelBtn').style.display = 'none';
+  document.getElementById('moTareaTit').textContent = 'Nueva tarea';
+  // Fill rol select
+  var rolSel = document.getElementById('mtRol');
+  fillRolSelect(rolSel, ROLES[0]);
+  // Fill asig pills with none selected
+  fillAsigPills([]);
+  if(isEdit) {
+    var t = tareas.find(function(x){ return x.id === cidOrTid; });
+    if(!t) return;
+    editTid = t.id;
+    var cliSel = document.getElementById('mtCli');
+    cliSel.innerHTML = clientes.map(function(c){ return '<option value="'+c.id+'"'+(c.id===t.cid?' selected':'')+'>'+esc(c.nombre)+'</option>'; }).join('');
+    document.getElementById('mtDesc').value = t.desc || '';
+    document.getElementById('mtNotas').value = t.notas || '';
+    document.getElementById('mtFecha').value = t.fecha || '';
+    document.getElementById('mtLim').value = t.fechaLimite || '';
+    document.getElementById('mtPag').checked = t.pagado || false;
+    document.getElementById('mtFmt').value = t.formato || '';
+    fillRolSelect(rolSel, t.rol || ROLES[0]);
+    fillAsigPills(t.asigIds || []);
+    document.getElementById('mtDelBtn').style.display = soyAdmin() ? '' : 'none';
+    document.getElementById('moTareaTit').textContent = 'Editar tarea';
+  } else {
+    var cliSel2 = document.getElementById('mtCli');
+    cliSel2.innerHTML = clientes.map(function(c){ return '<option value="'+c.id+'"'+(c.id===cidOrTid?' selected':'')+'>'+esc(c.nombre)+'</option>'; }).join('');
+    if(!cliSel2.value && clientes.length) cliSel2.value = clientes[0].id;
+  }
+  openMo('moTarea');
+}
+
+async function saveTarea() {
+  var desc = document.getElementById('mtDesc').value.trim();
+  if(!desc) { avisar('Por favor ingresá una descripción'); return; }
+  var cliEl = document.getElementById('mtCli');
+  var cid = cliEl ? parseInt(cliEl.value) : (clientes[0] ? clientes[0].id : null);
+  if(isNaN(cid)) cid = clientes[0] ? clientes[0].id : null;
+  if(!cid) { avisar('Primero creá un cliente'); return; }
+  var data = {
+    cid: cid,
+    desc: desc,
+    rol: document.getElementById('mtRol').value || ROLES[0] || '',
+    asignados: getAsigSelected(),
+    formato: document.getElementById('mtFmt').value || '',
+    fecha: document.getElementById('mtFecha').value || '',
+    fechaLimite: document.getElementById('mtLim').value || '',
+    notas: document.getElementById('mtNotas').value.trim() || '',
+    pagado: document.getElementById('mtPag').checked || false
+  };
+  var guardada = editTid
+    ? await ckJson('/api/tareas/'+editTid, {method:'PUT', body: JSON.stringify(data)})
+    : await ckJson('/api/tareas', {method:'POST', body: JSON.stringify(data)});
+  if(!guardada) return;   // el modal queda abierto con lo escrito, para reintentar
+  upsertTarea(guardada);
+  closeMo('moTarea');
+  renderAll();
+}
+
+async function deleteTareaFromModal() {
+  if(!editTid) return;
+  if(!confirm('¿Eliminar esta tarea?')) return;
+  var r = await ckJson('/api/tareas/'+editTid, {method:'DELETE'});
+  if(!r) return;
+  tareas = tareas.filter(function(x){ return x.id !== editTid; });
+  closeMo('moTarea');
+  renderAll();
+}
+async function delTareaById(tid) {
+  if(!confirm('¿Eliminar esta tarea?')) return;
+  var r = await ckJson('/api/tareas/'+tid, {method:'DELETE'});
+  if(!r) return;
+  tareas = tareas.filter(function(x){ return x.id !== tid; });
+  renderAll();
+}
+async function togglePago(tid) {
+  var t = tareas.find(function(x){ return x.id === tid; });
+  if(!t) return;
+  var actualizada = await ckJson('/api/tareas/'+tid+'/pago', {
+    method:'PATCH', body: JSON.stringify({pagado: !t.pagado})
+  });
+  if(!actualizada) return;
+  upsertTarea(actualizada);
+  renderAll();
+}
+
+// ── MODAL CLIENTE ─────────────────────────────────────────────────────────────
+function openMoCliente() {
+  editCid = null; tmpCliLinks = [];
+  ['mcNom','mcIg','mcCont','mcTel','mcNotas'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('moCliTit').textContent = 'Nuevo cliente';
+  document.getElementById('mcDelBtn').style.display = 'none';
+  renderCliLinks(); openMo('moCliente');
+}
+function openMoClienteEdit(id) {
+  var c = clientes.find(function(x){ return x.id===id; });
+  if(!c) return;
+  editCid = id; tmpCliLinks = JSON.parse(JSON.stringify(c.links||[]));
+  document.getElementById('mcNom').value = c.nombre||'';
+  document.getElementById('mcIg').value = c.ig||'';
+  document.getElementById('mcCont').value = c.contacto||'';
+  document.getElementById('mcTel').value = c.tel||'';
+  document.getElementById('mcNotas').value = c.notas||'';
+  document.getElementById('moCliTit').textContent = 'Editar cliente';
+  // Dar de baja un cliente es solo del admin: se lo saca de la vista de todo el equipo.
+  document.getElementById('mcDelBtn').style.display = soyAdmin() ? '' : 'none';
+  renderCliLinks(); openMo('moCliente');
+}
+function renderCliLinks() {
+  document.getElementById('mcLinks').innerHTML = tmpCliLinks.map(function(l,i){
+    return '<div class="lr"><input type="text" value="'+esc(l.label||'')+'" onchange="tmpCliLinks['+i+'].label=this.value" placeholder="Etiqueta"><input type="url" value="'+esc(l.url||'')+'" onchange="tmpCliLinks['+i+'].url=this.value" placeholder="https://..."><button class="ldel" onclick="tmpCliLinks.splice('+i+',1);renderCliLinks()">✕</button></div>';
+  }).join('');
+}
+function addCliLink() { tmpCliLinks.push({label:'',url:''}); renderCliLinks(); }
+async function saveCliente() {
+  var nom = document.getElementById('mcNom').value.trim();
+  if(!nom) { avisar('Poné un nombre para el cliente'); return; }
+  var data = {nombre:nom, ig:document.getElementById('mcIg').value.trim(), contacto:document.getElementById('mcCont').value.trim(), tel:document.getElementById('mcTel').value.trim(), links:tmpCliLinks.filter(function(l){return l.url;}), notas:document.getElementById('mcNotas').value.trim()};
+  var guardado = editCid
+    ? await ckJson('/api/clientes/'+editCid, {method:'PUT', body: JSON.stringify(data)})
+    : await ckJson('/api/clientes', {method:'POST', body: JSON.stringify(data)});
+  if(!guardado) return;
+  if(editCid) { var idx=clientes.findIndex(function(c){return c.id===editCid;}); if(idx>=0) clientes[idx]=guardado; }
+  else { clientes.push(guardado); clientes.sort(function(a,b){return a.nombre.localeCompare(b.nombre);}); }
+  closeMo('moCliente'); renderAll();
+}
+
+// Baja lógica: el cliente y su historial quedan en la base, pero dejan de
+// aparecer. Solo el admin puede hacerlo.
+async function darDeBajaCliente() {
+  if(!editCid) return;
+  var c = clientes.find(function(x){ return x.id === editCid; });
+  var aviso = '¿Dar de baja a ' + (c ? c.nombre : 'este cliente') + '?'
+    + '\n\nDeja de aparecer para todo el equipo. Sus tareas y su historial no se borran.';
+  if(!confirm(aviso)) return;
+  var r = await ckJson('/api/clientes/' + editCid, {method:'DELETE'});
+  if(!r) return;
+  closeMo('moCliente');
+  closeCF();
+  recargarYRender();
+}
+
+// ── MODAL PERSONA ─────────────────────────────────────────────────────────────
+// Al equipo se suma gente que YA tiene usuario: por eso no se escribe un nombre,
+// se elige de la lista de usuarios registrados que todavía no están adentro.
+// Editar, en cambio, solo cambia el rol de producción — el nombre es del usuario.
+// Llena el desplegable con los usuarios que todavía se pueden sumar.
+// vacio/pie son los textos de ayuda, que cambian según se esté sumando a alguien
+// nuevo o enlazando a una persona vieja que quedó sin usuario.
+async function cargarUsuariosLibres(vacio, pie) {
+  var sel = document.getElementById('mpUsuario');
+  var nota = document.getElementById('mpNota');
+  sel.innerHTML = '<option value="">Cargando…</option>';
+  nota.textContent = '';
+  var libres = await ckJson('/api/equipo/disponibles');
+  if(!libres) { sel.innerHTML = '<option value="">— no se pudo cargar —</option>'; return; }
+  if(!libres.length) { sel.innerHTML = '<option value="">— no hay usuarios disponibles —</option>'; nota.innerHTML = vacio; return; }
+  sel.innerHTML = libres.map(function(u){
+    return '<option value="'+esc(u.id)+'">'+esc(u.nombre)+' · '+esc(u.email)+'</option>';
+  }).join('');
+  nota.innerHTML = pie;
+}
+
+async function openMoPersona(id) {
+  editPid = id;
+  var rolSel = document.getElementById('mpRol');
+  rolSel.innerHTML = ROLES.map(function(r){ return '<option value="'+esc(r)+'">'+esc(r)+'</option>'; }).join('');
+  var usuarioF = document.getElementById('mpUsuarioF');
+  var nombreF = document.getElementById('mpNombreF');
+  var creale = 'Solo aparecen usuarios ya registrados. Si falta alguien, '
+    + 'creale el usuario en <a href="/usuarios.html">Usuarios</a>.';
+
+  if(id) {
+    var p = equipo.find(function(x){ return x.id===id; });
+    nombreF.style.display = '';
+    document.getElementById('mpNombre').textContent = p.nombre;
+    document.getElementById('mpNombreNota').innerHTML = p.usuario_id
+      ? 'Para cambiarlo, editá el usuario en <a href="/usuarios.html">Usuarios</a>.'
+      : 'Es el nombre con el que figura hoy. Al enlazarla, pasa a ser el del usuario.';
+    rolSel.value = p.rol;
+    document.getElementById('moPerTit').textContent = 'Editar persona';
+    document.getElementById('mpDelBtn').style.display = '';
+    // Las personas viejas (las que dejó el importador) no tienen usuario detrás.
+    // A esas se les ofrece enlazarlo, así se ponen al día sin perder el historial
+    // de tareas que ya tienen asignadas.
+    usuarioF.style.display = p.usuario_id ? 'none' : '';
+    openMo('moPersona');
+    if(!p.usuario_id) {
+      await cargarUsuariosLibres(
+        'No hay usuarios libres para enlazar. Creá uno en <a href="/usuarios.html">Usuarios</a>.',
+        'Esta persona viene de antes y no tiene usuario. Enlazala con el suyo para que '
+          + 'le lleguen los avisos de sus tareas. ' + creale);
+    }
+    return;
+  }
+
+  usuarioF.style.display = '';
+  nombreF.style.display = 'none';
+  rolSel.value = ROLES[0]||'Editor';
+  document.getElementById('moPerTit').textContent = 'Sumar al equipo';
+  document.getElementById('mpDelBtn').style.display = 'none';
+  openMo('moPersona');
+  await cargarUsuariosLibres(
+    'Ya está todo el mundo en el equipo. Para sumar a alguien nuevo, creale primero '
+      + 'el usuario en <a href="/usuarios.html">Usuarios</a>.',
+    creale);
+}
+async function savePersona() {
+  var rol = document.getElementById('mpRol').value || ROLES[0] || '';
+  var guardada;
+  if(editPid) {
+    // El nombre lo manda el usuario enlazado, así que acá solo va el rol. La
+    // excepción es una persona vieja sin usuario: ahí además se enlaza.
+    var cuerpo = {rol:rol};
+    var actual = equipo.find(function(x){ return x.id===editPid; });
+    if(actual && !actual.usuario_id) {
+      var elegido = document.getElementById('mpUsuario').value;
+      if(!elegido) { avisar('Elegí con qué usuario enlazarla'); return; }
+      cuerpo.usuario_id = elegido;
+    }
+    guardada = await ckJson('/api/equipo/'+editPid, {method:'PUT', body: JSON.stringify(cuerpo)});
+  } else {
+    var uid = document.getElementById('mpUsuario').value;
+    if(!uid) { avisar('Elegí a quién sumar'); return; }
+    guardada = await ckJson('/api/equipo', {method:'POST', body: JSON.stringify({usuario_id:uid, rol:rol})});
+  }
+  if(!guardada) return;
+  if(editPid) { var i=equipo.findIndex(function(x){return x.id===editPid;}); if(i>=0) equipo[i]=guardada; }
+  else { equipo.push(guardada); }
+  closeMo('moPersona');
+  // Cambiarle el rol a alguien cambia el color de su pastilla donde figure
+  // asignada, así que conviene volver a traer el estado en vez de parchearlo.
+  if(editPid) { recargarYRender(); } else { renderEq(); renderCom(); }
+}
+async function deletePersona() {
+  if(!editPid) return;
+  if(!confirm('¿Sacar a esta persona del equipo?')) return;
+  var r = await ckJson('/api/equipo/'+editPid, {method:'DELETE'});
+  if(!r) return;
+  equipo = equipo.filter(function(x){ return x.id!==editPid; });
+  closeMo('moPersona'); renderEq(); renderCom();
+}
+
+// ── MODAL ROLES ────────────────────────────────────────────────────────────────
+// Los roles se editan con su id a cuestas: así, si renombrás uno, el servidor
+// puede arrastrar el nombre nuevo a las tareas y a las personas que ya lo tenían
+// en vez de dejarlas apuntando a un rol que dejó de existir.
+async function openMoRoles() {
+  var lista = await ckJson('/api/roles');
+  if(!lista) return;
+  // Los permisos de cada rol se editan en la pantalla de Usuarios; acá solo se
+  // cambian nombres y orden, así que se los lleva de paseo tal cual vinieron
+  // para no pisarlos al guardar.
+  tmpRoles = lista.map(function(r){ return {id:r.id, nombre:r.nombre, permisos:r.permisos}; });
+  renderRolesEdit(); openMo('moRoles');
+}
+function renderRolesEdit() {
+  document.getElementById('rolesEdit').innerHTML = tmpRoles.map(function(r,i){
+    return '<div class="lr"><input type="text" value="'+esc(r.nombre)+'" onchange="tmpRoles['+i+'].nombre=this.value" placeholder="Nombre del rol"><button class="ldel" onclick="tmpRoles.splice('+i+',1);renderRolesEdit()">✕</button></div>';
+  }).join('');
+}
+function addRoleEdit() { tmpRoles.push({id:null, nombre:'', permisos:null}); renderRolesEdit(); setTimeout(function(){ var ins=document.getElementById('rolesEdit').querySelectorAll('input'); if(ins.length) ins[ins.length-1].focus(); },50); }
+async function saveRoles() {
+  var limpios = tmpRoles.filter(function(r){ return r.nombre && r.nombre.trim(); });
+  if(!limpios.length) { avisar('Tiene que quedar al menos un rol'); return; }
+  var resp = await ckJson('/api/roles', {method:'PUT', body: JSON.stringify({roles: limpios})});
+  if(!resp) return;
+  closeMo('moRoles');
+  // Borrar un rol deja sin permisos heredados a quien lo tuviera: conviene decirlo.
+  if(resp.borrados && resp.borrados.length) {
+    avisar('Se borró el rol ' + resp.borrados.join(', ') + '. Revisá en Usuarios a quién le quedó sin rol.');
+  }
+  // Renombrar un rol toca tareas y personas: se vuelve a traer todo el estado.
+  recargarYRender();
+}
+
+// ── MODAL ESTUDIO ─────────────────────────────────────────────────────────────
+function openMoEstudio() {
+  tmpEstLinks = JSON.parse(JSON.stringify(estudio.links||[]));
+  document.getElementById('meNom').value = estudio.nombre||'';
+  document.getElementById('meIg').value = estudio.ig||'';
+  document.getElementById('meEmail').value = estudio.email||'';
+  document.getElementById('meTel').value = estudio.tel||'';
+  document.getElementById('meWa').value = estudio.wa||'';
+  document.getElementById('meNotas').value = estudio.notas||'';
+  renderEstLinks(); openMo('moEstudio');
+}
+function renderEstLinks() {
+  document.getElementById('meLinks').innerHTML = tmpEstLinks.map(function(l,i){
+    return '<div class="lr"><input type="text" value="'+esc(l.label||'')+'" onchange="tmpEstLinks['+i+'].label=this.value" placeholder="Etiqueta"><input type="url" value="'+esc(l.url||'')+'" onchange="tmpEstLinks['+i+'].url=this.value" placeholder="https://..."><button class="ldel" onclick="tmpEstLinks.splice('+i+',1);renderEstLinks()">✕</button></div>';
+  }).join('');
+}
+function addEstLink() { tmpEstLinks.push({label:'',url:''}); renderEstLinks(); }
+async function saveEstudio() {
+  var data = {nombre:document.getElementById('meNom').value.trim(), ig:document.getElementById('meIg').value.trim(), email:document.getElementById('meEmail').value.trim(), tel:document.getElementById('meTel').value.trim(), wa:document.getElementById('meWa').value.trim(), links:tmpEstLinks.filter(function(l){return l.url;}), notas:document.getElementById('meNotas').value.trim()};
+  var guardado = await ckJson('/api/estudio', {method:'PUT', body: JSON.stringify(data)});
+  if(!guardado) return;
+  estudio = guardado;
+  closeMo('moEstudio'); renderEst();
+}
+
+// ── EXPORTAR ──────────────────────────────────────────────────────────────────
+function exportar(cid) {
+  var c=clientes.find(function(x){return x.id===cid;}); if(!c) return;
+  var mes=getMes(),ano=getAno(),prefix=getPrefix(),mesLbl=MESES[mes]+' '+ano;
+  var ts=tareas.filter(function(t){return t.cid===cid&&t.fecha&&t.fecha.startsWith(prefix)&&t.estado!=='cumplido';});
+  var feK='fe-'+cid+'-'+prefix,fes=(fechasEspeciales[feK]||[]).filter(function(f){return f.fecha&&f.label;});
+  var bsD=(ideas[bsKey(cid)]||{ideas:[],inspo:[]});
+  var bsI=(bsD.ideas||[]).filter(function(i){return i.trim();});
+  var bsL=(bsD.inspo||[]).filter(function(i){return i.url;});
+  var pd=new Date(ano,mes,1).getDay(),dm=new Date(ano,mes+1,0).getDate();
+  var fmtC={'Story':{bg:'#DBEAFE',tc:'#1E3A5F'},'Reel':{bg:'#EDE9FE',tc:'#3730A3'},'Post':{bg:'#D1FAE5',tc:'#064E3B'},'Carrusel':{bg:'#FEF3C7',tc:'#92400E'},'Video Story':{bg:'#FCE7F3',tc:'#831843'}};
+  var byD={};ts.forEach(function(t){if(!byD[t.fecha])byD[t.fecha]=[];byD[t.fecha].push(t);});
+  var feD={};fes.forEach(function(f){if(!feD[f.fecha])feD[f.fecha]=[];feD[f.fecha].push(f);});
+  var cells='';
+  for(var i=0;i<pd;i++) cells+='<div style="min-height:110px;padding:8px;background:#F8F7F4;border-radius:8px;border:1px solid #DDD8D0;opacity:.3"></div>';
+  for(var d=1;d<=dm;d++){
+    var ds=prefix+'-'+String(d).padStart(2,'0');
+    var dt=byD[ds]||[],df=feD[ds]||[];
+    var dow=new Date(ano,mes,d).getDay(),isWE=dow===0||dow===6;
+    var items='';
+    df.forEach(function(f){items+='<div style="background:#FEF3C7;border-radius:5px;padding:3px 7px;margin-bottom:3px;font-size:10px;color:#92400E;font-weight:500">★ '+esc(f.label)+'</div>';});
+    dt.forEach(function(t){var fc=t.formato&&fmtC[t.formato]?fmtC[t.formato]:{bg:'#E7DDCF',tc:'#6E5742'};items+='<div style="border-radius:5px;padding:5px 7px;margin-bottom:3px;background:'+fc.bg+'">'+(t.formato?'<div style="font-size:9px;color:'+fc.tc+';font-weight:600;text-transform:uppercase;margin-bottom:2px">'+esc(t.formato)+'</div>':'')+'<div style="font-size:11px;color:#3F3A34;font-weight:500;line-height:1.3">'+esc(t.desc)+'</div>'+(t.notas?'<div style="font-size:10px;color:#3F3A34;margin-top:3px;line-height:1.4;white-space:pre-wrap">'+esc(t.notas)+'</div>':'')+(t.fecha?'<div style="font-size:9px;color:'+fc.tc+';margin-top:2px;opacity:.8">Pub: '+t.fecha.slice(8)+'/'+t.fecha.slice(5,7)+'</div>':'')+'</div>';});
+    cells+='<div style="min-height:110px;padding:8px;background:'+(isWE?'#F8F7F4':'#fff')+';border-radius:8px;border:1px solid '+(isWE?'#CEC7BD':'#DDD8D0')+'"><div style="font-size:12px;font-weight:600;color:'+(dt.length||df.length?'#7A6045':'#9A9288')+';margin-bottom:5px;font-family:Syne,sans-serif">'+d+'</div>'+items+'</div>';
+  }
+  var lgnd=Object.entries(fmtC).map(function(e){return '<div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:2px;background:'+e[1].bg+'"></div><span style="font-size:11px;color:#7B736A">'+e[0]+'</span></div>';}).join('');
+  var bsHtml='';
+  if(bsI.length||bsL.length){bsHtml='<div style="margin-top:40px;padding-top:28px;border-top:2px solid #DDD8D0"><div style="font-size:13px;font-weight:600;color:#7A6045;letter-spacing:.06em;text-transform:uppercase;margin-bottom:16px">💡 Ideas del mes</div>'+(bsI.length?'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-bottom:16px">'+bsI.map(function(i){return '<div style="background:#EDEAE5;border-radius:8px;padding:10px 14px;font-size:13px;color:#3F3A34;display:flex;gap:8px"><span style="color:#7A6045">→</span>'+esc(i)+'</div>';}).join('')+'</div>':'')+(bsL.length?'<div style="display:flex;flex-wrap:wrap;gap:8px">'+bsL.map(function(l){return '<a href="'+esc(l.url)+'" target="_blank" style="background:#DDD8D0;border-radius:8px;padding:8px 14px;font-size:12px;color:#7A6045;text-decoration:none">'+(l.label?esc(l.label):esc(l.url))+' ↗</a>';}).join('')+'</div>':'')+'</div>';}
+  // El logo va incrustado en el archivo exportado (no como link a /img), para
+  // que el HTML que le mandás al cliente se vea igual aunque no tenga internet
+  // ni acceso al servidor. Se lee del mismo <img> del menú, así hay una sola copia.
+  var logoSrc=document.getElementById('sbLogo').src;
+  var exp='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(c.nombre)+' · '+esc(mesLbl)+'</title><link href="https://fonts.googleapis.com/css2?family=Syne:wght@700&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:"DM Sans",sans-serif;background:#EDEAE5;color:#3F3A34}.page{max-width:900px;margin:0 auto;padding:36px 24px 60px}</style></head><body><div class="page">'
+    +'<div style="background:#9C8163;border-radius:16px;padding:26px 32px;margin-bottom:28px;display:flex;align-items:center;justify-content:space-between"><img src="'+logoSrc+'" style="height:34px"><div style="text-align:right"><div style="font-size:22px;font-weight:700;font-family:Syne,sans-serif;color:#fff">'+esc(c.nombre)+'</div><div style="font-size:14px;color:rgba(255,255,255,.75);margin-top:3px">Planificación · '+esc(mesLbl)+'</div></div></div>'
+    +'<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;align-items:center"><span style="font-size:11px;color:#9A9288;font-weight:500;text-transform:uppercase;letter-spacing:.05em">Formatos:</span>'+lgnd+'</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px">'+['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].map(function(d){return '<div style="text-align:center;font-size:10px;font-weight:500;color:#9A9288;padding:6px 0;text-transform:uppercase">'+d+'</div>';}).join('')+'</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px">'+cells+'</div>'
+    +bsHtml
+    +'<div style="margin-top:36px;padding-top:20px;border-top:1px solid #DDD8D0;display:flex;align-items:center;justify-content:space-between"><img src="'+logoSrc+'" style="height:20px;opacity:.35"><div style="font-size:11px;color:#9A9288">Generado por Click · '+esc(mesLbl)+'</div></div>'
+    +'</div></body></html>';
+  var blob=new Blob([exp],{type:'text/html'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;a.download=c.nombre.replace(/\s+/g,'-')+'_'+mesLbl.replace(/\s+/g,'-')+'.html';
+  a.click();URL.revokeObjectURL(url);
+}
+
+// ── RENDER ALL ────────────────────────────────────────────────────────────────
+function renderAll() {
+  renderSum();
+  renderCli();
+  if(curScr==='dashboard') renderDash();
+  else if(curScr==='calendario') renderCal();
+  else if(curScr==='brainstorm') renderBS();
+  else if(curScr==='delegacion') renderDel();
+  else if(curScr==='historial') renderHist();
+  else if(curScr==='comunicacion') renderCom();
+  else if(curScr==='equipo') renderEq();
+  else if(curScr==='estudio') renderEst();
+  if(curCF) renderCF();
+}
+
+document.addEventListener('keydown', function(e) {
+  if(e.key==='Escape') {
+    ['moTarea','moCliente','moPersona','moRoles','moEstudio','moEvento','cuentaModal'].forEach(function(id){closeMo(id);});
+    cerrarMenu();
+  }
+});
+
+// ── PERMISOS EN PANTALLA ─────────────────────────────────────────────────────
+// El servidor ya bloquea lo que no corresponde (src/middleware/auth.js). Esto es
+// para que el hub no muestre botones que van a terminar en un "no tenés acceso".
+var SCR_SECCION = {dashboard:'dashboard',clientes:'clientes',calendario:'calendario',brainstorm:'brainstorm',delegacion:'delegacion',historial:'historial',comunicacion:'comunicacion',equipo:'equipo',estudio:'estudio'};
+
+function aplicarPermisos() {
+  var primeraVisible = null;
+  document.querySelectorAll('.nav-btn[data-scr]').forEach(function(btn){
+    var visible = puedo(SCR_SECCION[btn.dataset.scr]);
+    btn.style.display = visible ? '' : 'none';
+    if(visible && !primeraVisible) primeraVisible = btn.dataset.scr;
+  });
+  function mostrar(id, visible) {
+    var el = document.getElementById(id);
+    if(el) el.style.display = visible ? '' : 'none';
+  }
+  mostrar('btnNuevoCliente', puedo('clientes','full'));
+  mostrar('btnNuevaTarea', puedo('tareas','full'));
+  // Toda la sección Equipo es admin-only: el botón del menú se esconde solo
+  // (el servidor le devuelve 'sin_acceso' a cualquiera que no sea admin), y acá
+  // se esconden los controles de adentro.
+  mostrar('btnAgregarPersona', soyAdmin());
+  // Editar roles es admin-only por la misma razón de fondo: los roles llevan los
+  // permisos, y dejarlo abierto sería dejar que alguien se suba los suyos.
+  mostrar('btnEditarRoles', soyAdmin());
+  // El botón de evento y el de conectar dependen del permiso de Calendario y de
+  // ser admin: pintarBarraGoogle ya lo resuelve, solo hay que refrescarla.
+  google.puedeEditar = puedo('calendario','full');
+  google.puedeConectar = soyAdmin();
+  pintarBarraGoogle();
+  mostrar('chatForm', puedo('comunicacion','full'));
+  mostrar('notaForm', puedo('comunicacion','full'));
+  document.getElementById('sbCli').parentElement.style.display = puedo('clientes') ? '' : 'none';
+
+  if(!primeraVisible) {
+    document.getElementById('mainContent').innerHTML =
+      '<p style="color:var(--mut);font-size:13px;padding:40px;text-align:center">'
+      + 'Tu usuario todavía no tiene ninguna sección habilitada.<br>Pedile a un administrador que te dé permisos.</p>';
+    return;
+  }
+  // Si la vista que estaba abierta dejó de estar permitida, se pasa a la primera que sí.
+  if(!puedo(SCR_SECCION[curScr])) {
+    goScr(primeraVisible, document.querySelector('.nav-btn[data-scr="'+primeraVisible+'"]'));
+  }
+}
+
+// ── ARRANQUE ─────────────────────────────────────────────────────────────────
+(async function init(){
+  initCalHead();
+
+  // El hub abre en el mes actual. Antes venía fijo en mayo 2026 porque los datos
+  // de ejemplo eran de ese mes; ahora los datos son reales y lo natural es
+  // entrar viendo el mes en el que estás parado.
+  var hoy = new Date();
+  var mesEl = document.getElementById('mesEl'), anoEl = document.getElementById('añoEl');
+  mesEl.value = String(hoy.getMonth());
+  if(Array.prototype.some.call(anoEl.options, function(o){ return o.value === String(hoy.getFullYear()); })) {
+    anoEl.value = String(hoy.getFullYear());
+  }
+  document.getElementById('sbSub').textContent = MESES[getMes()].toLowerCase()+' '+getAno();
+  document.getElementById('ptitle').textContent = PAGE[curScr];
+  pintarSelectorDeMes();
+
+  if(!(await cargarEstado())) {
+    // Sin sesión ckFetch ya redirigió al login. Si llegó acá es que el servidor
+    // falló: se saca el "Cargando…" y se ofrece reintentar, en vez de dejar la
+    // pantalla trabada en el cartel para siempre.
+    document.getElementById('cargando').innerHTML =
+      '<div style="text-align:center">No se pudieron cargar los datos.<br>'
+      + '<button class="btn" style="margin-top:10px" onclick="location.reload()">Reintentar</button></div>';
+    return;
+  }
+  await montarBarraUsuario('barraUsuario');
+  await googleCargarEstado();
+  if(google.conectado) await googleRefrescarMes();
+  pintarBarraGoogle();
+  aplicarPermisos();
+
+  // Las notificaciones linkean con un #seccion (por ejemplo /hub.html#delegacion),
+  // así que al entrar desde una se abre directo la vista que corresponde.
+  var destino = (location.hash || '').replace('#','');
+  if(SCR_SECCION[destino] && puedo(SCR_SECCION[destino])) {
+    goScr(destino, document.querySelector('.nav-btn[data-scr="'+destino+'"]'));
+  }
+
+  renderAll();
+  renderBS();
+  renderEq();
+  renderCom();
+  renderEst();
+  chatArrancarSondeo();
+  document.getElementById('cargando').classList.add('off');
+})();
+</script>
+</body>
+</html>

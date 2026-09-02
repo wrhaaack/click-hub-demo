@@ -1,0 +1,107 @@
+/* Bloque de usuario (nombre, campanita, cuenta, salir) + panel de notificaciones.
+   Lo dibuja montarBarraUsuario() de /js/api.js y lo usan tanto el hub (dentro de
+   la franja tostada del menú) como la pantalla de Usuarios (sobre fondo claro).
+
+   Los colores salen de variables locales para poder invertirlos según el fondo:
+   el contenedor de arriba solo tiene que redefinir --ck-fg, --ck-fg-fuerte y
+   --ck-hover (así lo hace .sb .ck-user en hub.html). */
+
+.ck-user{
+  --ck-fg:#7B736A;
+  --ck-fg-fuerte:#3F3A34;
+  --ck-hover:rgba(63,58,52,.07);
+  display:flex; flex-direction:column; gap:9px;
+  font-family:'DM Sans',sans-serif; font-size:12px; color:var(--ck-fg);
+}
+.ck-user-top{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+.ck-user-nom{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.ck-user-btns{display:flex; gap:6px;}
+
+.ck-mini{
+  border:none; background:none; cursor:pointer; color:var(--ck-fg);
+  font-family:'DM Sans',sans-serif; font-size:13px; line-height:1;
+  padding:6px 9px; border-radius:6px; position:relative;
+  display:inline-flex; align-items:center; justify-content:center; text-decoration:none;
+}
+.ck-mini:hover{background:var(--ck-hover); color:var(--ck-fg-fuerte); text-decoration:none;}
+.ck-salir{flex:1; font-size:12px;}
+
+.ck-notif-wrap{position:relative; flex-shrink:0;}
+.ck-notif-badge{
+  position:absolute; top:0; right:0;
+  background:#B91C1C; color:#fff; font-size:9px; font-weight:600;
+  min-width:15px; height:15px; border-radius:8px; padding:0 3px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'DM Mono',monospace; line-height:1;
+}
+/* Fija y no absoluta a propósito: en el hub esta barra vive dentro del menú
+   lateral, que tiene overflow-y:auto y le recortaría el panel. Las coordenadas
+   se calculan al abrirlo (ver montarNotificaciones en /js/api.js). */
+.ck-notif-panel{
+  position:fixed; width:290px;
+  max-height:380px; overflow-y:auto;
+  background:#fff; border:1px solid #CEC7BD; border-radius:10px;
+  box-shadow:0 8px 24px rgba(63,58,52,.16);
+  z-index:1200; padding:8px; color:#3F3A34;
+}
+.ck-notif-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; padding:4px 6px;}
+.ck-notif-head strong{font-size:12px;}
+.ck-notif-head button{background:none; border:none; color:#7A6045; font-size:11px; cursor:pointer; padding:2px;}
+.ck-notif-barra{
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  padding:2px 6px 8px; margin-bottom:4px; border-bottom:1px solid #DDD8D0;
+}
+.ck-notif-barra label{display:flex; align-items:center; gap:6px; font-size:11px; color:#7B736A; cursor:pointer;}
+.ck-notif-barra button{background:none; border:none; color:#B91C1C; font-size:11px; cursor:pointer; padding:2px;}
+.ck-notif-barra button:disabled{color:#9A9288; cursor:default;}
+.ck-notif-item{
+  display:flex; align-items:flex-start; gap:8px;
+  padding:9px 8px; border-radius:6px; font-size:12px; color:#3F3A34;
+  border-bottom:1px solid #DDD8D0;
+}
+.ck-notif-item:last-child{border-bottom:none;}
+.ck-notif-item:hover{background:#F1EDE7;}
+.ck-notif-item.no-leida{background:#E7DDCF;}
+.ck-notif-texto{flex:1; min-width:0; color:#3F3A34; text-decoration:none;}
+.ck-notif-texto:hover{text-decoration:none;}
+.ck-notif-check{flex:none; margin:2px 0 0; cursor:pointer; accent-color:#8E7053;}
+.ck-notif-toggle{
+  flex:none; background:none; border:none; cursor:pointer;
+  color:#9A9288; font-size:11px; line-height:1; padding:3px 5px; border-radius:4px;
+}
+.ck-notif-toggle:hover{color:#7A6045; background:#F1EDE7;}
+.ck-notif-time{display:block; font-size:10px; color:#9A9288; margin-top:3px; font-family:'DM Mono',monospace;}
+.ck-notif-vacio{padding:16px; font-size:12px; color:#9A9288; text-align:center;}
+
+/* ── Modal "Mi cuenta" ────────────────────────────────────────────────────────
+   Lo dibuja /js/api.js con las clases .field / .campo-password / button.primary.
+   La pantalla de Usuarios ya las tiene en click.css, pero el hub tiene su propio
+   sistema de clases (.f, .btn), así que acá se definen acotadas al modal para no
+   pisar nada de ninguna de las dos pantallas. */
+#cuentaModal .field{display:flex; flex-direction:column; gap:6px; margin-bottom:14px;}
+#cuentaModal .field label{font-size:12px; color:#7B736A;}
+#cuentaModal .field input{
+  background:#F1EDE7; border:1px solid #CEC7BD; border-radius:6px;
+  padding:9px 11px; color:#3F3A34; font-family:'DM Sans',sans-serif; font-size:13px; outline:none;
+}
+#cuentaModal .field input:focus{border-color:#8E7053; background:#fff;}
+#cuentaModal .campo-password{position:relative; display:flex;}
+#cuentaModal .campo-password input{width:100%; padding-right:44px;}
+#cuentaModal .btn-ojo{
+  position:absolute; right:6px; top:50%; transform:translateY(-50%);
+  width:32px; height:32px; padding:0; margin:0;
+  display:flex; align-items:center; justify-content:center;
+  background:none; border:none; border-radius:6px; cursor:pointer;
+  font-size:15px; line-height:1; color:#7B736A;
+}
+#cuentaModal .btn-ojo:hover{background:#F1EDE7; color:#3F3A34;}
+#cuentaModal button{
+  font-family:'DM Sans',sans-serif; font-size:13px;
+  border:1px solid #CEC7BD; background:transparent; color:#7B736A;
+  border-radius:6px; padding:8px 15px; cursor:pointer; transition:all .15s;
+}
+#cuentaModal button:hover{background:#F1EDE7; color:#3F3A34;}
+#cuentaModal button.primary{background:#8E7053; color:#fff; border-color:#8E7053; font-weight:500;}
+#cuentaModal button.primary:hover{background:#7A6045; border-color:#7A6045;}
+#cuentaModal button.primary:active{background:#665039; border-color:#665039;}
+#cuentaModal .error-msg{color:#B91C1C; font-size:12px; margin:0 0 10px; display:none;}
