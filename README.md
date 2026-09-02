@@ -56,6 +56,7 @@ Todo cuelga de `/api` y todo pide sesión.
 |---|---|---|
 | `POST /api/auth/login` · `/logout` · `GET /me` · `PUT /perfil` | sesión y cuenta propia | — |
 | `GET /api/estado` | todo lo que el hub necesita para dibujarse | recorta según permisos |
+| `/api/dashboard` | agenda del mes y registro de actividad | `dashboard` |
 | `/api/clientes` | alta y edición | `clientes` (la baja, solo admin) |
 | `/api/tareas` | alta, edición, estado y pago | `tareas` (eliminar, solo admin) |
 | `/api/equipo` | las personas del equipo | solo admin (el `GET`, quien vea tareas) |

@@ -50,18 +50,42 @@ Ahora tenés dos servicios en el proyecto: tu app y Postgres.
 **Este es el paso que más se saltea.** Tener el Postgres en el mismo proyecto no
 alcanza: hay que decirle a la app dónde está.
 
-En el servicio **de la app** (no el de Postgres) → pestaña **Variables** →
-**New Variable**, y cargá estas tres:
+> ⚠️ **Railway te va a ofrecer una lista de "Suggested Variables"** con valores
+> ya cargados. **No le des Add.** Esos valores los sacó de `.env.example`, que es
+> una plantilla: el `DATABASE_URL` apunta a `127.0.0.1` (tu compu) y el
+> `SESSION_SECRET` es el texto `cambiar-por-un-valor-largo-y-aleatorio`. Si los
+> agregás así, la app arranca contra una base que no existe.
+
+En el servicio **de la app** (no el de Postgres) → pestaña **Variables**, y cargá
+**estas tres, nada más**:
 
 | Variable | Valor |
 |---|---|
-| `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` |
+| `DATABASE_URL` | `${{Postgres.DATABASE_PRIVATE_URL}}` |
 | `SESSION_SECRET` | un valor largo y aleatorio, ver abajo |
 | `NODE_ENV` | `production` |
 
-El valor de `DATABASE_URL` se escribe **tal cual**, con las llaves: es una
-referencia a la otra base del proyecto, no un texto fijo. Si tu servicio de
-Postgres se llama distinto que "Postgres", usá ese nombre adentro de las llaves.
+Para el `DATABASE_URL`, en vez de tipearlo usá el botón **Add a Reference** (o el
+banner morado *"Trying to connect a database?"*): elegís el servicio de una lista
+y la referencia queda con el nombre correcto, sin riesgo de escribirlo mal. Si lo
+escribís a mano, el nombre entre llaves tiene que ser **exactamente** el de tu
+servicio de Postgres, respetando mayúsculas.
+
+Se usa `DATABASE_PRIVATE_URL` y no `DATABASE_URL` porque va por la red interna de
+Railway: no paga tráfico de salida y no expone la base a internet.
+
+**Las demás variables que aparezcan en la lista, borralas con la ✕:**
+
+| No la agregues | Por qué |
+|---|---|
+| `PORT` | La asigna Railway. Si la fijás, el healthcheck no encuentra la app. |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NOMBRE`, `ADMIN_ROL` | Solo las lee `db/seed-admin.js`, que corrés una vez (paso 5). Como variables fijas te dejan la contraseña del admin guardada para siempre. |
+| `PGLOCAL_PORT` | Solo sirve para el Postgres embebido de tu compu. |
+| `DATABASE_SSL` | Una escotilla de escape. Con la URL privada el código decide solo. |
+
+Si falta `DATABASE_URL` o `SESSION_SECRET`, **la app no arranca** y el log te dice
+cuál falta en el primer renglón. Es a propósito: es preferible un deploy en rojo
+que uno "Online" que falla recién cuando alguien intenta entrar.
 
 Para el `SESSION_SECRET`, generá uno en tu terminal y pegá lo que salga:
 
@@ -91,7 +115,7 @@ railway link
 railway run npm run db:init
 ```
 
-Te va a listar las 12 tablas y los 4 roles iniciales. Es repetible: si lo corrés
+Te va a listar las 11 tablas y los 4 roles iniciales. Es repetible: si lo corrés
 dos veces no rompe ni duplica nada.
 
 **Opción B — desde el panel.** Servicio de Postgres → pestaña **Data** → **Query**,
@@ -157,9 +181,10 @@ Entrá al dominio y fijate:
 
 | Lo que ves | Qué pasa |
 |---|---|
-| El deploy queda reiniciándose y en los logs dice `DATABASE_URL` o `ECONNREFUSED` | Falta la variable del paso 3, o está escrita sin las llaves `${{...}}`. |
+| En el log dice `No puedo arrancar: falta DATABASE_URL` | Falta la variable del paso 3, o la referencia `${{...}}` apunta a un servicio con otro nombre. |
+| `ECONNREFUSED ::1:5432` | La variable está pero llegó vacía: la referencia no resolvió. Cargala con **Add a Reference** en vez de a mano. |
 | `relation "usuarios" does not exist` | Falta el paso 4: la base está pero sin tablas. |
-| `secret option required for sessions` | Falta `SESSION_SECRET`. |
+| En el log dice `No puedo arrancar: falta SESSION_SECRET` | Falta esa variable. |
 | Entrás, ponés la contraseña bien y te devuelve al login una y otra vez | Falta `NODE_ENV=production`, o el dominio está entrando por HTTP en vez de HTTPS. La cookie de sesión es `Secure`: solo viaja cifrada. |
 | `Email o contraseña incorrectos` con los datos correctos | El usuario del paso 5 quedó en otra base. Verificá que `railway link` apuntaba a este proyecto. |
 | `Demasiados intentos` | El límite anti fuerza-bruta: 8 intentos cada 15 minutos por IP. Esperá y volvé a probar. |

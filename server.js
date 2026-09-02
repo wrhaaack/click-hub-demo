@@ -22,6 +22,29 @@ const usuariosRoutes = require('./src/routes/usuarios');
 const { tieneAcceso } = require('./src/middleware/auth');
 const { revisarAlertas } = require('./src/lib/alertas');
 
+// Sin estas dos la app no puede funcionar, así que no arranca. Antes levantaba
+// igual, servía el login, y recién explotaba en el primer intento de entrar con
+// un 500 genérico — el error real quedaba enterrado en el log. Fallar acá pone
+// el motivo en el primer renglón, que es donde uno mira.
+const FALTAN = ['DATABASE_URL', 'SESSION_SECRET'].filter((v) => !process.env[v]);
+if (FALTAN.length) {
+  console.error('');
+  console.error('No puedo arrancar: falta ' + FALTAN.join(' y ') + '.');
+  console.error('');
+  if (FALTAN.includes('DATABASE_URL')) {
+    console.error('  DATABASE_URL    en Railway va como referencia al servicio de Postgres:');
+    console.error('                  ${{Postgres.DATABASE_PRIVATE_URL}}  (con las llaves)');
+    console.error('                  En tu compu, copiá .env.example a .env.');
+  }
+  if (FALTAN.includes('SESSION_SECRET')) {
+    console.error('  SESSION_SECRET  un valor largo y aleatorio. Generá uno con:');
+    console.error(`                  node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`);
+  }
+  console.error('');
+  console.error('El detalle está en DESPLIEGUE.md, paso 3.');
+  process.exit(1);
+}
+
 const app = express();
 app.set('trust proxy', 1); // Railway está detrás de un proxy; necesario para cookies "secure"
 

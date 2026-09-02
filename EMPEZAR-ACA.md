@@ -84,7 +84,7 @@ El `.env` nunca se sube a GitHub: ya está listado en el `.gitignore`.
 
     npm run db:init
 
-Deja las 12 tablas vacías y cargados los 4 roles con los que arranca el hub
+Deja las 11 tablas vacías y cargados los 4 roles con los que arranca el hub
 (Editor, Diseñadora, CM, SMM), cada uno con sus permisos de base. Se puede correr
 más de una vez sin romper nada.
 
