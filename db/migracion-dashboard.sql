@@ -1,12 +1,11 @@
 -- ============================================================
--- MIGRACIÓN · Dashboard + Google Calendar
+-- MIGRACIÓN · Dashboard
 --
 -- Solo hace falta si ya tenías la base andando de antes. Si la armás de cero con
 -- db/schema.sql (o con "npm run db:init"), saltéate este archivo.
 --
 -- Qué agrega:
 --   actividad       -> el registro de lo que va pasando (alimenta el dashboard)
---   google_cuenta   -> la agenda de Google que conecta el estudio
 --   permiso "dashboard" en los roles
 --
 -- Es segura de correr dos veces.
@@ -26,17 +25,6 @@ CREATE TABLE IF NOT EXISTS actividad (
   creado_en   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_actividad_fecha ON actividad(creado_en DESC);
-
-CREATE TABLE IF NOT EXISTS google_cuenta (
-  id             INT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
-  email          TEXT,
-  calendario_id  TEXT NOT NULL DEFAULT 'primary',
-  access_token   TEXT,
-  refresh_token  TEXT,
-  expira_en      TIMESTAMPTZ,
-  conectado_por  UUID REFERENCES usuarios(id) ON DELETE SET NULL,
-  conectado_en   TIMESTAMPTZ NOT NULL DEFAULT now()
-);
 
 -- El dashboard queda habilitado para los roles que ya existían: es la pantalla
 -- de inicio y esconderla por omisión sería una sorpresa desagradable.

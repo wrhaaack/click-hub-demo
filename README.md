@@ -1,7 +1,7 @@
 # Click Hub
 
 Hub interno de Click: planificación de contenido por cliente (tareas, calendario,
-brainstorming, delegación, historial, comunicación, equipo) atrás de un login,
+brainstorming, delegación, equipo) atrás de un login,
 con permisos por sección y base de datos Postgres.
 
 Para ponerlo a andar, leé **[EMPEZAR-ACA.md](EMPEZAR-ACA.md)**.
@@ -12,11 +12,10 @@ Para ponerlo a andar, leé **[EMPEZAR-ACA.md](EMPEZAR-ACA.md)**.
 
 Son dos cosas juntas:
 
-- La **pantalla** es el `click_hub_final_v3.html` de siempre. No se sacó ninguna
-  vista ni ninguna función: clientes con su ficha, calendario del mes, ideas e
-  inspiración por cliente, tabla de delegación, historial de lo cumplido, chat y
-  notas, equipo con sus roles, datos del estudio, y el exportador que arma el
-  HTML de planificación para mandarle al cliente.
+- La **pantalla** es el `click_hub_final_v3.html` de siempre: clientes con su
+  ficha, calendario del mes, ideas e inspiración por cliente, tabla de
+  delegación, equipo con sus roles, datos del estudio, y el exportador que arma
+  el HTML de planificación para mandarle al cliente.
 - La **infraestructura** viene del proyecto base: Express + Postgres, sesiones,
   login con bcrypt, permisos por sección, notificaciones y alertas automáticas.
 
@@ -63,7 +62,6 @@ Todo cuelga de `/api` y todo pide sesión.
 | `/api/roles` | roles y los permisos que llevan | solo admin |
 | `/api/brainstorm` | ideas y links por cliente y mes | `brainstorm` |
 | `/api/fechas` | fechas especiales por cliente y mes | `clientes` |
-| `/api/comunicacion` | chat general y notas por cliente | `comunicacion` |
 | `/api/estudio` | datos del estudio | `estudio` |
 | `/api/notificaciones` | campanita | — |
 | `/api/usuarios` | alta y permisos | solo admin |
@@ -112,8 +110,7 @@ Dos consecuencias de diseño que conviene tener presentes:
 - Toda la API pasa por `requireAuth` y por el permiso de su sección. Esconder un
   botón en pantalla es comodidad; el bloqueo real está siempre en el servidor.
 - `GET /api/estado` no manda lo que la persona no puede ver: si no tiene acceso a
-  Comunicación, el chat no llega ni siquiera al navegador.
-- Los mensajes y las notas solo los borra quien los escribió (o un admin).
+  Clientes, sus datos de contacto no llegan ni siquiera al navegador.
 
 ## Convención de ids
 

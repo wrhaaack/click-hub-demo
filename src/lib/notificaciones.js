@@ -23,15 +23,6 @@ async function crearNotificaciones(usuarioIds, tipo, mensaje, link) {
   );
 }
 
-// Todos los usuarios activos menos uno (el que hizo la acción).
-async function usuariosActivosExcepto(usuarioId) {
-  const result = await pool.query(
-    'SELECT id FROM usuarios WHERE activo = true AND id != $1',
-    [usuarioId]
-  );
-  return result.rows.map((u) => u.id);
-}
-
 // Cada tipo de aviso es un alta, una edición o una baja. Se lista acá y no se
 // deduce del nombre para que agregar un tipo nuevo obligue a decidirlo.
 const ACCION_POR_TIPO = {
@@ -44,9 +35,6 @@ const ACCION_POR_TIPO = {
   tarea_estado: ['edicion', 'tarea'],
   tarea_pago: ['edicion', 'tarea'],
   usuario_nuevo: ['alta', 'usuario'],
-  evento_nuevo: ['alta', 'evento'],
-  evento_editado: ['edicion', 'evento'],
-  evento_borrado: ['baja', 'evento'],
 };
 
 // Deja el hecho anotado en el registro de actividad, que es lo que muestra el
@@ -90,9 +78,6 @@ async function usuariosDeMiembros(miembroIds) {
 
 module.exports = {
   crearNotificaciones,
-  usuariosActivosExcepto,
   usuariosDeMiembros,
   avisarAlEquipo,
-  registrarActividad,
-  ACCION_POR_TIPO,
 };

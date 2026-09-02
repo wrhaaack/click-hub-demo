@@ -18,13 +18,9 @@ const SECCIONES = {
   dashboard:     ['full', 'sin_acceso'],
   clientes:      ['full', 'limitado', 'sin_acceso'],
   tareas:        ['full', 'limitado', 'sin_acceso'],
-  // 'limitado' ve la grilla del mes; 'full' además crea, edita y borra eventos
-  // en la agenda de Google que tenga conectada el estudio.
-  calendario:    ['full', 'limitado', 'sin_acceso'],
+  calendario:    ['full', 'sin_acceso'],
   brainstorm:    ['full', 'limitado', 'sin_acceso'],
   delegacion:    ['full', 'sin_acceso'],
-  historial:     ['full', 'sin_acceso'],
-  comunicacion:  ['full', 'limitado', 'sin_acceso'],
   // Equipo y Usuarios son admin-only (ver SECCIONES_SOLO_ADMIN más abajo): se
   // dejan acá para que el admin las tenga en 'full' en su mapa de permisos.
   equipo:        ['full', 'sin_acceso'],
@@ -51,14 +47,8 @@ const SECCIONES_SOLO_ADMIN = ['usuarios', 'equipo'];
 // Ojo con "roles": como los roles llevan los permisos, dejar que los edite
 // alguien que no sea admin sería darle la llave para subirse los permisos a sí
 // mismo. Por eso es admin-only y no un permiso más de la sección Equipo.
-const SOLO_ADMIN = [
-  'Crear, editar y desactivar usuarios, y resetear sus contraseñas',
-  'Crear, renombrar y borrar roles, y definir qué permisos lleva cada uno',
-  'Ver la sección Equipo, y agregar, editar y dar de baja a sus integrantes',
-  'Dar de baja clientes',
-  'Eliminar tareas',
-  'Borrar mensajes y notas escritos por otra persona',
-];
+// La lista para mostrar vive en views/usuarios.html (listaSoloAdmin); acá no se
+// duplica, porque una copia que nadie lee solo puede quedar desincronizada.
 
 function requireAdmin(req, res, next) {
   if (!req.session || req.session.rol !== 'admin') {
@@ -156,6 +146,4 @@ module.exports = {
   permisosEfectivos,
   SECCIONES,
   SECCIONES_SOLO_ADMIN,
-  NIVEL_RANGO,
-  SOLO_ADMIN,
 };

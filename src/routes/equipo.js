@@ -27,7 +27,7 @@ router.use(requireAuth);
 // src/routes/estado.js para decidir si le manda la lista en el arranque.
 function puedeVerLaLista(req, res, next) {
   if (req.session.rol === 'admin') return next();
-  const ve = ['clientes', 'calendario', 'delegacion', 'historial']
+  const ve = ['clientes', 'calendario', 'delegacion']
     .some((seccion) => tieneAcceso(req.session, seccion, 'limitado'));
   if (ve) return next();
   return res.status(403).json({ error: 'No tenés acceso a esta sección.' });

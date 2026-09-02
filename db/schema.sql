@@ -131,27 +131,7 @@ CREATE TABLE IF NOT EXISTS fechas_especiales (
 );
 CREATE INDEX IF NOT EXISTS idx_fechas_cliente ON fechas_especiales(cliente_id, periodo);
 
--- ---------- MENSAJES (chat general del equipo) ----------
-CREATE TABLE IF NOT EXISTS mensajes (
-  id          BIGSERIAL PRIMARY KEY,
-  usuario_id  UUID REFERENCES usuarios(id) ON DELETE SET NULL,
-  autor       TEXT NOT NULL,  -- copia del nombre, para que el mensaje sobreviva al usuario
-  texto       TEXT NOT NULL,
-  creado_en   TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-CREATE INDEX IF NOT EXISTS idx_mensajes_fecha ON mensajes(creado_en DESC);
 
--- ---------- NOTAS POR CLIENTE (por mes) ----------
-CREATE TABLE IF NOT EXISTS notas (
-  id          BIGSERIAL PRIMARY KEY,
-  cliente_id  BIGINT NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
-  periodo     DATE NOT NULL,
-  texto       TEXT NOT NULL,
-  usuario_id  UUID REFERENCES usuarios(id) ON DELETE SET NULL,
-  autor       TEXT NOT NULL,
-  creado_en   TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-CREATE INDEX IF NOT EXISTS idx_notas_cliente ON notas(cliente_id, periodo, creado_en);
 
 -- ---------- ACTIVIDAD (el registro de todo lo que pasa) ----------
 -- Es lo que alimenta "Últimas actividades" del dashboard. Va aparte de
@@ -170,21 +150,6 @@ CREATE TABLE IF NOT EXISTS actividad (
   creado_en   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_actividad_fecha ON actividad(creado_en DESC);
-
--- ---------- CONEXIÓN CON GOOGLE CALENDAR ----------
--- Una sola fila: la agenda compartida del estudio, que un admin conecta una vez.
--- Los tokens los emite Google; el refresh_token es el que permite seguir
--- entrando sin volver a pedir permiso.
-CREATE TABLE IF NOT EXISTS google_cuenta (
-  id             INT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
-  email          TEXT,
-  calendario_id  TEXT NOT NULL DEFAULT 'primary',
-  access_token   TEXT,
-  refresh_token  TEXT,
-  expira_en      TIMESTAMPTZ,
-  conectado_por  UUID REFERENCES usuarios(id) ON DELETE SET NULL,
-  conectado_en   TIMESTAMPTZ NOT NULL DEFAULT now()
-);
 
 -- ---------- CONFIGURACION (clave/valor: los datos del estudio) ----------
 CREATE TABLE IF NOT EXISTS configuracion (
@@ -227,10 +192,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_equipo_usuario_activo
 -- estado de sus tareas, aporta ideas y escribe en el chat, pero no crea ni
 -- borra clientes ni tareas. El admin los ajusta desde la pantalla de Usuarios.
 INSERT INTO roles (nombre, orden, permisos) VALUES
-  ('Editor',     0, '{"dashboard":"full","clientes":"limitado","tareas":"limitado","calendario":"full","brainstorm":"full","delegacion":"full","historial":"full","comunicacion":"full","equipo":"sin_acceso","estudio":"limitado","usuarios":"sin_acceso"}'),
-  ('Diseñadora', 1, '{"dashboard":"full","clientes":"limitado","tareas":"limitado","calendario":"full","brainstorm":"full","delegacion":"full","historial":"full","comunicacion":"full","equipo":"sin_acceso","estudio":"limitado","usuarios":"sin_acceso"}'),
-  ('CM',         2, '{"dashboard":"full","clientes":"limitado","tareas":"limitado","calendario":"full","brainstorm":"full","delegacion":"full","historial":"full","comunicacion":"full","equipo":"sin_acceso","estudio":"limitado","usuarios":"sin_acceso"}'),
-  ('SMM',        3, '{"dashboard":"full","clientes":"limitado","tareas":"limitado","calendario":"full","brainstorm":"full","delegacion":"full","historial":"full","comunicacion":"full","equipo":"sin_acceso","estudio":"limitado","usuarios":"sin_acceso"}')
+  ('Editor',     0, '{"dashboard":"full","clientes":"limitado","tareas":"limitado","calendario":"full","brainstorm":"full","delegacion":"full","equipo":"sin_acceso","estudio":"limitado","usuarios":"sin_acceso"}'),
+  ('Diseñadora', 1, '{"dashboard":"full","clientes":"limitado","tareas":"limitado","calendario":"full","brainstorm":"full","delegacion":"full","equipo":"sin_acceso","estudio":"limitado","usuarios":"sin_acceso"}'),
+  ('CM',         2, '{"dashboard":"full","clientes":"limitado","tareas":"limitado","calendario":"full","brainstorm":"full","delegacion":"full","equipo":"sin_acceso","estudio":"limitado","usuarios":"sin_acceso"}'),
+  ('SMM',        3, '{"dashboard":"full","clientes":"limitado","tareas":"limitado","calendario":"full","brainstorm":"full","delegacion":"full","equipo":"sin_acceso","estudio":"limitado","usuarios":"sin_acceso"}')
 ON CONFLICT (nombre) DO NOTHING;
 
 INSERT INTO configuracion (clave, valor) VALUES

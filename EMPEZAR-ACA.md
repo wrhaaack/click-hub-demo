@@ -4,7 +4,7 @@
 > **[DESPLIEGUE.md](DESPLIEGUE.md)**. Esta guía es para correrlo en tu compu.
 
 Esto es el hub de Click de siempre (clientes, calendario, brainstorming,
-delegación, historial, comunicación, equipo, el estudio) pero ahora con **login,
+delegación, equipo, el estudio) pero ahora con **login,
 base de datos y permisos por persona**, tomando la estructura del proyecto base.
 
 Antes era un archivo HTML suelto que guardaba todo en el navegador de cada uno:
@@ -200,7 +200,6 @@ Estas seis cosas no las habilita ningún rol ni ninguna excepción:
 - Ver la sección **Equipo**, y agregar, editar y dar de baja a sus integrantes.
 - Dar de baja clientes.
 - Eliminar tareas.
-- Borrar mensajes y notas escritos por otra persona.
 
 Las tres primeras son estructurales: definen quién trabaja acá y qué puede hacer
 cada uno. Si alguien que no es admin pudiera editar un rol, se subiría los
@@ -254,7 +253,7 @@ Es la pantalla que abre por defecto. Tiene tres cosas:
 
 - **El resumen del mes** arriba: tareas totales, pendientes, en progreso y listas.
 - **Fechas del mes** a la izquierda: un renglón por cada día, con lo que cae ese
-  día — tareas, fechas especiales y eventos de la agenda de Google. El día de hoy
+  día — las tareas y las fechas especiales. El día de hoy
   queda resaltado y la lista arranca ahí.
 - **Últimas actividades** a la derecha: qué se agregó, editó o eliminó, quién lo
   hizo y cuándo, y quién se sumó al equipo con qué rol. El puntito de la
@@ -266,23 +265,6 @@ la lista de ruido y taparían los movimientos que importan.
 
 ---
 
-## Google Calendar
-
-El estudio conecta **una agenda compartida**, una sola vez y desde una cuenta de
-administrador. A partir de ahí, cualquiera con permiso **Full** en Calendario
-crea, edita y borra eventos desde el hub, y queda registrado quién hizo qué.
-
-Los eventos son una capa aparte de las tareas: en la grilla del mes se ven los
-dos, con colores distintos (los de Google llevan un borde violeta a la
-izquierda). Con permiso **Limitado** los ves pero no los tocás.
-
-Para que funcione hay que crear credenciales en Google Cloud: los pasos están en
-[DESPLIEGUE.md](DESPLIEGUE.md#conectar-google-calendar-opcional). Si no lo
-configurás, el hub anda igual y el calendario simplemente avisa que no hay agenda
-conectada.
-
----
-
 ## Detalles de la pantalla
 
 **Anda en cualquier resolución.** En escritorio se ve igual que siempre. Por
@@ -291,22 +273,13 @@ de las tres rayas y se cierra al elegir algo, al tocar afuera o con Escape. Los
 modales pasan a ser una hoja que sube desde abajo, el calendario scrollea solo en
 horizontal en vez de aplastarse, y las tarjetas se apilan en una columna.
 
-**El chat se actualiza solo.** Cada 5 segundos pregunta si hay mensajes nuevos y
-los agrega, sin que tengas que recargar. Detalles pensados para que no moleste:
-
-- Si estás leyendo mensajes viejos, el refresco no te tira para abajo. Solo se
-  va al final si ya estabas al final.
-- Si estás en otra vista, aparece un puntito rojo al lado de *Comunicación*, y
-  se apaga cuando entrás.
-- Con la pestaña en segundo plano no consulta nada.
-
 ---
 
 ## Qué hay adentro, para orientarte
 
 - `server.js` — el arranque: registra las rutas y sirve las páginas
 - `src/routes/` — un archivo por tema (clientes, tareas, equipo, roles,
-  brainstorm, fechas, comunicación, estudio, usuarios, notificaciones)
+  brainstorm, fechas, estudio, usuarios, notificaciones)
 - `src/routes/estado.js` — devuelve de una sola vez todo lo que el hub necesita
   para dibujarse; es lo primero que pide la pantalla al abrirse
 - `src/middleware/auth.js` — login y el sistema de permisos por sección

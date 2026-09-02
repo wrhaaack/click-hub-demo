@@ -223,16 +223,12 @@
       ayuda:'Limitado: ver la lista de clientes y entrar a cada ficha. Full: además crear y editar clientes, cargar sus links y sus fechas especiales.' },
     { key:'tareas', label:'Tareas', niveles:['full','limitado','sin_acceso'],
       ayuda:'No es una vista del menú: manda sobre las tareas donde sea que aparezcan. Sin acceso: las ve pero no las toca. Limitado: mueve el estado y marca el pago. Full: además crear, editar y asignar. Eliminar es solo del admin.' },
-    { key:'calendario', label:'Calendario', niveles:['full','limitado','sin_acceso'],
-      ayuda:'Limitado: ver la grilla del mes con las tareas y los eventos de la agenda de Google. Full: además crear, editar y borrar esos eventos. Conectar la agenda en sí es solo del admin.' },
+    { key:'calendario', label:'Calendario', niveles:['full','sin_acceso'],
+      ayuda:'La grilla del mes con las tareas y las fechas especiales. Lo que se puede tocar acá adentro lo deciden los permisos de Tareas y de Clientes.' },
     { key:'brainstorm', label:'Brainstorming', niveles:['full','limitado','sin_acceso'],
       ayuda:'Limitado: leer las ideas y los links de inspiración. Full: además escribirlos, borrarlos y pasar una idea a tarea.' },
     { key:'delegacion', label:'Delegación', niveles:['full','sin_acceso'],
       ayuda:'La tabla de quién tiene qué. Lo que se puede tocar acá adentro lo decide el permiso de Tareas.' },
-    { key:'historial', label:'Historial', niveles:['full','sin_acceso'],
-      ayuda:'Lo ya cumplido, por cliente y por mes.' },
-    { key:'comunicacion', label:'Comunicación', niveles:['full','limitado','sin_acceso'],
-      ayuda:'Limitado: leer el chat y las notas por cliente. Full: además escribir, y borrar lo propio.' },
     { key:'estudio', label:'El estudio', niveles:['full','limitado','sin_acceso'],
       ayuda:'Limitado: ver los datos y links del estudio. Full: además editarlos.' },
   ];
@@ -519,7 +515,6 @@
     'Ver la sección Equipo, y agregar, editar y dar de baja a sus integrantes',
     'Dar de baja clientes',
     'Eliminar tareas',
-    'Borrar mensajes y notas escritos por otra persona',
   ].map(function(t){ return '<li>'+t+'</li>'; }).join('');
 
   await cargarRoles();

@@ -1,7 +1,7 @@
 {
   "name": "click-hub",
   "version": "3.0.0",
-  "description": "Click Hub: planificacion de contenido por cliente (tareas, calendario, brainstorming, delegacion, historial, comunicacion, equipo) con login y base de datos.",
+  "description": "Click Hub: planificacion de contenido por cliente (tareas, calendario, brainstorming, delegacion, equipo) con login y base de datos.",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {

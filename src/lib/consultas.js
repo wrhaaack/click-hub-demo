@@ -67,4 +67,4 @@ async function guardarAsignados(client, tareaId, miembroIds) {
   );
 }
 
-module.exports = { SELECT_TAREAS, tareaPorId, todasLasTareas, periodoADate, guardarAsignados };
+module.exports = { tareaPorId, todasLasTareas, periodoADate, guardarAsignados };

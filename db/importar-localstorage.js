@@ -13,8 +13,6 @@
 //       ideas: JSON.parse(localStorage.getItem('ck2_ideas') || '{}'),
 //       equipo: JSON.parse(localStorage.getItem('ck2_eq') || '[]'),
 //       estudio: JSON.parse(localStorage.getItem('ck2_est') || 'null'),
-//       mensajes: JSON.parse(localStorage.getItem('ck2_msg') || '[]'),
-//       notas: JSON.parse(localStorage.getItem('ck2_nota') || '{}'),
 //       fechas: JSON.parse(localStorage.getItem('ck2_fe') || '{}')
 //     }))
 //
@@ -45,7 +43,7 @@ const ESTADOS = ['pendiente', 'en progreso', 'revisión', 'listo', 'cumplido'];
 // Mismo arranque que db/schema.sql para los roles que se importan.
 const PERMISOS_ARRANQUE = {
   clientes: 'limitado', tareas: 'limitado', calendario: 'full', brainstorm: 'full',
-  delegacion: 'full', historial: 'full', comunicacion: 'full', equipo: 'sin_acceso',
+  delegacion: 'full', equipo: 'sin_acceso',
   estudio: 'limitado', usuarios: 'sin_acceso',
 };
 
@@ -167,28 +165,6 @@ async function main() {
       }
     }
 
-    // ---------- Notas por cliente ----------
-    // El autor viejo era texto libre; se conserva tal cual, sin usuario asociado.
-    for (const [clave, lista] of Object.entries(datos.notas || {})) {
-      const periodo = periodoDeClave(clave);
-      const cid = clientePorIdViejo.get(String(clave).replace(/-\d{4}-\d{2}$/, ''));
-      if (!periodo || !cid || !Array.isArray(lista)) continue;
-      for (const n of lista) {
-        if (!n || !n.texto) continue;
-        await client.query(
-          'INSERT INTO notas (cliente_id, periodo, texto, autor) VALUES ($1,$2,$3,$4)',
-          [cid, periodo, String(n.texto), n.autor || 'Equipo']
-        );
-      }
-    }
-
-    // ---------- Chat ----------
-    for (const m of datos.mensajes || []) {
-      if (!m || !m.texto) continue;
-      await client.query('INSERT INTO mensajes (autor, texto) VALUES ($1,$2)',
-        [m.autor || 'Equipo', String(m.texto)]);
-    }
-
     // ---------- Estudio ----------
     if (datos.estudio) {
       await client.query(
@@ -203,7 +179,6 @@ async function main() {
     console.log(`  clientes: ${clientePorIdViejo.size}`);
     console.log(`  tareas:   ${tareasImportadas}`);
     console.log(`  equipo:   ${miembroPorNombre.size}`);
-    console.log('Los mensajes y las notas quedan con el autor viejo como texto, sin usuario asociado.');
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;

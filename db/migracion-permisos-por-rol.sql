@@ -21,7 +21,7 @@ ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS rol_id   BIGINT REFERENCES roles(i
 
 -- A los roles que quedaron sin permisos se les carga el mismo arranque que trae
 -- schema.sql: gente de producción que ve lo suyo y mueve el estado de sus tareas.
-UPDATE roles SET permisos = '{"clientes":"limitado","tareas":"limitado","calendario":"full","brainstorm":"full","delegacion":"full","historial":"full","comunicacion":"full","equipo":"sin_acceso","estudio":"limitado","usuarios":"sin_acceso"}'
+UPDATE roles SET permisos = '{"clientes":"limitado","tareas":"limitado","calendario":"full","brainstorm":"full","delegacion":"full","equipo":"sin_acceso","estudio":"limitado","usuarios":"sin_acceso"}'
 WHERE permisos = '{}'::jsonb;
 
 -- Cada usuario que todavía no tenga rol se engancha al rol de la persona del

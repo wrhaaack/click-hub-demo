@@ -179,13 +179,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
 .sd-vacio{font-size:12px;color:var(--hin);padding:14px;text-align:center}
 
 .selector-mes{display:flex;gap:10px;align-items:center}
-.cal-google{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
-.gc-aviso{font-size:11.5px;color:var(--mut)}
-/* Los eventos de Google llevan un borde a la izquierda para no confundirlos
-   con las tareas, que son bloques de color plano. */
-.ev-G{background:#EEF2FF;color:#3730A3;border-left:3px solid #6366F1}
-.cal-ev.editable{cursor:pointer}
-.cal-ev.editable:hover{filter:brightness(.94)}
 .ev-E{background:#DBEAFE;color:#1E3A5F}.ev-D{background:#EDE9FE;color:#3730A3}.ev-C{background:#D1FAE5;color:#064E3B}.ev-S{background:#FEF3C7;color:#92400E}
 .bs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
 .bs-card{background:var(--sur);border:1px solid var(--bor);border-radius:var(--r);padding:16px}
@@ -208,27 +201,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
 .eq-card{background:var(--sur);border:1px solid var(--bor);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:10px}
 .eq-av{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:500;font-family:'Syne',sans-serif;flex-shrink:0}
 .eq-nom{font-size:14px;font-weight:500;font-family:'Syne',sans-serif}
-.hist-cb{background:var(--sur);border:1px solid var(--bor);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
-.hist-ch{padding:12px 16px;border-bottom:1px solid var(--bor);background:var(--sur2);font-size:14px;font-weight:500;font-family:'Syne',sans-serif}
 .hist-ml{font-size:10px;font-weight:500;color:var(--hin);text-transform:uppercase;letter-spacing:.07em;margin:12px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--bor)}
 .hist-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--bor)}
 .hist-row:last-child{border-bottom:none}
 .hist-desc{font-size:13px;text-decoration:line-through;color:var(--mut);flex:1}
-.com-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.com-c{background:var(--sur);border:1px solid var(--bor);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:10px}
-.com-t{font-size:13px;font-weight:500;font-family:'Syne',sans-serif}
-.msg-list{flex:1;min-height:250px;max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
-.msg-b{background:var(--sur2);border-radius:var(--r);padding:10px 12px}
-.msg-a{font-size:11px;font-weight:500;color:var(--tand);margin-bottom:3px}
-.msg-t{font-size:13px;color:var(--txt);line-height:1.5;white-space:pre-wrap;word-break:break-word}
-.msg-f{font-size:10px;color:var(--hin);margin-top:4px;font-family:'DM Mono',monospace}
-.nota-i{background:var(--sur2);border-radius:var(--rs);padding:8px 12px;display:flex;align-items:flex-start;gap:8px}
-.nota-t{flex:1;font-size:13px;color:var(--txt);line-height:1.5}
-.nota-d{width:20px;height:20px;border:none;background:none;cursor:pointer;color:var(--hin);font-size:12px;border-radius:3px;display:flex;align-items:center;justify-content:center}
-.nota-d:hover{background:#FEE2E2;color:#B91C1C}
-.com-in-row{display:flex;gap:8px}
-.com-in{flex:1;padding:8px 10px;border:1px solid var(--bor2);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:13px;background:var(--bg);color:var(--txt);outline:none}
-.com-in:focus{border-color:var(--tan);background:var(--sur)}
 .est-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .est-c{background:var(--sur);border:1px solid var(--bor);border-radius:var(--r);padding:18px}
 .est-c.full{grid-column:1/-1}
@@ -236,8 +212,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
 .est-f{margin-bottom:10px}
 .est-l{font-size:10px;color:var(--hin);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
 .est-v{font-size:13px;color:var(--txt)}
-.est-link{font-size:13px;color:var(--tand);text-decoration:none;word-break:break-all}
-.est-link:hover{text-decoration:underline}
 .est-notes{background:var(--sur2);border-radius:var(--rs);padding:10px 12px;font-size:13px;color:var(--mut);line-height:1.6;white-space:pre-wrap;word-break:break-word}
 .est-li{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg);border-radius:var(--rs);border:1px solid var(--bor);margin-bottom:6px}
 .est-ll{font-size:12px;font-weight:500;color:var(--txt);min-width:80px}
@@ -294,7 +268,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
 .asig-pills{display:flex;flex-wrap:wrap;gap:6px;padding:8px;background:var(--bg);border:1px solid var(--bor2);border-radius:var(--rs);min-height:40px;margin-top:4px}
 .asig-pill{font-size:12px;padding:4px 12px;border-radius:20px;cursor:pointer;border:1px solid var(--bor2);background:var(--sur2);color:var(--txt);font-family:'DM Sans',sans-serif;transition:all .12s;user-select:none}
 .asig-pill.on{background:var(--tan);color:#fff;border-color:var(--tan)}
-.roles-list{display:flex;flex-direction:column;gap:4px}
 .roles-li{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--bor)}
 /* ── Agregados de la versión con login ─────────────────────────────────────── */
 /* El bloque de usuario va sobre la franja tostada: se le dan vuelta los colores
@@ -310,7 +283,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
 .cargando{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:2000;font-size:13px;color:var(--mut)}
 .cargando.off{display:none}
 /* Todo lo que solo puede tocar quien tiene permiso "full" se esconde con esto. */
-.solo-full{display:none!important}
 .rol-lbl.otros{color:#B91C1C}
 /* ── Dashboard ─────────────────────────────────────────────────────────────
    Dos columnas: a la izquierda la agenda del mes día por día, a la derecha el
@@ -334,7 +306,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
 .ag-cli{font-size:10px;color:var(--mut);background:var(--sur2);padding:1px 6px;border-radius:20px;white-space:nowrap}
 .ag-vacio{font-size:11px;color:var(--hin)}
 .ag-esp{font-size:11px;color:#92400E;background:#FEF3C7;padding:1px 6px;border-radius:20px}
-.ag-ev{font-size:11px;color:#1E3A5F;background:#DBEAFE;padding:1px 6px;border-radius:20px}
 
 .act-lista{max-height:520px;overflow-y:auto;padding-right:4px}
 .act-item{display:flex;gap:9px;padding:9px 0;border-bottom:1px solid var(--bor)}
@@ -347,9 +318,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
 .act-vacio{font-size:12px;color:var(--hin);text-align:center;padding:26px}
 
 @media (max-width:900px){ .dash-cols{grid-template-columns:1fr} }
-
-/* Puntito de "hay mensajes nuevos" al lado de Comunicación. */
-.nav-punto{width:7px;height:7px;border-radius:50%;background:#F87171;margin-left:auto;flex-shrink:0}
 
 /* ── Botón de menú y fondo oscuro: solo existen en pantallas chicas ───────── */
 .menu-btn{
@@ -376,7 +344,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
   .cf-hdr{padding:12px 16px}
   .cf-body{padding:16px}
   .sumbar{grid-template-columns:repeat(2,1fr)}
-  .com-grid,.est-wrap{grid-template-columns:1fr}
+  .est-wrap{grid-template-columns:1fr}
 }
 
 /* ── Hasta 860px: el menú pasa a ser un cajón que entra desde la izquierda ── */
@@ -436,9 +404,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
   .hist-row{flex-wrap:wrap;gap:6px}
   .sd-fila{gap:6px}
   .sd-desc{flex:1 1 100%}
-  .com-in-row{flex-wrap:wrap}
-  .com-in-row .com-in{min-width:0;flex:1 1 100%}
-  .msg-list{max-height:50dvh}
   .eq-grid{grid-template-columns:1fr}
   .bs-grid{grid-template-columns:1fr}
   .idea-row,.inspo-row,.fe-row{flex-wrap:wrap}
@@ -481,8 +446,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
     <button class="nav-btn" data-scr="calendario" onclick="goScr('calendario',this)"><svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="14" height="13" rx="1.5"/><path d="M1 6h14M5 1v2M11 1v2"/></svg>Calendario</button>
     <button class="nav-btn" data-scr="brainstorm" onclick="goScr('brainstorm',this)"><svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="7" r="4"/><path d="M6 11v4M10 11v4M6 15h4"/></svg>Brainstorming</button>
     <button class="nav-btn" data-scr="delegacion" onclick="goScr('delegacion',this)"><svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h5"/></svg>Delegación</button>
-    <button class="nav-btn" data-scr="historial" onclick="goScr('historial',this)"><svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>Historial</button>
-    <button class="nav-btn" data-scr="comunicacion" onclick="goScr('comunicacion',this)"><svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2h12a1 1 0 011 1v7a1 1 0 01-1 1H5l-3 3V3a1 1 0 011-1z"/></svg>Comunicación</button>
     <button class="nav-btn" data-scr="equipo" onclick="goScr('equipo',this)"><svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5" cy="5" r="2.5"/><circle cx="11" cy="5" r="2.5"/><path d="M1 13c0-2.2 1.8-4 4-4s4 1.8 4 4"/></svg>Equipo</button>
     <button class="nav-btn" data-scr="estudio" onclick="goScr('estudio',this)"><svg class="nav-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>El estudio</button>
   </div>
@@ -548,7 +511,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
     </div>
     <div class="scr" id="scr-clientes"><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px" id="cGrid"></div></div>
     <div class="scr" id="scr-calendario">
-      <div class="cal-google" id="calGoogle"></div>
       <div class="filtros" id="calF"><button class="fbtn on" onclick="setCalF(&quot;todo&quot;,this)">Todo</button><button class="fbtn" onclick="setCalF('E',this)">Editor</button><button class="fbtn" onclick="setCalF('D',this)">Diseñadora</button><button class="fbtn" onclick="setCalF('C',this)">CM</button><button class="fbtn" onclick="setCalF('S',this)">SMM</button></div>
       <div class="cal-wrap"><div class="cal-head" id="calHead"></div><div class="cal-grid" id="calGrid"></div></div>
     </div>
@@ -556,21 +518,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
     <div class="scr" id="scr-delegacion">
       <div class="filtros" id="delF"><button class="fbtn on" onclick="setDelF(null,this)">Todo</button></div>
       <div id="delTable"></div>
-    </div>
-    <div class="scr" id="scr-historial">
-      <div class="filtros" id="histF"><button class="fbtn on" onclick="setHistF(null,this)">Todo</button></div>
-      <div style="display:flex;gap:8px;margin-bottom:14px"><button class="fbtn on" id="hvL" onclick="setHV(&quot;lista&quot;)">Lista</button><button class="fbtn" id="hvC" onclick="setHV(&quot;cal&quot;)">Calendario</button></div>
-      <div id="histContent"></div>
-    </div>
-    <div class="scr" id="scr-comunicacion">
-      <div class="com-grid">
-        <div class="com-c"><div class="com-t">Chat general</div><div class="msg-list" id="chatList"></div>
-          <div class="com-in-row" id="chatForm"><span class="tasig" id="chatYo" title="Los mensajes salen con tu nombre"></span><input class="com-in" id="chatTxt" placeholder="Escribí un mensaje..." onkeydown="if(event.key==='Enter')sendMsg()"><button class="btn btn-p" onclick="sendMsg()">Enviar</button></div></div>
-        <div class="com-c">
-          <div style="display:flex;align-items:center;justify-content:space-between"><div class="com-t">Notas por cliente</div><select class="sel" id="notasCli" onchange="renderNotas()"></select></div>
-          <div class="msg-list" id="notasList"></div>
-          <div class="com-in-row" id="notaForm"><input class="com-in" id="notaTxt" placeholder="Agregar nota..." onkeydown="if(event.key==='Enter')addNota()"><button class="btn btn-p" onclick="addNota()">+</button></div></div>
-      </div>
     </div>
     <div class="scr" id="scr-equipo">
       <div class="eq-grid" id="eqGrid"></div>
@@ -672,25 +619,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
     </div>
   </div>
 </div>
-<!-- MODAL EVENTO DE GOOGLE CALENDAR -->
-<div class="mo" id="moEvento">
-  <div class="mo-card" style="width:420px">
-    <h3 id="moEvTit">Nuevo evento</h3>
-    <div class="f"><label>Título</label><input type="text" id="mevTitulo" placeholder="Ej: Reunión con Boutique Lumá"></div>
-    <div class="f"><label>Fecha</label><input type="date" id="mevFecha"></div>
-    <div class="f-row">
-      <div class="f"><label>Hora de inicio <span style="font-size:10px;color:var(--hin);text-transform:none">(vacío = todo el día)</span></label><input type="time" id="mevIni"></div>
-      <div class="f"><label>Hora de fin</label><input type="time" id="mevFin"></div>
-    </div>
-    <div class="f"><label>Descripción</label><textarea id="mevDesc" placeholder="Detalles, link de la videollamada..."></textarea></div>
-    <a id="mevLink" href="#" target="_blank" style="font-size:12px;color:var(--tand);display:none">Abrir en Google Calendar ↗</a>
-    <div class="mo-btns">
-      <button class="btn" id="mevDelBtn" style="margin-right:auto;color:#B91C1C;border-color:transparent;display:none" onclick="delEvento()">Eliminar</button>
-      <button class="btn" onclick="closeMo('moEvento')">Cancelar</button>
-      <button class="btn btn-p" onclick="saveEvento()">Guardar</button>
-    </div>
-  </div>
-</div>
 <!-- MODAL ESTUDIO -->
 <div class="mo" id="moEstudio">
   <div class="mo-card" style="width:500px">
@@ -741,8 +669,6 @@ let tareas = [];
 let ideas = {};
 let equipo = [];
 let estudio = {nombre:'',ig:'',email:'',tel:'',wa:'',links:[],notas:''};
-let mensajes = [];
-let notasCliente = {};
 let fechasEspeciales = {};
 let YO = null;         // usuario logueado: {id, nombre, rol, permisos}
 let curScr = 'dashboard';   // es la primera del menú y la que abre por defecto
@@ -750,9 +676,6 @@ let curCF = null;
 let curCFTab = 'tareas';
 let calF = 'todo';
 let delF = null;
-let histF = null;
-let histV = 'lista';
-let histMes = null;
 let editTid = null;
 let editCid = null;
 let editPid = null;
@@ -785,8 +708,6 @@ async function cargarEstado() {
   ideas = data.ideas || {};
   equipo = data.equipo || [];
   estudio = data.estudio || estudio;
-  mensajes = data.mensajes || [];
-  notasCliente = data.notasCliente || {};
   fechasEspeciales = data.fechasEspeciales || {};
   normalizarTareas();
   return true;
@@ -891,7 +812,7 @@ function pintarSelectorDeMes(){
   if(el) el.style.display = VISTAS_CON_MES.indexOf(curScr) >= 0 ? '' : 'none';
 }
 
-var PAGE = {dashboard:'Dashboard',clientes:'Clientes',calendario:'Calendario',brainstorm:'Brainstorming',delegacion:'Delegación',historial:'Historial',comunicacion:'Comunicación',equipo:'Equipo',estudio:'El estudio'};
+var PAGE = {dashboard:'Dashboard',clientes:'Clientes',calendario:'Calendario',brainstorm:'Brainstorming',delegacion:'Delegación',equipo:'Equipo',estudio:'El estudio'};
 function goScr(name, el) {
   if(YO && !puedo(SCR_SECCION[name])) return;  // sección no habilitada para este usuario
   if(menuEsCajon()) cerrarMenu();
@@ -904,11 +825,9 @@ function goScr(name, el) {
   document.getElementById('ptitle').textContent = PAGE[name];
   pintarSelectorDeMes();
   if(name==='dashboard') renderDash();
-  else if(name==='calendario') { renderCal(); pintarBarraGoogle(); refrescarEventosSiHaceFalta(); }
+  else if(name==='calendario') renderCal();
   else if(name==='brainstorm') renderBS();
   else if(name==='delegacion') renderDel();
-  else if(name==='historial') renderHist();
-  else if(name==='comunicacion') renderCom();
   else if(name==='equipo') renderEq();
   else if(name==='estudio') renderEst();
 }
@@ -916,17 +835,6 @@ function onFechaChange() {
   document.getElementById('sbSub').textContent = MESES[getMes()].toLowerCase()+' '+getAno();
   renderAll();
   if(curCF) renderCF();
-  // Los eventos de Google se piden por mes: al cambiarlo hay que traer los del nuevo.
-  refrescarEventosSiHaceFalta();
-}
-
-// Trae los eventos de Google solo si cambió el mes desde la última vez.
-async function refrescarEventosSiHaceFalta(){
-  if(!google.conectado) return;
-  if(googleMesCargado === getPrefix()) return;
-  await googleRefrescarMes();
-  if(curScr === 'calendario') renderCal();
-  if(curScr === 'dashboard') renderDash();
 }
 
 // ── FULLSCREEN CLIENTE ────────────────────────────────────────────────────────
@@ -1161,18 +1069,15 @@ async function renderDash(){
     var periodo = getPrefix();
     var agenda = await ckJson('/api/dashboard/agenda?periodo='+periodo);
     var actividad = await ckJson('/api/dashboard/actividad?limite=40');
-    // Los eventos de Google se piden aparte: si Google no contesta, la agenda
-    // igual se dibuja con las tareas y las fechas especiales.
-    var eventos = await googleEventosDelMes(periodo);
     if(periodo !== getPrefix()) return;   // cambiaste de mes mientras cargaba
-    pintarAgenda(agenda, eventos);
+    pintarAgenda(agenda);
     pintarActividad(actividad);
   } finally {
     dashCargando = false;
   }
 }
 
-function pintarAgenda(datos, eventos){
+function pintarAgenda(datos){
   var el = document.getElementById('dashAgenda');
   if(!el) return;
   if(!datos){ el.innerHTML='<div class="act-vacio">No se pudo cargar la agenda.</div>'; return; }
@@ -1190,10 +1095,6 @@ function pintarAgenda(datos, eventos){
   }
   (datos.especiales||[]).forEach(function(f){
     meter(f.fecha, '<div class="ag-item"><span class="ag-esp">★ '+esc(f.label||'Fecha especial')+'</span><span class="ag-cli">'+esc(f.cliente)+'</span></div>');
-  });
-  (eventos||[]).forEach(function(ev){
-    var hora = ev.horaInicio ? ev.horaInicio+' ' : '';
-    meter(ev.fecha, '<div class="ag-item"><span class="ag-ev">'+esc(hora)+esc(ev.titulo)+'</span></div>');
   });
   (datos.tareas||[]).forEach(function(t){
     meter(t.fecha, '<div class="ag-item"><span>'+(t.formato?esc(t.formato)+': ':'')+esc(t.descripcion)+'</span><span class="ag-cli">'+esc(t.cliente)+'</span></div>');
@@ -1250,163 +1151,12 @@ function renderCal() {
     var eh=hoy.getDate()===d&&hoy.getMonth()===mes&&hoy.getFullYear()===ano;
     var evs=tareas.filter(function(t){return t.fecha===ds&&t.estado!=='cumplido'&&(calF==='todo'||getRolIdx(t.rol)===getRolIdx(calF));});
     h+='<div class="cal-cell'+(eh?' hoy':'')+'"><div class="cal-num">'+d+'</div>';
-    // Los eventos de Google van primero y con su propio color: son otra cosa
-    // que las tareas, y conviene distinguirlos de un vistazo.
-    if(calF==='todo'){
-      googleEventos.filter(function(ev){return ev.fecha===ds;}).forEach(function(ev){
-        var hora = ev.horaInicio ? ev.horaInicio+' ' : '';
-        h+='<div class="cal-ev ev-G'+(google.puedeEditar?' editable':'')+'" title="'+esc(ev.titulo)+'"'
-          +(google.puedeEditar?' onclick="openMoEvento(&quot;'+esc(ev.id)+'&quot;)"':'')+'>'
-          +esc(hora)+esc(ev.titulo.substring(0,14))+(ev.titulo.length>14?'…':'')+'</div>';
-      });
-    }
     evs.forEach(function(t){var cn=clientes.find(function(c){return c.id===t.cid;});h+='<div class="cal-ev '+getRolCalCls(t.rol)+'" title="'+esc(t.desc)+'">'+(cn?esc(cn.nombre.split(' ')[0])+': ':'')+esc(t.desc.substring(0,13))+(t.desc.length>13?'…':'')+'</div>';});
     h+='</div>';
   }
   document.getElementById('calGrid').innerHTML=h;
 }
 function setCalF(f,el){calF=f;document.querySelectorAll('#calF .fbtn').forEach(function(b){b.classList.remove('on');});el.classList.add('on');renderCal();}
-
-// ── GOOGLE CALENDAR ───────────────────────────────────────────────────────────
-// El estudio conecta UNA agenda (lo hace un admin, una sola vez) y desde acá
-// todo el equipo le agrega, edita y borra eventos. Los eventos son una capa
-// aparte de las tareas: se ven juntos en la grilla, con colores distintos.
-var google = { configurado:false, conectado:false, puedeEditar:false, puedeConectar:false, email:null };
-var googleEventos = [];      // los del mes que se está mirando
-var googleMesCargado = null;
-var editEventoId = null;
-
-async function googleCargarEstado(){
-  var e = await ckJson('/api/google/estado');
-  if(e) google = e;
-  return google;
-}
-
-// Trae los eventos del mes pedido. Devuelve [] si no hay agenda conectada, así
-// el resto de la pantalla no tiene que preocuparse por eso.
-async function googleEventosDelMes(periodo){
-  if(!google.conectado) return [];
-  var ano = parseInt(periodo.slice(0,4),10), mes = parseInt(periodo.slice(5,7),10);
-  var ultimo = new Date(ano, mes, 0).getDate();
-  var res = await ckFetch('/api/google/eventos?desde='+periodo+'-01&hasta='+periodo+'-'+String(ultimo).padStart(2,'0'));
-  if(!res) return [];
-  var datos = await res.json().catch(function(){ return null; });
-  if(res.ok) return datos || [];
-
-  // 409 = la conexión con Google caducó. No es un error pasajero: hay que
-  // reconectar la agenda, así que se refleja en la barra en vez de dejar el
-  // calendario en un estado que miente.
-  if(res.status === 409){
-    google.conectado = false;
-    google.caducado = true;
-    pintarBarraGoogle();
-  }
-  avisar((datos && datos.error) || 'No se pudieron traer los eventos de Google.');
-  return [];
-}
-
-async function googleRefrescarMes(){
-  var periodo = getPrefix();
-  googleEventos = await googleEventosDelMes(periodo);
-  googleMesCargado = periodo;
-  return googleEventos;
-}
-
-// Barra de arriba del calendario: el botón de agregar evento, o el cartel de
-// que todavía no hay agenda conectada.
-function pintarBarraGoogle(){
-  var el = document.getElementById('calGoogle');
-  if(!el) return;
-  if(!google.configurado){
-    el.innerHTML = google.puedeConectar
-      ? '<span class="gc-aviso">Google Calendar todavía no está configurado en el servidor (ver DESPLIEGUE.md).</span>'
-      : '';
-    return;
-  }
-  if(!google.conectado){
-    var texto = google.caducado
-      ? 'La conexión con Google caducó y hay que rehacerla.'
-      : 'Conectá la agenda del estudio para que el equipo cargue eventos.';
-    el.innerHTML = google.puedeConectar
-      ? '<button class="btn" onclick="googleConectar()">'+(google.caducado?'Reconectar':'Conectar')+' Google Calendar</button>'
-        + '<span class="gc-aviso">'+texto+'</span>'
-      : '<span class="gc-aviso">'+(google.caducado
-          ? 'La conexión con Google caducó. Pedile a un administrador que la rehaga.'
-          : 'La agenda de Google todavía no está conectada. Pedíselo a un administrador.')+'</span>';
-    return;
-  }
-  el.innerHTML = (google.puedeEditar ? '<button class="btn btn-p" onclick="openMoEvento(null)">+ Evento</button>' : '')
-    + '<span class="gc-aviso">Agenda: ' + esc(google.email || 'Google Calendar') + '</span>'
-    + (google.puedeConectar ? '<button class="btn-sm" onclick="googleDesconectar()">Desconectar</button>' : '');
-}
-
-async function googleConectar(){
-  var r = await ckJson('/api/google/conectar');
-  if(!r || !r.url) return;
-  // Se abre en la misma pestaña: Google no deja el consentimiento en un iframe
-  // y una ventana emergente suele quedar bloqueada.
-  window.location.href = r.url;
-}
-
-async function googleDesconectar(){
-  if(!confirm('¿Desconectar la agenda de Google?\n\nLos eventos no se borran de Google: el hub deja de mostrarlos.')) return;
-  var r = await ckJson('/api/google/conexion', {method:'DELETE'});
-  if(!r) return;
-  google.conectado = false;
-  googleEventos = [];
-  pintarBarraGoogle();
-  renderCal();
-}
-
-// ── Modal de evento ──
-function openMoEvento(id){
-  editEventoId = id;
-  var ev = id ? googleEventos.find(function(x){ return x.id === id; }) : null;
-  document.getElementById('moEvTit').textContent = ev ? 'Editar evento' : 'Nuevo evento';
-  document.getElementById('mevTitulo').value = ev ? ev.titulo : '';
-  document.getElementById('mevDesc').value = ev ? ev.descripcion : '';
-  document.getElementById('mevFecha').value = ev ? ev.fecha : (getPrefix()+'-'+String(new Date().getDate()).padStart(2,'0'));
-  document.getElementById('mevIni').value = ev ? ev.horaInicio : '';
-  document.getElementById('mevFin').value = ev ? ev.horaFin : '';
-  document.getElementById('mevDelBtn').style.display = ev ? '' : 'none';
-  var link = document.getElementById('mevLink');
-  link.style.display = (ev && ev.link) ? '' : 'none';
-  if(ev && ev.link) link.href = ev.link;
-  openMo('moEvento');
-}
-
-async function saveEvento(){
-  var datos = {
-    titulo: document.getElementById('mevTitulo').value.trim(),
-    descripcion: document.getElementById('mevDesc').value.trim(),
-    fecha: document.getElementById('mevFecha').value,
-    horaInicio: document.getElementById('mevIni').value,
-    horaFin: document.getElementById('mevFin').value,
-  };
-  if(!datos.titulo){ avisar('Poné un título para el evento'); return; }
-  if(!datos.fecha){ avisar('Elegí la fecha del evento'); return; }
-
-  var guardado = editEventoId
-    ? await ckJson('/api/google/eventos/'+encodeURIComponent(editEventoId), {method:'PUT', body: JSON.stringify(datos)})
-    : await ckJson('/api/google/eventos', {method:'POST', body: JSON.stringify(datos)});
-  if(!guardado) return;
-  closeMo('moEvento');
-  await googleRefrescarMes();
-  renderCal();
-  if(curScr === 'dashboard') renderDash();
-}
-
-async function delEvento(){
-  if(!editEventoId) return;
-  var ev = googleEventos.find(function(x){ return x.id === editEventoId; });
-  if(!confirm('¿Eliminar el evento' + (ev ? ' "'+ev.titulo+'"' : '') + ' de la agenda de Google?')) return;
-  var r = await ckJson('/api/google/eventos/'+encodeURIComponent(editEventoId)+'?titulo='+encodeURIComponent(ev ? ev.titulo : ''), {method:'DELETE'});
-  if(!r) return;
-  closeMo('moEvento');
-  await googleRefrescarMes();
-  renderCal();
-  if(curScr === 'dashboard') renderDash();
-}
 
 // ── BRAINSTORM ────────────────────────────────────────────────────────────────
 function bsKey(cid){return cid+'-'+getPrefix();}
@@ -1501,179 +1251,6 @@ function renderDel(){
   }).join('');
 }
 function setDelF(f,el){delF=f;document.querySelectorAll('#delF .fbtn').forEach(function(b){b.classList.remove('on');});el.classList.add('on');renderDel();}
-
-// ── HISTORIAL ─────────────────────────────────────────────────────────────────
-function renderHistFiltros(){
-  var h='<button class="fbtn'+(histF===null?' on':'')+'" onclick="setHistF(null,this)">Todo</button>';
-  ROLES.forEach(function(r){h+='<button class="fbtn'+(histF===r?' on':'')+'" onclick="setHistF(&quot;'+r+'&quot;,this)">'+esc(r)+'</button>';});
-  document.getElementById('histF').innerHTML=h;
-}
-function renderHist(){
-  renderHistFiltros();
-  var ts=tareas.filter(function(t){return t.estado==='cumplido'&&(histF===null||t.rol===histF);});
-  var el=document.getElementById('histContent');
-  if(histV==='lista'){
-    if(!ts.length){el.innerHTML='<p style="color:var(--hin);font-size:13px;padding:40px;text-align:center">No hay tareas cumplidas todavía</p>';return;}
-    var byC={};ts.forEach(function(t){if(!byC[t.cid])byC[t.cid]={};var m=t.fecha?t.fecha.slice(0,7):'sf';if(!byC[t.cid][m])byC[t.cid][m]=[];byC[t.cid][m].push(t);});
-    var h='';
-    clientes.forEach(function(c){
-      if(!byC[c.id])return;
-      h+='<div class="hist-cb"><div class="hist-ch">'+esc(c.nombre)+'</div><div style="padding:12px 16px">';
-      Object.keys(byC[c.id]).sort().reverse().forEach(function(m){
-        var lbl=m!=='sf'?MESES[parseInt(m.slice(5,7))-1]+' '+m.slice(0,4):'Sin fecha';
-        h+='<div class="hist-ml">'+lbl+'</div>';
-        byC[c.id][m].forEach(function(t){
-          h+='<div class="hist-row"><div class="hist-desc">'+esc(t.desc)+'</div>'
-            +'<div style="display:flex;gap:5px;align-items:center">'+(t.formato?'<span class="fpill">'+esc(t.formato)+'</span>':'')+'<span class="badge bc">✓</span>'+(t.fecha?'<span class="tfecha">'+esc(t.fecha.slice(8)+'/'+t.fecha.slice(5,7))+'</span>':'')+'</div>'
-            +(soyAdmin()?'<button class="tbtn tbtn-d" onclick="delTareaById('+t.id+')">✕ Borrar</button>':'')+'</div>';
-        });
-      });
-      h+='</div></div>';
-    });
-    el.innerHTML=h;
-  } else {
-    if(!histMes){var hm=ts.filter(function(t){return t.fecha;}).map(function(t){return t.fecha.slice(0,7);});histMes=hm.length?{mes:parseInt(hm.sort().reverse()[0].slice(5,7))-1,ano:parseInt(hm[0].slice(0,4))}:{mes:getMes(),ano:getAno()};}
-    var mes=histMes.mes,ano=histMes.ano,prefix=ano+'-'+String(mes+1).padStart(2,'0');
-    var mt=ts.filter(function(t){return t.fecha&&t.fecha.startsWith(prefix);});
-    var h='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><button onclick="navHM(-1)" class="btn-sm">←</button><span style="font-size:14px;font-weight:500;font-family:Syne,sans-serif">'+MESES[mes]+' '+ano+'</span><button onclick="navHM(1)" class="btn-sm">→</button></div>'
-      +'<div class="cal-wrap"><div class="cal-head">'+DIAS.map(function(d){return '<div class="cal-dn">'+d+'</div>';}).join('')+'</div><div class="cal-grid">';
-    var pd=new Date(ano,mes,1).getDay(),dm=new Date(ano,mes+1,0).getDate();
-    for(var i=0;i<pd;i++) h+='<div class="cal-cell om"></div>';
-    for(var d=1;d<=dm;d++){
-      var ds=prefix+'-'+String(d).padStart(2,'0');
-      var dt=mt.filter(function(t){return t.fecha===ds;});
-      h+='<div class="cal-cell'+(dt.length?' hoy':'')+'"><div class="cal-num">'+d+'</div>';
-      dt.forEach(function(t){var cn=clientes.find(function(c){return c.id===t.cid;});h+='<div class="cal-ev '+getRolCalCls(t.rol)+'" style="text-decoration:line-through;opacity:.8">'+(cn?esc(cn.nombre.split(' ')[0])+': ':'')+esc(t.desc.substring(0,12))+'</div>';});
-      h+='</div>';
-    }
-    h+='</div></div>';
-    el.innerHTML=h;
-  }
-}
-function setHistF(f,el){histF=f;document.querySelectorAll('#histF .fbtn').forEach(function(b){b.classList.remove('on');});el.classList.add('on');renderHist();}
-function setHV(v){histV=v;document.getElementById('hvL').classList.toggle('on',v==='lista');document.getElementById('hvC').classList.toggle('on',v==='cal');renderHist();}
-function navHM(d){if(!histMes)return;histMes.mes+=d;if(histMes.mes<0){histMes.mes=11;histMes.ano--;}if(histMes.mes>11){histMes.mes=0;histMes.ano++;}renderHist();}
-
-// ── COMUNICACION ──────────────────────────────────────────────────────────────
-// Ya no hay selector de autor: los mensajes y las notas salen con el nombre de
-// quien está logueado, y solo esa persona (o un admin) los puede borrar. El
-// botón de borrar aparece únicamente en lo propio.
-function renderCom(){
-  chatMarcarLeido();
-  var yo=document.getElementById('chatYo');
-  if(yo) yo.textContent = YO ? YO.nombre : '';
-  var ns=document.getElementById('notasCli');
-  if(ns){var cv2=ns.value;ns.innerHTML=clientes.map(function(c){return '<option value="'+c.id+'"'+(c.id==cv2?' selected':'')+'>'+esc(c.nombre)+'</option>';}).join('');}
-  renderMsgs();renderNotas();
-}
-function puedoBorrarPropio(item){ return !!YO && (YO.rol==='admin' || item.usuario_id===YO.id); }
-
-// ── Chat en vivo ─────────────────────────────────────────────────────────────
-// El chat lo usan varias personas a la vez, así que no puede depender de que
-// recargues la página: cada pocos segundos se pregunta si hay algo nuevo.
-// Se pide solo lo posterior al último mensaje que ya tenemos (?desde=), o sea
-// que cuando no pasó nada la respuesta es una lista vacía.
-var chatUltimoId = 0;   // el mensaje más nuevo que tenemos
-var chatVistoId = 0;    // hasta dónde miró el usuario
-var chatTimer = null;
-var CHAT_CADA = 5000;
-
-function chatMarcarLeido(){
-  chatVistoId = chatUltimoId;
-  pintarPuntoChat();
-}
-
-// Puntito al lado de "Comunicación" cuando hay mensajes que no viste.
-function pintarPuntoChat(){
-  var btn = document.querySelector('.nav-btn[data-scr="comunicacion"]');
-  if(!btn) return;
-  var hay = chatUltimoId > chatVistoId;
-  var punto = btn.querySelector('.nav-punto');
-  if(hay && !punto){
-    punto = document.createElement('span');
-    punto.className = 'nav-punto';
-    btn.appendChild(punto);
-  } else if(!hay && punto){
-    punto.remove();
-  }
-}
-
-async function chatBuscarNuevos(){
-  if(document.hidden) return;              // pestaña en segundo plano: no molestamos
-  if(!puedo('comunicacion')) return;
-  var nuevos = await ckJson('/api/comunicacion/mensajes?desde=' + chatUltimoId);
-  if(!nuevos || !nuevos.length) return;
-  nuevos.forEach(function(m){
-    if(!mensajes.some(function(x){ return x.id === m.id; })) mensajes.push(m);
-    chatUltimoId = Math.max(chatUltimoId, m.id);
-  });
-  if(curScr === 'comunicacion'){
-    renderMsgs();
-    renderNotas();
-    chatMarcarLeido();
-  } else {
-    pintarPuntoChat();
-  }
-}
-
-function chatArrancarSondeo(){
-  chatUltimoId = mensajes.reduce(function(max, m){ return Math.max(max, m.id || 0); }, 0);
-  chatVistoId = chatUltimoId;
-  if(chatTimer) clearInterval(chatTimer);
-  chatTimer = setInterval(chatBuscarNuevos, CHAT_CADA);
-  // Al volver a la pestaña se mira enseguida, sin esperar el turno.
-  document.addEventListener('visibilitychange', function(){
-    if(!document.hidden) chatBuscarNuevos();
-  });
-}
-function renderMsgs(){
-  var el=document.getElementById('chatList');if(!el)return;
-  // Si estabas leyendo mensajes viejos, el refresco no te tira para abajo:
-  // solo se sigue al final si ya estabas al final.
-  var pegadoAbajo = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
-  if(!mensajes.length){el.innerHTML='<div style="font-size:13px;color:var(--hin);text-align:center;padding:20px">Sin mensajes</div>';return;}
-  el.innerHTML=mensajes.slice(-50).map(function(m){return '<div class="msg-b"><div style="display:flex;justify-content:space-between"><div class="msg-a">'+esc(m.autor)+'</div>'+(puedoBorrarPropio(m)?'<button onclick="delMsg('+m.id+')" style="font-size:10px;color:var(--hin);background:none;border:none;cursor:pointer">✕</button>':'')+'</div><div class="msg-t">'+esc(m.texto)+'</div><div class="msg-f">'+esc(m.fecha)+'</div></div>';}).join('');
-  if(pegadoAbajo) el.scrollTop=el.scrollHeight;
-}
-async function sendMsg(){
-  var input=document.getElementById('chatTxt'), t=input.value.trim();
-  if(!t) return;
-  input.value='';
-  var msg=await ckJson('/api/comunicacion/mensajes',{method:'POST',body:JSON.stringify({texto:t})});
-  if(!msg){ input.value=t; return; }   // falló: se le devuelve el texto al usuario
-  mensajes.push(msg);
-  chatUltimoId = Math.max(chatUltimoId, msg.id);
-  chatVistoId = chatUltimoId;
-  var lista=document.getElementById('chatList');
-  if(lista) lista.scrollTop = lista.scrollHeight;   // lo propio siempre lleva al final
-  renderMsgs();
-}
-async function delMsg(id){
-  var r=await ckJson('/api/comunicacion/mensajes/'+id,{method:'DELETE'});
-  if(!r) return;
-  mensajes=mensajes.filter(function(m){return m.id!==id;});
-  renderMsgs();
-}
-function renderNotas(){var s=document.getElementById('notasCli');if(!s)return;var cid=parseInt(s.value),k=cid+'-'+getPrefix(),notas=notasCliente[k]||[],el=document.getElementById('notasList');if(!el)return;if(!notas.length){el.innerHTML='<div style="font-size:13px;color:var(--hin);text-align:center;padding:20px">Sin notas este mes</div>';return;}el.innerHTML=notas.map(function(n){return '<div class="nota-i"><div class="nota-t">'+esc(n.texto)+'<div class="msg-f">'+esc(n.autor)+' · '+esc(n.fecha)+'</div></div>'+(puedoBorrarPropio(n)?'<button class="nota-d" onclick="delNota('+n.id+')">✕</button>':'')+'</div>';}).join('');}
-async function addNota(){
-  var s=document.getElementById('notasCli'), input=document.getElementById('notaTxt'), t=input.value.trim();
-  if(!t||!s||!s.value) return;
-  var cid=parseInt(s.value), periodo=getPrefix(), k=cid+'-'+periodo;
-  input.value='';
-  var nota=await ckJson('/api/comunicacion/notas',{method:'POST',body:JSON.stringify({cliente:cid,periodo:periodo,texto:t})});
-  if(!nota){ input.value=t; return; }
-  if(!notasCliente[k]) notasCliente[k]=[];
-  notasCliente[k].push(nota);
-  renderNotas();
-}
-async function delNota(id){
-  var r=await ckJson('/api/comunicacion/notas/'+id,{method:'DELETE'});
-  if(!r) return;
-  Object.keys(notasCliente).forEach(function(k){
-    notasCliente[k]=notasCliente[k].filter(function(n){return n.id!==id;});
-  });
-  renderNotas();
-}
 
 // ── EQUIPO ─────────────────────────────────────────────────────────────────────
 function renderEq(){
@@ -1988,7 +1565,7 @@ async function savePersona() {
   closeMo('moPersona');
   // Cambiarle el rol a alguien cambia el color de su pastilla donde figure
   // asignada, así que conviene volver a traer el estado en vez de parchearlo.
-  if(editPid) { recargarYRender(); } else { renderEq(); renderCom(); }
+  if(editPid) { recargarYRender(); } else { renderEq(); }
 }
 async function deletePersona() {
   if(!editPid) return;
@@ -1996,7 +1573,7 @@ async function deletePersona() {
   var r = await ckJson('/api/equipo/'+editPid, {method:'DELETE'});
   if(!r) return;
   equipo = equipo.filter(function(x){ return x.id!==editPid; });
-  closeMo('moPersona'); renderEq(); renderCom();
+  closeMo('moPersona'); renderEq();
 }
 
 // ── MODAL ROLES ────────────────────────────────────────────────────────────────
@@ -2111,8 +1688,6 @@ function renderAll() {
   else if(curScr==='calendario') renderCal();
   else if(curScr==='brainstorm') renderBS();
   else if(curScr==='delegacion') renderDel();
-  else if(curScr==='historial') renderHist();
-  else if(curScr==='comunicacion') renderCom();
   else if(curScr==='equipo') renderEq();
   else if(curScr==='estudio') renderEst();
   if(curCF) renderCF();
@@ -2120,7 +1695,7 @@ function renderAll() {
 
 document.addEventListener('keydown', function(e) {
   if(e.key==='Escape') {
-    ['moTarea','moCliente','moPersona','moRoles','moEstudio','moEvento','cuentaModal'].forEach(function(id){closeMo(id);});
+    ['moTarea','moCliente','moPersona','moRoles','moEstudio','cuentaModal'].forEach(function(id){closeMo(id);});
     cerrarMenu();
   }
 });
@@ -2128,7 +1703,7 @@ document.addEventListener('keydown', function(e) {
 // ── PERMISOS EN PANTALLA ─────────────────────────────────────────────────────
 // El servidor ya bloquea lo que no corresponde (src/middleware/auth.js). Esto es
 // para que el hub no muestre botones que van a terminar en un "no tenés acceso".
-var SCR_SECCION = {dashboard:'dashboard',clientes:'clientes',calendario:'calendario',brainstorm:'brainstorm',delegacion:'delegacion',historial:'historial',comunicacion:'comunicacion',equipo:'equipo',estudio:'estudio'};
+var SCR_SECCION = {dashboard:'dashboard',clientes:'clientes',calendario:'calendario',brainstorm:'brainstorm',delegacion:'delegacion',equipo:'equipo',estudio:'estudio'};
 
 function aplicarPermisos() {
   var primeraVisible = null;
@@ -2150,13 +1725,6 @@ function aplicarPermisos() {
   // Editar roles es admin-only por la misma razón de fondo: los roles llevan los
   // permisos, y dejarlo abierto sería dejar que alguien se suba los suyos.
   mostrar('btnEditarRoles', soyAdmin());
-  // El botón de evento y el de conectar dependen del permiso de Calendario y de
-  // ser admin: pintarBarraGoogle ya lo resuelve, solo hay que refrescarla.
-  google.puedeEditar = puedo('calendario','full');
-  google.puedeConectar = soyAdmin();
-  pintarBarraGoogle();
-  mostrar('chatForm', puedo('comunicacion','full'));
-  mostrar('notaForm', puedo('comunicacion','full'));
   document.getElementById('sbCli').parentElement.style.display = puedo('clientes') ? '' : 'none';
 
   if(!primeraVisible) {
@@ -2198,9 +1766,6 @@ function aplicarPermisos() {
     return;
   }
   await montarBarraUsuario('barraUsuario');
-  await googleCargarEstado();
-  if(google.conectado) await googleRefrescarMes();
-  pintarBarraGoogle();
   aplicarPermisos();
 
   // Las notificaciones linkean con un #seccion (por ejemplo /hub.html#delegacion),
@@ -2213,9 +1778,7 @@ function aplicarPermisos() {
   renderAll();
   renderBS();
   renderEq();
-  renderCom();
   renderEst();
-  chatArrancarSondeo();
   document.getElementById('cargando').classList.add('off');
 })();
 </script>

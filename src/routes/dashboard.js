@@ -26,8 +26,6 @@ router.get('/actividad', async (req, res) => {
 });
 
 // La agenda del mes: un renglón por día, con lo que cae ese día.
-// El calendario de Google se suma aparte desde el navegador, para que si Google
-// no responde el dashboard igual cargue.
 router.get('/agenda', async (req, res) => {
   const periodoSql = periodoADate(req.query.periodo);
   if (!periodoSql) return res.status(400).json({ error: 'Periodo inválido (se espera YYYY-MM).' });

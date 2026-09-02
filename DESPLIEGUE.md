@@ -168,95 +168,21 @@ Entrá al dominio y fijate:
 
 Los logs están en el servicio de la app, pestaña **Deployments** → el deploy →
 **View Logs**.
-
----
-
-## Conectar Google Calendar (opcional)
-
-El hub puede trabajar sobre **una agenda compartida del estudio**: la conecta un
-administrador una sola vez, y de ahí en más cualquiera del equipo con permiso
-"Full" en Calendario crea, edita y borra eventos desde el hub. Quién hizo cada
-cosa queda en el registro de actividad del dashboard.
-
-Se eligió una sola agenda y no la cuenta de cada persona para que nadie más
-tenga que pasar por la pantalla de permisos de Google ni dar acceso a su
-calendario personal.
-
-Sin esto el hub anda igual: la vista Calendario simplemente avisa que no hay
-agenda conectada.
-
-### Probarlo en tu compu primero
-
-Conviene. Es el mismo procedimiento, con dos diferencias:
-
-- La URI de redireccionamiento es `http://localhost:3000/api/google/callback`.
-  Google acepta `http://localhost` sin certificado; es la única excepción que hace.
-- Las variables van en tu `.env` (ya está preparado con los nombres), no en Railway.
-
-Podés cargar **las dos URIs** en el mismo ID de cliente de Google Cloud — la de
-localhost y la de Railway — y usar el mismo par de credenciales en los dos lados.
-No hace falta crear un proyecto aparte para probar.
-
-Un detalle que se pasa por alto: **el `.env` se lee una sola vez, al arrancar**.
-Después de pegar las credenciales hay que cortar el server (Ctrl+C) y volver a
-hacer `npm start`; si no, va a seguir diciendo que falta configurar.
-
-### 1. Crear las credenciales en Google Cloud
-
-1. Entrá a [console.cloud.google.com](https://console.cloud.google.com) y creá
-   un proyecto (o usá uno que ya tengas).
-2. **APIs y servicios → Biblioteca**, buscá **Google Calendar API** y activala.
-3. **APIs y servicios → Pantalla de consentimiento de OAuth**:
-   - Tipo de usuario: **Externo** (salvo que tengas Google Workspace, ahí va Interno).
-   - Completá nombre de la app, tu email de soporte y el de contacto.
-   - En **Usuarios de prueba**, agregá la cuenta de Google del estudio que va a
-     tener la agenda. Mientras la app esté en modo prueba, solo esa cuenta puede
-     conectarse — que es justo lo que necesitás.
-4. **APIs y servicios → Credenciales → Crear credenciales → ID de cliente de OAuth**:
-   - Tipo: **Aplicación web**.
-   - En **URI de redireccionamiento autorizados**, agregá la dirección exacta:
-     - Local: `http://localhost:3000/api/google/callback`
-     - Railway: `https://TU-DOMINIO/api/google/callback`
-   - Guardá y copiá el **ID de cliente** y el **Secreto**.
-
-### 2. Cargar las variables
-
-En Railway, servicio de la app → **Variables**:
-
-| Variable | Valor |
-|---|---|
-| `GOOGLE_CLIENT_ID` | el ID de cliente que te dio Google |
-| `GOOGLE_CLIENT_SECRET` | el secreto |
-| `GOOGLE_REDIRECT_URI` | `https://TU-DOMINIO/api/google/callback` |
-| `TZ_ESTUDIO` | `America/Argentina/Buenos_Aires` (o la tuya) |
-
-El `GOOGLE_REDIRECT_URI` tiene que coincidir **carácter por carácter** con el que
-cargaste en Google Cloud. Es el error más común: una barra de más al final y
-Google rechaza la conexión con `redirect_uri_mismatch`.
-
-### 3. Conectar la agenda desde el hub
-
-Entrá como administrador → **Calendario** → **Conectar Google Calendar**. Te
-lleva a Google, elegís la cuenta del estudio, aceptás, y volvés al hub con la
-agenda conectada. Una sola vez.
-
-### Si algo falla
-
-| Lo que ves | Qué pasa |
-|---|---|
-| `redirect_uri_mismatch` | La URI de Google Cloud y la variable `GOOGLE_REDIRECT_URI` no son idénticas. Fijate en el `http` vs `https` y en la barra final. |
-| "Google no mandó el permiso de largo plazo" | Esa cuenta ya había autorizado antes. Entrá a [los permisos de tu cuenta](https://myaccount.google.com/permissions), quitale el acceso a la app y volvé a conectar. |
-| `access_blocked` o "app no verificada" | La cuenta que estás usando no está en **Usuarios de prueba** de la pantalla de consentimiento. |
-| Los eventos no aparecen | Fijate que la agenda conectada sea la correcta. La cuenta usa su calendario principal salvo que elijas otro. |
-
----
-
 ## Después del primer despliegue
 
 - **Actualizar la app**: `git push` y Railway redespliega solo.
 - **Si ya tenías datos** de la versión anterior del hub (la que guardaba todo en
   el navegador), mirá `db/importar-localstorage.js`.
-- **Si venías de una versión anterior de esta app**, con los permisos cargados a
-  mano en cada usuario, corré una vez `db/migracion-permisos-por-rol.sql`.
+- **Si venías de una versión anterior de esta app**, corré una vez las
+  migraciones que te falten, en este orden:
+  `db/migracion-permisos-por-rol.sql` (permisos cargados a mano en cada usuario),
+  `db/migracion-dashboard.sql` (el dashboard),
+  `db/migracion-equipo-admin.sql` (Equipo pasa a ser admin-only y solo admite
+  usuarios registrados) y `db/migracion-quitar-historial-comunicacion.sql` (se
+  eliminan esas dos secciones; **ojo, esa borra el chat y las notas por
+  cliente**) y `db/migracion-quitar-google.sql` (se elimina la integración con
+  Google Calendar; el calendario en sí se conserva). En una base **nueva no hace
+  falta ninguna**: `db:init` ya aplica el `schema.sql`, que las trae
+  incorporadas.
 - **Backups**: el servicio de Postgres en Railway tiene su propia pestaña de
   backups. Vale la pena dejarlos activados.
