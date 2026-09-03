@@ -27,10 +27,16 @@ async function aplicarEsquema(client) {
   const antes = await client.query("SELECT to_regclass('public.usuarios') IS NOT NULL AS existe");
   const eraNueva = !antes.rows[0].existe;
 
-  // Se aplica siempre, no solo cuando la base está vacía: el schema.sql usa
-  // CREATE TABLE IF NOT EXISTS y ON CONFLICT DO NOTHING de punta a punta, así
-  // que correrlo de nuevo no toca nada de lo que ya está, pero sí agrega lo que
-  // se haya sumado al esquema desde el último despliegue.
+  // Se aplica siempre, no solo cuando la base está vacía: schema.sql se puede
+  // repetir sin efecto, así que correrlo de nuevo no toca nada de lo que ya
+  // está y de paso pone al día una base vieja.
+  //
+  // OJO con esto último, que ya falló una vez en producción: CREATE TABLE IF
+  // NOT EXISTS sobre una tabla que ya existe NO agrega las columnas nuevas. La
+  // app se cayó entera con "column a_pagar does not exist" después de un
+  // despliegue que parecía limpio. Lo que hace que esto funcione de verdad es
+  // el bloque PUESTA AL DÍA del final de schema.sql; si agregás una columna,
+  // tiene que estar ahí también.
   const sql = fs.readFileSync(path.join(__dirname, '..', '..', 'db', 'schema.sql'), 'utf8');
   await client.query(sql);
 

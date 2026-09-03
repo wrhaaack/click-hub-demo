@@ -1,11 +1,13 @@
 -- ============================================================
 -- CLICK HUB · Esquema de base de datos
--- Se ejecuta una sola vez al armar la base (Railway -> Postgres -> Query).
+-- Lo corre src/lib/arranque.js en CADA arranque del servidor, no una sola vez.
+-- Por eso todo acá adentro tiene que poder repetirse sin efecto: CREATE ... IF
+-- NOT EXISTS, ADD COLUMN IF NOT EXISTS y ON CONFLICT DO NOTHING de punta a punta.
 --
 -- Convención de IDs:
 --   usuarios  -> UUID (igual que en el proyecto base: es lo que viaja en la sesión)
 --   el resto  -> BIGSERIAL, porque la interfaz del hub trabaja con ids numéricos
---                (clientes, tareas, equipo, mensajes...) y así no hay que
+--                (clientes, tareas, equipo, eventos...) y así no hay que
 --                traducir nada entre el front y la base.
 -- ============================================================
 
@@ -118,12 +120,6 @@ CREATE TABLE IF NOT EXISTS brainstorm (
   inspo          JSONB NOT NULL DEFAULT '[]',
   actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now()
 );
--- Dos índices en vez de un UNIQUE compuesto: en Postgres dos filas con
--- cliente_id NULL no chocan entre sí, así que el bloque general necesita el suyo.
-CREATE UNIQUE INDEX IF NOT EXISTS idx_brainstorm_cliente
-  ON brainstorm(cliente_id, periodo) WHERE cliente_id IS NOT NULL;
-CREATE UNIQUE INDEX IF NOT EXISTS idx_brainstorm_general
-  ON brainstorm(periodo) WHERE cliente_id IS NULL;
 
 -- ---------- FECHAS ESPECIALES (por cliente y mes) ----------
 CREATE TABLE IF NOT EXISTS fechas_especiales (
@@ -134,8 +130,6 @@ CREATE TABLE IF NOT EXISTS fechas_especiales (
   label       TEXT,
   orden       INT NOT NULL DEFAULT 0
 );
-CREATE INDEX IF NOT EXISTS idx_fechas_cliente ON fechas_especiales(cliente_id, periodo);
-
 
 
 -- ---------- ACTIVIDAD (el registro de todo lo que pasa) ----------
@@ -154,7 +148,6 @@ CREATE TABLE IF NOT EXISTS actividad (
   autor       TEXT NOT NULL,   -- copia del nombre, para que sobreviva al usuario
   creado_en   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS idx_actividad_fecha ON actividad(creado_en DESC);
 
 -- ---------- EVENTOS DEL CALENDARIO ----------
 -- Cosas que pasan en una fecha y no son tareas de un cliente: una reunión, una
@@ -175,7 +168,6 @@ CREATE TABLE IF NOT EXISTS eventos (
   autor        TEXT NOT NULL,
   creado_en    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS idx_eventos_fecha ON eventos(fecha);
 
 -- ---------- CONFIGURACION (clave/valor: los datos del estudio) ----------
 CREATE TABLE IF NOT EXISTS configuracion (
@@ -200,10 +192,118 @@ CREATE TABLE IF NOT EXISTS notificaciones (
   oculta      BOOLEAN NOT NULL DEFAULT false,
   creado_en   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+
+-- ---------- PUESTA AL DÍA DE TABLAS QUE YA EXISTEN ----------
+-- Todo lo de arriba es CREATE TABLE IF NOT EXISTS, y eso tiene un límite que
+-- costó caro: sobre una tabla que YA existe no hace absolutamente nada. En una
+-- base nueva el esquema queda completo, pero en una que ya estaba andando las
+-- columnas nuevas nunca aparecen, y la app se cae con "column X does not exist".
+--
+-- Por eso este bloque repite cada columna como ALTER ... ADD COLUMN IF NOT
+-- EXISTS. Sobre una base al día no hace nada; sobre una vieja, la completa. Es
+-- lo que le permite a src/lib/arranque.js dejar la base usable en cada
+-- despliegue sin que nadie corra nada a mano.
+--
+-- REGLA: si agregás una columna a una tabla de acá arriba, agregala también
+-- acá abajo. La prueba probar-esquema.js falla si te la olvidás.
+--
+-- Solo van las columnas que se pueden agregar a una tabla con datos: o admiten
+-- NULL, o son NOT NULL con DEFAULT. Una NOT NULL sin default no se puede sumar
+-- después (no hay qué poner en las filas que ya están), así que esas viven
+-- únicamente en el CREATE TABLE.
+
+ALTER TABLE roles ADD COLUMN IF NOT EXISTS orden    INT   NOT NULL DEFAULT 0;
+ALTER TABLE roles ADD COLUMN IF NOT EXISTS permisos JSONB NOT NULL DEFAULT '{}';
+
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS activo       BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS rol_id       BIGINT REFERENCES roles(id) ON DELETE SET NULL;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS permisos     JSONB NOT NULL DEFAULT '{}';
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS creado_en    TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ultimo_login TIMESTAMPTZ;
+
+ALTER TABLE equipo ADD COLUMN IF NOT EXISTS rol        TEXT;
+ALTER TABLE equipo ADD COLUMN IF NOT EXISTS usuario_id UUID REFERENCES usuarios(id) ON DELETE SET NULL;
+ALTER TABLE equipo ADD COLUMN IF NOT EXISTS activo     BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE equipo ADD COLUMN IF NOT EXISTS creado_en  TIMESTAMPTZ NOT NULL DEFAULT now();
+
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS ig         TEXT;
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS contacto   TEXT;
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS tel        TEXT;
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS links      JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS notas      TEXT;
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS a_pagar    NUMERIC(12,2);
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS pagado     BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS activo     BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS creado_por UUID REFERENCES usuarios(id) ON DELETE SET NULL;
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS creado_en  TIMESTAMPTZ NOT NULL DEFAULT now();
+
+ALTER TABLE tareas ADD COLUMN IF NOT EXISTS rol            TEXT;
+ALTER TABLE tareas ADD COLUMN IF NOT EXISTS formato        TEXT;
+ALTER TABLE tareas ADD COLUMN IF NOT EXISTS fecha          DATE;
+ALTER TABLE tareas ADD COLUMN IF NOT EXISTS fecha_limite   DATE;
+ALTER TABLE tareas ADD COLUMN IF NOT EXISTS notas          TEXT;
+ALTER TABLE tareas ADD COLUMN IF NOT EXISTS estado         TEXT NOT NULL DEFAULT 'pendiente'
+       CHECK (estado IN ('pendiente','en progreso','revisión','listo','cumplido'));
+ALTER TABLE tareas ADD COLUMN IF NOT EXISTS pagado         BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE tareas ADD COLUMN IF NOT EXISTS creado_por     UUID REFERENCES usuarios(id) ON DELETE SET NULL;
+ALTER TABLE tareas ADD COLUMN IF NOT EXISTS creado_en      TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE tareas ADD COLUMN IF NOT EXISTS actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now();
+
+ALTER TABLE brainstorm ADD COLUMN IF NOT EXISTS cliente_id     BIGINT REFERENCES clientes(id) ON DELETE CASCADE;
+ALTER TABLE brainstorm ADD COLUMN IF NOT EXISTS ideas          JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE brainstorm ADD COLUMN IF NOT EXISTS inspo          JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE brainstorm ADD COLUMN IF NOT EXISTS actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now();
+
+ALTER TABLE fechas_especiales ADD COLUMN IF NOT EXISTS fecha DATE;
+ALTER TABLE fechas_especiales ADD COLUMN IF NOT EXISTS label TEXT;
+ALTER TABLE fechas_especiales ADD COLUMN IF NOT EXISTS orden INT NOT NULL DEFAULT 0;
+
+ALTER TABLE actividad ADD COLUMN IF NOT EXISTS entidad    TEXT;
+ALTER TABLE actividad ADD COLUMN IF NOT EXISTS entidad_id BIGINT;
+ALTER TABLE actividad ADD COLUMN IF NOT EXISTS usuario_id UUID REFERENCES usuarios(id) ON DELETE SET NULL;
+ALTER TABLE actividad ADD COLUMN IF NOT EXISTS creado_en  TIMESTAMPTZ NOT NULL DEFAULT now();
+
+ALTER TABLE eventos ADD COLUMN IF NOT EXISTS hora_inicio TIME;
+ALTER TABLE eventos ADD COLUMN IF NOT EXISTS hora_fin    TIME;
+ALTER TABLE eventos ADD COLUMN IF NOT EXISTS descripcion TEXT;
+ALTER TABLE eventos ADD COLUMN IF NOT EXISTS usuario_id  UUID REFERENCES usuarios(id) ON DELETE SET NULL;
+ALTER TABLE eventos ADD COLUMN IF NOT EXISTS creado_en   TIMESTAMPTZ NOT NULL DEFAULT now();
+
+ALTER TABLE configuracion ADD COLUMN IF NOT EXISTS valor           JSONB;
+ALTER TABLE configuracion ADD COLUMN IF NOT EXISTS actualizado_por UUID REFERENCES usuarios(id) ON DELETE SET NULL;
+ALTER TABLE configuracion ADD COLUMN IF NOT EXISTS actualizado_en  TIMESTAMPTZ NOT NULL DEFAULT now();
+
+ALTER TABLE notificaciones ADD COLUMN IF NOT EXISTS link      TEXT;
+ALTER TABLE notificaciones ADD COLUMN IF NOT EXISTS leida     BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE notificaciones ADD COLUMN IF NOT EXISTS oculta    BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE notificaciones ADD COLUMN IF NOT EXISTS creado_en TIMESTAMPTZ NOT NULL DEFAULT now();
+
+-- ---------- ÍNDICES ----------
+-- Van todos juntos y después de la puesta al día a propósito: un índice sobre
+-- una columna que la base vieja todavía no tiene falla, así que primero se
+-- completan las columnas y recién ahí se indexan.
+
+-- Dos índices en vez de un UNIQUE compuesto: en Postgres dos filas con
+-- cliente_id NULL no chocan entre sí, así que el bloque general necesita el suyo.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_brainstorm_cliente
+  ON brainstorm(cliente_id, periodo) WHERE cliente_id IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_brainstorm_general
+  ON brainstorm(periodo) WHERE cliente_id IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_fechas_cliente ON fechas_especiales(cliente_id, periodo);
+
+CREATE INDEX IF NOT EXISTS idx_actividad_fecha ON actividad(creado_en DESC);
+
+CREATE INDEX IF NOT EXISTS idx_eventos_fecha ON eventos(fecha);
+
 CREATE INDEX IF NOT EXISTS idx_notificaciones_usuario ON notificaciones(usuario_id, leida, creado_en DESC);
 
 CREATE INDEX IF NOT EXISTS idx_tareas_cliente_fecha ON tareas(cliente_id, fecha);
+
 CREATE INDEX IF NOT EXISTS idx_tareas_fecha ON tareas(fecha);
+
 CREATE INDEX IF NOT EXISTS idx_tarea_asignados_miembro ON tarea_asignados(miembro_id);
 
 -- Un mismo usuario no puede figurar dos veces en el equipo. Es un índice PARCIAL

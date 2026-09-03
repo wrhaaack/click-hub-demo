@@ -1,23 +1,23 @@
 -- ============================================================
 -- MIGRACIÓN · Cobro por cliente + eventos del calendario
 --
--- Solo hace falta si ya tenías la base andando de antes. Si la armás de cero con
--- db/schema.sql (o si la app arranca contra una base vacía, que lo aplica sola),
--- saltéate este archivo.
+-- YA NO HACE FALTA CORRERLA A MANO. Desde que el arranque aplica db/schema.sql
+-- en cada boot (src/lib/arranque.js) y schema.sql trae el bloque PUESTA AL DÍA,
+-- estas columnas se agregan solas al desplegar. El archivo queda como registro
+-- de qué cambió y por qué, y para poder aplicarlo suelto si hiciera falta.
+--
+-- Esa era justamente la falla: se agregaron las columnas al CREATE TABLE, el
+-- despliegue salió sin errores, y la app se cayó con "column a_pagar does not
+-- exist" porque CREATE TABLE IF NOT EXISTS no toca una tabla que ya existe.
 --
 -- Qué agrega:
 --   1. clientes.a_pagar y clientes.pagado — cuánto cobra el estudio por ese
 --      cliente y si ya cobró;
 --   2. la tabla eventos — reuniones, grabaciones y feriados que van en el
---      calendario pero no son tareas de nadie;
---   3. devuelve el nivel "limitado" al permiso de Calendario.
+--      calendario pero no son tareas de nadie.
 --
--- Sobre el punto 3: cuando se sacó Google Calendar, Calendario quedó con dos
--- niveles porque no había nada que "editar" adentro. Ahora sí lo hay, así que
--- vuelve a distinguir entre ver la grilla (limitado) y manejar los eventos
--- (full). A los roles que hoy tienen "full" NO se los toca: seguían pudiendo
--- ver, y ahora además pueden cargar eventos, que es lo razonable para un rol
--- que ya tenía el máximo.
+-- El nivel "limitado" de Calendario, que volvió junto con los eventos, no se
+-- toca desde acá: los niveles viven en src/middleware/auth.js, no en la base.
 --
 -- No borra ni modifica ningún dato existente.
 --
