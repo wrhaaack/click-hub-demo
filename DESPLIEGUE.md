@@ -61,18 +61,42 @@ En el servicio **de la app** (no el de Postgres) → pestaña **Variables**, y c
 
 | Variable | Valor |
 |---|---|
-| `DATABASE_URL` | `${{Postgres.DATABASE_PRIVATE_URL}}` |
 | `SESSION_SECRET` | un valor largo y aleatorio, ver abajo |
 | `NODE_ENV` | `production` |
 
-Para el `DATABASE_URL`, en vez de tipearlo usá el botón **Add a Reference** (o el
-banner morado *"Trying to connect a database?"*): elegís el servicio de una lista
-y la referencia queda con el nombre correcto, sin riesgo de escribirlo mal. Si lo
-escribís a mano, el nombre entre llaves tiene que ser **exactamente** el de tu
-servicio de Postgres, respetando mayúsculas.
+Y el `DATABASE_URL`, que necesita explicación:
 
-Se usa `DATABASE_PRIVATE_URL` y no `DATABASE_URL` porque va por la red interna de
-Railway: no paga tráfico de salida y no expone la base a internet.
+```
+DATABASE_URL=postgresql://${{Postgres.PGUSER}}:${{Postgres.PGPASSWORD}}@${{Postgres.RAILWAY_PRIVATE_DOMAIN}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}
+```
+
+Se arma pieza por pieza a propósito. Lo intuitivo sería `${{Postgres.DATABASE_URL}}`
+o `${{Postgres.DATABASE_PRIVATE_URL}}`, y **las dos fallan**:
+
+- `DATABASE_PRIVATE_URL` **no existe en todos los servicios de Postgres** de
+  Railway. Si el tuyo no la tiene, la referencia apunta a la nada.
+- `DATABASE_URL` sí existe, pero **es a su vez una variable compuesta**, y la
+  referencia anidada tampoco resuelve.
+
+Y acá está la trampa que hace que esto sea tan difícil de diagnosticar: cuando una
+referencia `${{...}}` no resuelve, **Railway no avisa ni deja el texto literal:
+pasa la variable vacía**. En el panel la ves cargada, con su nombre y todo, pero
+al contenedor le llega en blanco.
+
+Las cinco piezas de arriba (`PGUSER`, `PGPASSWORD`, `RAILWAY_PRIVATE_DOMAIN`,
+`PGPORT`, `PGDATABASE`) son valores literales y siempre están. Igual va por la red
+privada (`postgres.railway.internal`), así que no paga tráfico de salida ni expone
+la base.
+
+Si tu servicio de Postgres **no se llama `Postgres`**, cambiá esa palabra por el
+nombre de la tarjeta, respetando mayúsculas.
+
+**Para verificar que resolvió de verdad**, no mires el panel — el panel te muestra
+la referencia, no el valor. Usá la CLI:
+
+```bash
+railway run --service TU-APP -- node -e "console.log(process.env.DATABASE_URL ? 'OK' : 'VACIA')"
+```
 
 **Las demás variables que aparezcan en la lista, borralas con la ✕:**
 
@@ -101,53 +125,63 @@ verde.
 
 ---
 
-## 4. Crear las tablas
+## 4. Crear las tablas y el primer usuario
 
-La base arranca vacía. Hay dos formas de aplicarle el esquema; cualquiera sirve.
+**Esto ya no se hace a mano.** Al arrancar, la app aplica `db/schema.sql` sola si
+la base está vacía, y si todavía no hay ningún usuario crea el primer admin.
 
-**Opción A — desde tu compu (recomendada).** Con la CLI conectada al proyecto,
-corre el script contra la base de Railway sin que tengas que copiar nada:
+Cargá **dos variables más** en el servicio de la app:
 
-```bash
-npm i -g @railway/cli
-railway login
-railway link
-railway run npm run db:init
+| Variable | Valor |
+|---|---|
+| `ADMIN_EMAIL` | tu email |
+| `ADMIN_PASSWORD` | una clave de 10 caracteres o más |
+
+Guardá, esperá el redeploy, y en los logs vas a ver:
+
+```
+Base vacía: esquema aplicado (11 tablas).
+
+Primer usuario creado: vos@tuestudio.com (administrador).
 ```
 
-Te va a listar las 11 tablas y los 4 roles iniciales. Es repetible: si lo corrés
-dos veces no rompe ni duplica nada.
+**Después de entrar, borrá esas dos variables.** Ya no hacen falta y no conviene
+dejar una contraseña guardada en el servicio. Al resto del equipo lo das de alta
+desde la propia app, en **Usuarios**.
 
-**Opción B — desde el panel.** Servicio de Postgres → pestaña **Data** → **Query**,
-y pegás entero el contenido de `db/schema.sql`.
+### Por qué es seguro dejarlo automático
+
+El primer admin **solo se crea si no hay ningún usuario**. Sobre una instalación
+que ya tiene gente no hace nada, aunque las variables sigan puestas. Y el
+esquema usa `CREATE TABLE IF NOT EXISTS` de punta a punta, así que aplicarlo de
+nuevo en cada arranque no toca lo que ya está — solo agrega lo que falte.
+
+Si hay más de una réplica levantando a la vez, un lock de Postgres hace que solo
+una aplique el esquema y la otra espere.
+
+### Si preferís hacerlo a mano
+
+Los scripts siguen ahí: `npm run db:init` y `npm run seed:admin`. Ojo que desde
+tu compu **no llegás a la base**: vive en la red privada de Railway. Para llegar
+hay que abrir un proxy TCP temporal:
+
+```bash
+railway tcp-proxy add --service Postgres --port 5432
+```
+
+Eso te da un `host:puerto` público. Con eso:
+
+```bash
+$env:DATABASE_URL="postgresql://postgres:LA-CLAVE@EL-HOST:EL-PUERTO/railway"; $env:DATABASE_SSL="on"; npm run db:init
+```
+
+La clave sale de `railway variables --service Postgres --kv`. **Cerrá el proxy
+al terminar** (`railway tcp-proxy delete --service Postgres <ID>`): mientras esté
+abierto, tu base es accesible desde internet.
 
 ---
 
-## 5. Crear tu usuario administrador
-
-No hay registro público: el primer usuario se crea a mano, una sola vez.
-
-```bash
-railway run bash -c "ADMIN_EMAIL=vos@click.com ADMIN_PASSWORD='UnaClaveLargaDeVerdad!' ADMIN_NOMBRE='Alan' ADMIN_ROL=admin npm run seed:admin"
-```
-
-En Windows, si `bash -c` te da problemas, corré esto en su lugar:
-
-```bash
-railway run --service TU-APP npm run seed:admin
-```
-
-...habiendo cargado antes `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NOMBRE` y
-`ADMIN_ROL` como variables temporales en el servicio (y borrándolas después).
-
-> La contraseña tiene que tener 10 caracteres o más. Usá una de verdad: es la
-> cuenta que puede todo.
-
-Al resto del equipo lo das de alta desde la propia app, en **Usuarios**.
-
----
-
-## 6. Abrir la app
+## 5. Abrir la app
 
 Servicio de la app → **Settings → Networking → Generate Domain**. Railway te da
 una dirección tipo `tu-app.up.railway.app`. Entrás ahí y tenés el login.
@@ -165,12 +199,12 @@ una dirección tipo `tu-app.up.railway.app`. Entrás ahí y tenés el login.
 
 ---
 
-## 7. Comprobar que quedó bien
+## 6. Comprobar que quedó bien
 
 Entrá al dominio y fijate:
 
 - [ ] `/` te lleva al login (no muestra el hub sin sesión).
-- [ ] Entrás con el usuario del paso 5 y ves el hub con el mes actual.
+- [ ] Entrás con el usuario del paso 4 y ves el hub con el mes actual.
 - [ ] Creás un cliente y sigue estando después de recargar.
 - [ ] En **Usuarios** aparecen las dos pestañas: Usuarios y Permisos por rol.
 - [ ] Abrís el hub en otro navegador (o de incógnito) sin sesión y te rebota.
@@ -183,10 +217,10 @@ Entrá al dominio y fijate:
 |---|---|
 | En el log dice `No puedo arrancar: falta DATABASE_URL` | Falta la variable del paso 3, o la referencia `${{...}}` apunta a un servicio con otro nombre. |
 | `ECONNREFUSED ::1:5432` | La variable está pero llegó vacía: la referencia no resolvió. Cargala con **Add a Reference** en vez de a mano. |
-| `relation "usuarios" does not exist` | Falta el paso 4: la base está pero sin tablas. |
+| `relation "usuarios" does not exist` | No debería pasar: la app aplica el esquema al arrancar. Mirá los logs del arranque, ahí está el motivo real. |
 | En el log dice `No puedo arrancar: falta SESSION_SECRET` | Falta esa variable. |
 | Entrás, ponés la contraseña bien y te devuelve al login una y otra vez | Falta `NODE_ENV=production`, o el dominio está entrando por HTTP en vez de HTTPS. La cookie de sesión es `Secure`: solo viaja cifrada. |
-| `Email o contraseña incorrectos` con los datos correctos | El usuario del paso 5 quedó en otra base. Verificá que `railway link` apuntaba a este proyecto. |
+| `Email o contraseña incorrectos` con los datos correctos | Revisá en los logs que diga "Primer usuario creado". Si no aparece, faltaban `ADMIN_EMAIL`/`ADMIN_PASSWORD` o la clave tenía menos de 10 caracteres. |
 | `Demasiados intentos` | El límite anti fuerza-bruta: 8 intentos cada 15 minutos por IP. Esperá y volvé a probar. |
 | `The server does not support SSL connections` | Ya está contemplado: la app apaga SSL sola contra direcciones `.railway.internal`. Si igual aparece, poné la variable `DATABASE_SSL=off`. |
 | El healthcheck falla pero la app arranca bien en los logs | Sacá la variable `PORT` si la agregaste a mano. |

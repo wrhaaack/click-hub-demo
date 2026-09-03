@@ -21,6 +21,7 @@ const usuariosRoutes = require('./src/routes/usuarios');
 
 const { tieneAcceso } = require('./src/middleware/auth');
 const { revisarAlertas } = require('./src/lib/alertas');
+const { prepararBase } = require('./src/lib/arranque');
 
 // Sin estas dos la app no puede funcionar, así que no arranca. Antes levantaba
 // igual, servía el login, y recién explotaba en el primer intento de entrar con
@@ -32,8 +33,10 @@ if (FALTAN.length) {
   console.error('No puedo arrancar: falta ' + FALTAN.join(' y ') + '.');
   console.error('');
   if (FALTAN.includes('DATABASE_URL')) {
-    console.error('  DATABASE_URL    en Railway va como referencia al servicio de Postgres:');
-    console.error('                  ${{Postgres.DATABASE_PRIVATE_URL}}  (con las llaves)');
+    console.error('  DATABASE_URL    en Railway se arma pieza por pieza (las referencias');
+    console.error('                  a Postgres.DATABASE_URL no resuelven, llegan vacías):');
+    console.error('                  postgresql://${{Postgres.PGUSER}}:${{Postgres.PGPASSWORD}}' +
+                  '@${{Postgres.RAILWAY_PRIVATE_DOMAIN}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}');
     console.error('                  En tu compu, copiá .env.example a .env.');
   }
   if (FALTAN.includes('SESSION_SECRET')) {
@@ -117,10 +120,27 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Error interno. Probá de nuevo.' });
 });
 
+// Primero se deja la base lista (esquema y, si hace falta, el primer admin) y
+// recién después se abre el puerto. Al revés, un despliegue nuevo aceptaría
+// pedidos contra una base vacía y devolvería errores hasta que alguien corriera
+// los scripts a mano.
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Click Hub corriendo en el puerto ${PORT}`);
-});
+prepararBase()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Click Hub corriendo en el puerto ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('');
+    console.error('No pude preparar la base, así que no arranco:');
+    console.error('  ' + err.message);
+    console.error('');
+    console.error('Casi siempre es DATABASE_URL: apunta a una base que no existe,');
+    console.error('o la referencia ${{...}} de Railway no resolvió y llegó vacía.');
+    console.error('Ver DESPLIEGUE.md, paso 3.');
+    process.exit(1);
+  });
 
 // Alertas automáticas (tareas vencidas + clientes sin planificar): se revisan
 // una vez al arrancar, con un margen para que la base esté lista, y después una
