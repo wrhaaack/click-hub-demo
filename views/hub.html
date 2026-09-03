@@ -192,6 +192,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
 .cal-cell.hoy .cal-num{color:var(--tanlt);font-weight:600}
 .cal-num{font-size:11px;color:var(--hin);margin-bottom:4px;font-family:'DM Mono',monospace}
 .cal-cell.hoy .cal-num{color:var(--tand);font-weight:500}
+/* Tocar un día abre el alta de evento con esa fecha puesta. La celda solo se
+   vuelve clickeable con permiso "full" en Calendario: sin él no lleva ni el
+   cursor ni el hover, para no prometer algo que después no va a pasar. */
+.cal-cell.libre{cursor:pointer;position:relative}
+.cal-cell.libre:hover{background:var(--sur2)}
+/* Hoy ya viene con fondo propio: si el hover se lo pisa con el gris, la celda
+   parece perder el resaltado justo cuando la estás por tocar. */
+.cal-cell.libre.hoy:hover{background:var(--tanl);filter:brightness(.96)}
+/* El "+" es la única pista de que el día se puede tocar. pointer-events:none
+   para que el click siempre lo maneje la celda y nunca este cartelito. */
+.cal-mas{position:absolute;top:5px;right:6px;width:15px;height:15px;border-radius:3px;
+  display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1;
+  color:#fff;background:var(--tan);opacity:0;transition:opacity .12s;pointer-events:none}
+.cal-cell.libre:hover .cal-mas{opacity:1}
 .cal-ev{font-size:10px;padding:2px 5px;border-radius:3px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* Las tarjetas del resumen ahora son botones: se abren para mostrar de qué
    tareas hablan. Se les rehace el aspecto porque un <button> trae lo suyo. */
@@ -1253,47 +1267,69 @@ function renderCal() {
   initCalHead();
   var mes=getMes(),ano=getAno(),prefix=getPrefix();
   var pd=new Date(ano,mes,1).getDay(),dm=new Date(ano,mes+1,0).getDate(),hoy=new Date();
+  // Con "full" el día entero es un botón para cargar un evento ahí. Lo de
+  // adentro (eventos y tareas) frena el click para que tocar una tarea no
+  // termine abriendo el alta de un evento del día.
+  var puedeEditar=puedo('calendario','full'), frenar=puedeEditar?' onclick="event.stopPropagation()"':'';
   var h='';
   for(var i=0;i<pd;i++) h+='<div class="cal-cell om"></div>';
   for(var d=1;d<=dm;d++){
     var ds=prefix+'-'+String(d).padStart(2,'0');
     var eh=hoy.getDate()===d&&hoy.getMonth()===mes&&hoy.getFullYear()===ano;
     var evs=tareas.filter(function(t){return t.fecha===ds&&t.estado!=='cumplido'&&(calF==='todo'||getRolIdx(t.rol)===getRolIdx(calF));});
-    h+='<div class="cal-cell'+(eh?' hoy':'')+'"><div class="cal-num">'+d+'</div>';
+    h+='<div class="cal-cell'+(eh?' hoy':'')+(puedeEditar?' libre':'')+'"'
+      +(puedeEditar?' onclick="nuevoEventoEn(\''+ds+'\')"':'')+'>'
+      +'<div class="cal-num">'+d+'</div>'+(puedeEditar?'<span class="cal-mas">+</span>':'');
     // Los eventos van primero y con su propio color: son otra cosa que las
     // tareas, y conviene distinguirlos de un vistazo. No se filtran por rol
     // porque no tienen rol: son del estudio, no de un cliente.
     if(calF==='todo'){
       eventos.filter(function(ev){return ev.fecha===ds;}).forEach(function(ev){
         var hora = ev.horaInicio ? ev.horaInicio+' ' : '';
-        h+='<div class="cal-ev cal-evento'+(puedo('calendario','full')?' editable':'')+'" title="'+esc(ev.titulo)+'"'
-          +(puedo('calendario','full')?' onclick="openMoEvento('+ev.id+')"':'')+'>'
+        h+='<div class="cal-ev cal-evento'+(puedeEditar?' editable':'')+'" title="'+esc(ev.titulo)+'"'
+          +(puedeEditar?' onclick="event.stopPropagation();openMoEvento('+ev.id+')"':'')+'>'
           +esc(hora)+esc(ev.titulo.substring(0,14))+(ev.titulo.length>14?'…':'')+'</div>';
       });
     }
-    evs.forEach(function(t){var cn=clientes.find(function(c){return c.id===t.cid;});h+='<div class="cal-ev '+getRolCalCls(t.rol)+'" title="'+esc(t.desc)+'">'+(cn?esc(cn.nombre.split(' ')[0])+': ':'')+esc(t.desc.substring(0,13))+(t.desc.length>13?'…':'')+'</div>';});
+    evs.forEach(function(t){var cn=clientes.find(function(c){return c.id===t.cid;});h+='<div class="cal-ev '+getRolCalCls(t.rol)+'"'+frenar+' title="'+esc(t.desc)+'">'+(cn?esc(cn.nombre.split(' ')[0])+': ':'')+esc(t.desc.substring(0,13))+(t.desc.length>13?'…':'')+'</div>';});
     h+='</div>';
   }
   document.getElementById('calGrid').innerHTML=h;
 }
 function setCalF(f,el){calF=f;document.querySelectorAll('#calF .fbtn').forEach(function(b){b.classList.remove('on');});el.classList.add('on');renderCal();}
+// Vuelve a "Todo" sin depender de que alguien haya tocado el botón.
+function verTodoEnCal(){
+  calF='todo';
+  var botones=document.querySelectorAll('#calF .fbtn');
+  botones.forEach(function(b,i){ b.classList.toggle('on', i===0); });
+}
 
 // ── EVENTOS DEL CALENDARIO ───────────────────────────────────────────────────
 // Lo que pasa en una fecha y no es una tarea de un cliente. Los ve cualquiera
 // con acceso a Calendario; tocarlos pide "full".
-function openMoEvento(id) {
+// fecha solo se usa al dar de alta: es el día que se tocó en la grilla.
+function openMoEvento(id, fecha) {
   editEvId = id;
   var ev = id ? eventos.find(function(x){ return x.id === id; }) : null;
   document.getElementById('moEvTit').textContent = ev ? 'Editar evento' : 'Nuevo evento';
   document.getElementById('mevTitulo').value = ev ? ev.titulo : '';
-  // Sin evento se propone el mes que se está mirando, no el día de hoy: si
-  // estás parado en octubre, cargar un evento es casi siempre para octubre.
-  document.getElementById('mevFecha').value = ev ? ev.fecha : getPrefix() + '-01';
+  // Al editar, la del evento. Al dar de alta desde un día, ese día. Y desde el
+  // botón, el mes que se está mirando y no el de hoy: si estás parado en
+  // octubre, cargar un evento es casi siempre para octubre.
+  document.getElementById('mevFecha').value = ev ? ev.fecha : (fecha || getPrefix() + '-01');
   document.getElementById('mevIni').value = ev && ev.horaInicio ? ev.horaInicio : '';
   document.getElementById('mevFin').value = ev && ev.horaFin ? ev.horaFin : '';
   document.getElementById('mevDesc').value = ev ? ev.descripcion : '';
   document.getElementById('mevDelBtn').style.display = ev ? '' : 'none';
   openMo('moEvento');
+}
+
+// El atajo de la grilla. Revalida el permiso aunque el onclick no se ponga sin
+// él: el que manda es el servidor, pero abrir un formulario que después va a
+// rebotar con 403 es peor que no abrirlo.
+function nuevoEventoEn(fecha) {
+  if(!puedo('calendario','full')) return;
+  openMoEvento(null, fecha);
 }
 
 async function saveEvento() {
@@ -1313,7 +1349,12 @@ async function saveEvento() {
   if(!guardado) return;
 
   if(editEvId){ var i = eventos.findIndex(function(x){ return x.id === editEvId; }); if(i>=0) eventos[i] = guardado; }
-  else { eventos.push(guardado); }
+  else {
+    eventos.push(guardado);
+    // Con un filtro por rol puesto los eventos no se dibujan (no tienen rol),
+    // así que el que se acaba de crear no aparecería y parecería que falló.
+    if(calF !== 'todo') verTodoEnCal();
+  }
   closeMo('moEvento');
   renderCal();
   renderDash();   // la agenda del dashboard también lo muestra
@@ -1897,6 +1938,12 @@ function aplicarPermisos() {
   mostrar('btnNuevoCliente', puedo('clientes','full'));
   mostrar('btnNuevaTarea', puedo('tareas','full'));
   mostrar('btnNuevoEvento', puedo('calendario','full'));
+  // El "+" de la celda solo aparece al pasar por encima, y en un celular no
+  // hay hover: sin decirlo en algún lado, tocar el día no se descubre nunca.
+  var ayuda = document.querySelector('#scr-calendario .cal-ayuda');
+  if(ayuda) ayuda.textContent = puedo('calendario','full')
+    ? 'Tocá un día para agregar un evento, o un evento para editarlo.'
+    : 'Reuniones, grabaciones, feriados: lo que no es una tarea de un cliente.';
   // Toda la sección Equipo es admin-only: el botón del menú se esconde solo
   // (el servidor le devuelve 'sin_acceso' a cualquiera que no sea admin), y acá
   // se esconden los controles de adentro.

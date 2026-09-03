@@ -233,16 +233,19 @@ Los logs están en el servicio de la app, pestaña **Deployments** → el deploy
 - **Si ya tenías datos** de la versión anterior del hub (la que guardaba todo en
   el navegador), mirá `db/importar-localstorage.js`.
 - **Si venías de una versión anterior de esta app**, corré una vez las
-  migraciones que te falten, en este orden:
-  `db/migracion-permisos-por-rol.sql` (permisos cargados a mano en cada usuario),
-  `db/migracion-dashboard.sql` (el dashboard),
-  `db/migracion-equipo-admin.sql` (Equipo pasa a ser admin-only y solo admite
-  usuarios registrados) y `db/migracion-quitar-historial-comunicacion.sql` (se
-  eliminan esas dos secciones; **ojo, esa borra el chat y las notas por
-  cliente**), `db/migracion-quitar-google.sql` (se elimina la integración con
-  Google Calendar; el calendario en sí se conserva) y
-  `db/migracion-cobro-y-eventos.sql` (cobro por cliente y eventos del
-  calendario). En una base **nueva no hace falta ninguna**: la app aplica el
-  `schema.sql` al arrancar, y ya las trae incorporadas.
+  migraciones. **Casi nunca hace falta**: la app aplica `db/schema.sql` en cada
+  arranque, y ese archivo crea las tablas que falten y agrega las columnas que
+  falten (bloque PUESTA AL DÍA), tanto en una base nueva como en una vieja.
+
+  Esto último se agregó después de que un despliegue saliera sin un solo error y
+  la app se cayera igual con `column "a_pagar" does not exist`: hasta entonces el
+  arranque solo creaba tablas nuevas, y una columna agregada a una tabla que ya
+  existía no llegaba nunca.
+
+  Las únicas que todavía hacen algo que el arranque no hace son las que **borran**
+  cosas, porque `schema.sql` no borra nada: `db/migracion-quitar-historial-comunicacion.sql`
+  (**ojo, borra el chat y las notas por cliente**) y `db/migracion-quitar-google.sql`
+  (saca la tabla de la integración con Google; el calendario en sí se conserva).
+  Correrlas es opcional: sin ellas quedan un par de tablas sin uso, nada más.
 - **Backups**: el servicio de Postgres en Railway tiene su propia pestaña de
   backups. Vale la pena dejarlos activados.

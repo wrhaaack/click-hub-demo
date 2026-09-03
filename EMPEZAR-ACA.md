@@ -268,6 +268,33 @@ la lista de ruido y taparían los movimientos que importan.
 
 ---
 
+## El calendario
+
+Muestra dos cosas distintas y las distingue por color: las **tareas** de los
+clientes, con el color del rol que las tiene que hacer, y los **eventos** del
+estudio (reuniones, grabaciones, feriados), en violeta y con una barrita a la
+izquierda. Los eventos no tienen rol, así que al filtrar por rol se ocultan.
+
+Con permiso **full** en Calendario, la grilla se maneja tocándola:
+
+- **Tocás un día** y se abre el alta con esa fecha ya puesta. Al pasar el mouse
+  por encima aparece un `+` en la esquina; en un celular no hay dónde pasar el
+  mouse, así que el texto de arriba lo dice y el botón "+ Evento" sigue estando.
+- **Tocás un evento** y se abre para editarlo o eliminarlo. Podés cambiarle la
+  fecha y se muda de día solo.
+- **Tocar una tarea no hace nada** a propósito: es de un cliente y se maneja
+  desde su ficha, y abrir el alta de un evento porque tocaste una tarea sería
+  peor que no hacer nada.
+
+Si creás un evento con un filtro por rol puesto, el filtro se saca solo: si no,
+el evento recién creado no se vería y parecería que falló.
+
+Con permiso **limitado** el calendario se mira y no se toca: se ven las tareas y
+los eventos, pero no hay `+`, ni cursor de mano, ni botón. Y si alguien igual
+intenta escribir por su cuenta, el servidor responde 403.
+
+---
+
 ## Detalles de la pantalla
 
 **Anda en cualquier resolución.** En escritorio se ve igual que siempre. Por
