@@ -387,6 +387,21 @@ cambiarla.
 
 ---
 
+## Los links que cargás
+
+Los links útiles de un cliente, los del estudio y los de inspiración del
+brainstorming **abren en una pestaña nueva** y van a la página, aunque los
+escribas sin protocolo. Antes, un `google.com.ar` sin `https://` el navegador lo
+leía como una ruta del propio hub y el click terminaba en un 404: ahora se le
+pone `https://` adelante solo. `mailto:` y `tel:` se respetan tal cual.
+
+Cualquier otro tipo de link (por ejemplo un `javascript:...`) se muestra como
+texto y no se puede abrir. No es una restricción caprichosa: estos links los
+carga una persona y los ve todo el equipo, así que un `javascript:` guardado ahí
+sería código corriendo en la sesión de quien lo clickee.
+
+---
+
 ## Detalles de la pantalla
 
 **Anda en cualquier resolución.** En escritorio se ve igual que siempre. Por

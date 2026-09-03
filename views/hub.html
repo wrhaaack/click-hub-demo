@@ -948,6 +948,35 @@ function pastillaDeCobro(c) {
   return ' · <span class="badge '+clase+'">'+esc(texto)+'</span>';
 }
 
+// ── LOS LINKS QUE CARGA LA GENTE ─────────────────────────────────────────────
+// Un link escrito a mano casi nunca viene con protocolo ("google.com.ar"), y
+// así el navegador lo lee como una ruta del propio hub: el click termina en un
+// 404 de la app en vez de en la página. Se le pone https:// adelante.
+//
+// Y se descarta cualquier otro esquema. Un "javascript:..." guardado como link
+// de un cliente sería código corriendo en la sesión de quien lo clickee, y estos
+// links los carga una persona y los ve todo el equipo.
+//
+// mailto: y tel: se dejan pasar porque son links legítimos de un contacto.
+var LINK_ESQUEMAS_OK = /^(https?|mailto|tel):/i;
+function urlDeLink(u) {
+  var s = String(u == null ? '' : u).trim();
+  if(!s) return null;
+  if(LINK_ESQUEMAS_OK.test(s)) return s;
+  if(/^[a-z][a-z0-9+.-]*:/i.test(s)) return null;   // otro esquema: no se abre
+  return 'https://' + s;
+}
+// El <a> ya armado. `texto` va sin escapar: lo escapa esta función.
+// rel="noopener noreferrer" porque target="_blank" sin eso le da a la página de
+// destino una referencia a la nuestra por window.opener.
+function linkHtml(url, texto, atributos) {
+  var href = urlDeLink(url);
+  var t = esc(texto == null || texto === '' ? (url || '') : texto);
+  if(!href) return '<span title="Link inválido: no se puede abrir">'+t+'</span>';
+  return '<a href="'+esc(href)+'" target="_blank" rel="noopener noreferrer"'
+    + (atributos || '') + '>' + t + '</a>';
+}
+
 // El cobro en la pestaña Info del cliente. A diferencia de la pastilla de la
 // tarjeta, acá se dice todo aunque no haya monto acordado: es la ficha, y "sin
 // monto acordado" también es un dato que conviene ver.
@@ -1158,7 +1187,10 @@ function renderCF() {
     });
     pan.innerHTML = h;
   } else if(curCFTab==='info') {
-    var links = c.links&&c.links.length?c.links.map(function(l){return '<a href="'+esc(l.url)+'" target="_blank" style="font-size:13px;color:var(--tand);display:block;margin-bottom:5px">'+esc(l.label||l.url)+'</a>';}).join(''):'';
+    var links = c.links&&c.links.length?c.links.map(function(l){
+      return linkHtml(l.url, l.label||l.url,
+        ' style="font-size:13px;color:var(--tand);display:block;margin-bottom:5px"');
+    }).join(''):'';
     pan.innerHTML = '<div style="max-width:500px;display:flex;flex-direction:column;gap:12px">'
       +(c.ig?'<div><div class="rol-lbl">Instagram</div><div style="font-size:13px">'+esc(c.ig)+'</div></div>':'')
       +(c.contacto?'<div><div class="rol-lbl">Contacto</div><div style="font-size:13px">'+esc(c.contacto)+'</div></div>':'')
@@ -2108,7 +2140,7 @@ function renderBS(){
     var cidStr=isGen?'&quot;gen&quot;':cid;
     return (d.inspo||[]).map(function(l,i){
       return '<div class="inspo-row"><input class="in-lbl"'+ro+' value="'+esc(l.label||'')+'" onchange="bsUpdateInspo('+cidStr+','+i+',&quot;label&quot;,this.value)" placeholder="Etiqueta"><input class="in-url"'+ro+' value="'+esc(l.url||'')+'" onchange="bsUpdateInspo('+cidStr+','+i+',&quot;url&quot;,this.value)" placeholder="https://...">'
-        +(l.url?'<a href="'+esc(l.url)+'" target="_blank" style="font-size:16px;color:var(--tand);text-decoration:none">↗</a>':'<span style="width:18px"></span>')
+        +(l.url?linkHtml(l.url, '↗', ' style="font-size:16px;color:var(--tand);text-decoration:none"'):'<span style="width:18px"></span>')
         +(editable?'<button class="ibtn d" onclick="bsDelInspo('+cidStr+','+i+')">✕</button>':'')+'</div>';
     }).join('');
   }
@@ -2197,7 +2229,10 @@ function renderRolesList(){
 // ── ESTUDIO ───────────────────────────────────────────────────────────────────
 function renderEst(){
   var e=estudio;
-  var lh=e.links&&e.links.length?e.links.map(function(l){return '<div class="est-li"><span class="est-ll">'+esc(l.label)+'</span><a class="est-lu" href="'+esc(l.url)+'" target="_blank">'+esc(l.url)+'</a></div>';}).join(''):'<div style="font-size:13px;color:var(--hin)">Sin links</div>';
+  var lh=e.links&&e.links.length?e.links.map(function(l){
+    return '<div class="est-li"><span class="est-ll">'+esc(l.label)+'</span>'
+      + linkHtml(l.url, l.url, ' class="est-lu"') + '</div>';
+  }).join(''):'<div style="font-size:13px;color:var(--hin)">Sin links</div>';
   document.getElementById('estWrap').innerHTML=
     '<div class="est-c"><div class="est-t">Datos del estudio '+(puedo('estudio','full')?'<button class="btn-sm" onclick="openMoEstudio()">Editar</button>':'')+'</div>'
     +(e.nombre?'<div class="est-f"><div class="est-l">Nombre</div><div class="est-v">'+esc(e.nombre)+'</div></div>':'')
@@ -2631,7 +2666,7 @@ function exportar(cid) {
   }
   var lgnd=Object.entries(fmtC).map(function(e){return '<div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:2px;background:'+e[1].bg+'"></div><span style="font-size:11px;color:#7B736A">'+e[0]+'</span></div>';}).join('');
   var bsHtml='';
-  if(bsI.length||bsL.length){bsHtml='<div style="margin-top:40px;padding-top:28px;border-top:2px solid #DDD8D0"><div style="font-size:13px;font-weight:600;color:#7A6045;letter-spacing:.06em;text-transform:uppercase;margin-bottom:16px">💡 Ideas del mes</div>'+(bsI.length?'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-bottom:16px">'+bsI.map(function(i){return '<div style="background:#EDEAE5;border-radius:8px;padding:10px 14px;font-size:13px;color:#3F3A34;display:flex;gap:8px"><span style="color:#7A6045">→</span>'+esc(i)+'</div>';}).join('')+'</div>':'')+(bsL.length?'<div style="display:flex;flex-wrap:wrap;gap:8px">'+bsL.map(function(l){return '<a href="'+esc(l.url)+'" target="_blank" style="background:#DDD8D0;border-radius:8px;padding:8px 14px;font-size:12px;color:#7A6045;text-decoration:none">'+(l.label?esc(l.label):esc(l.url))+' ↗</a>';}).join('')+'</div>':'')+'</div>';}
+  if(bsI.length||bsL.length){bsHtml='<div style="margin-top:40px;padding-top:28px;border-top:2px solid #DDD8D0"><div style="font-size:13px;font-weight:600;color:#7A6045;letter-spacing:.06em;text-transform:uppercase;margin-bottom:16px">💡 Ideas del mes</div>'+(bsI.length?'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-bottom:16px">'+bsI.map(function(i){return '<div style="background:#EDEAE5;border-radius:8px;padding:10px 14px;font-size:13px;color:#3F3A34;display:flex;gap:8px"><span style="color:#7A6045">→</span>'+esc(i)+'</div>';}).join('')+'</div>':'')+(bsL.length?'<div style="display:flex;flex-wrap:wrap;gap:8px">'+bsL.map(function(l){return linkHtml(l.url, (l.label||l.url)+' ↗', ' style="background:#DDD8D0;border-radius:8px;padding:8px 14px;font-size:12px;color:#7A6045;text-decoration:none"');}).join('')+'</div>':'')+'</div>';}
   // El logo va incrustado en el archivo exportado (no como link a /img), para
   // que el HTML que le mandás al cliente se vea igual aunque no tenga internet
   // ni acceso al servidor. Se lee del mismo <img> del menú, así hay una sola copia.
