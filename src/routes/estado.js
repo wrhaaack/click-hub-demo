@@ -27,7 +27,8 @@ router.get('/', async (req, res) => {
     pool.query(
       `SELECT id, nombre, COALESCE(ig,'') AS ig, COALESCE(contacto,'') AS contacto,
               COALESCE(tel,'') AS tel, links, COALESCE(notas,'') AS notas,
-              a_pagar::float8 AS "aPagar", pagado
+              a_pagar::float8 AS "aPagar", estado_pago AS "estadoPago",
+              abonado::float8 AS abonado
        FROM clientes WHERE activo = true ORDER BY nombre ASC`
     ),
     pool.query('SELECT id, nombre, COALESCE(rol, \'\') AS rol FROM equipo WHERE activo = true ORDER BY id ASC'),
@@ -42,7 +43,11 @@ router.get('/', async (req, res) => {
     || puede('brainstorm');
   const clientesVisibles = puede('clientes')
     ? clientesRes.rows
-    : (veNombres ? clientesRes.rows.map((c) => ({ id: c.id, nombre: c.nombre, ig: '', contacto: '', tel: '', links: [], notas: '', aPagar: null, pagado: false })) : []);
+    : (veNombres ? clientesRes.rows.map((c) => ({
+      id: c.id, nombre: c.nombre, ig: '', contacto: '', tel: '', links: [], notas: '',
+      // El cobro no viaja en la lista reducida: es plata, no un nombre.
+      aPagar: null, estadoPago: 'pendiente', abonado: null,
+    })) : []);
 
   // Tareas: se necesitan en Clientes, Calendario y Delegación. Si no tiene
   // acceso a ninguna de esas, no se mandan.

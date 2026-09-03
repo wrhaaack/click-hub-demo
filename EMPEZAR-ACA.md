@@ -268,6 +268,41 @@ la lista de ruido y taparían los movimientos que importan.
 
 ---
 
+## Clientes
+
+Una tarjeta por cliente, con las tareas del mes que está seleccionado arriba.
+Los botones **+ Cliente** y **+ Tarea** están dentro de la sección, igual que
+"+ Evento" en Calendario. Arriba a la derecha aparecen los mismos dos botones
+pero **solo en el Dashboard**: ahí son el acceso rápido, y en el resto de las
+pantallas estorbaban o apuntaban a otra sección.
+
+### El cobro
+
+Cada cliente tiene un monto (**A pagar**) y un **estado**, que es un desplegable
+con tres opciones:
+
+- **Pendiente** — todavía no pagó nada.
+- **Parcial** — pagó una parte. Ahí aparece un campo más, **Cuánto abonó**, con
+  la cuenta al lado ("De $15.000 · falta $10.000"). El campo solo se muestra con
+  este estado: en los otros dos el monto ya está dicho por el estado, y dejarlo
+  cargado permitiría que la ficha se contradiga.
+- **Pagado** — cobrado completo.
+
+En la tarjeta se ve como una pastilla: `a pagar $15.000` en rojo, `parcial
+$5.000 de $15.000` en ámbar, `pagado $15.000` en verde. Con estado pendiente y
+sin monto acordado no se muestra nada: una pastilla de impago sería una alarma
+sobre algo que nadie definió todavía.
+
+No se puede abonar más de lo que hay que pagar — eso no es un pago parcial. Y la
+base lo sostiene además del servidor: `abonado` solo puede tener valor cuando el
+estado es `parcial`.
+
+Cualquier cambio de cobro deja su propio renglón en "Últimas actividades" y le
+avisa al equipo, incluido pasar de $5.000 a $12.000 abonados sin cambiar de
+estado: ese es justamente el dato.
+
+---
+
 ## El calendario
 
 Muestra dos cosas distintas y las dibuja distinto. Las **tareas** de los

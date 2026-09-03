@@ -76,10 +76,19 @@ CREATE TABLE IF NOT EXISTS clientes (
   -- puede dar 0.30000000000000004. NULL = todavía no se acordó un monto, que es
   -- distinto de 0 (acordado y sin cargo).
   a_pagar     NUMERIC(12,2),
-  pagado      BOOLEAN NOT NULL DEFAULT false,
+  -- Antes esto era un booleano "pagado". Se volvió un estado porque la realidad
+  -- tiene tres casos, no dos: todavía no pagó, pagó una parte, pagó todo.
+  estado_pago TEXT NOT NULL DEFAULT 'pendiente'
+              CHECK (estado_pago IN ('pendiente','parcial','pagado')),
+  -- Cuánto abonó, y solo tiene sentido cuando el estado es 'parcial': si pagó
+  -- todo, el monto es a_pagar, y si no pagó nada, es cero. Guardarlo en los
+  -- otros dos casos abriría la puerta a que diga una cosa y el estado otra.
+  abonado     NUMERIC(12,2),
   activo      BOOLEAN NOT NULL DEFAULT true,
   creado_por  UUID REFERENCES usuarios(id) ON DELETE SET NULL,
-  creado_en   TIMESTAMPTZ NOT NULL DEFAULT now()
+  creado_en   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  -- Con nombre para que la puesta al día pueda preguntar si ya está.
+  CONSTRAINT clientes_abonado_ok CHECK (estado_pago = 'parcial' OR abonado IS NULL)
 );
 
 -- ---------- TAREAS ----------
@@ -292,10 +301,36 @@ ALTER TABLE clientes ADD COLUMN IF NOT EXISTS tel        TEXT;
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS links      JSONB NOT NULL DEFAULT '[]';
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS notas      TEXT;
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS a_pagar    NUMERIC(12,2);
-ALTER TABLE clientes ADD COLUMN IF NOT EXISTS pagado     BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS estado_pago TEXT NOT NULL DEFAULT 'pendiente'
+       CHECK (estado_pago IN ('pendiente','parcial','pagado'));
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS abonado    NUMERIC(12,2);
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS activo     BOOLEAN NOT NULL DEFAULT true;
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS creado_por UUID REFERENCES usuarios(id) ON DELETE SET NULL;
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS creado_en  TIMESTAMPTZ NOT NULL DEFAULT now();
+-- El booleano "pagado" se convierte en el estado nuevo y se va. Se hace en un
+-- solo paso y preguntando primero, así se puede correr de nuevo sin problema:
+-- después de la primera vez la columna ya no está y el bloque no hace nada.
+--
+-- Se BORRA a propósito en vez de dejarla al lado: dos columnas diciendo lo
+-- mismo terminan diciendo cosas distintas. El dato no se pierde, se traduce.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns
+              WHERE table_schema = 'public' AND table_name = 'clientes' AND column_name = 'pagado')
+  THEN
+    UPDATE clientes SET estado_pago = 'pagado' WHERE pagado = true;
+    ALTER TABLE clientes DROP COLUMN pagado;
+  END IF;
+END $$;
+-- "abonado" solo puede tener valor cuando el estado es 'parcial'. ADD CONSTRAINT
+-- no tiene IF NOT EXISTS, así que se pregunta a mano.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'clientes_abonado_ok') THEN
+    ALTER TABLE clientes ADD CONSTRAINT clientes_abonado_ok
+      CHECK (estado_pago = 'parcial' OR abonado IS NULL);
+  END IF;
+END $$;
 
 ALTER TABLE tareas ADD COLUMN IF NOT EXISTS rol            TEXT;
 ALTER TABLE tareas ADD COLUMN IF NOT EXISTS formato        TEXT;

@@ -94,24 +94,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
 .sum-v{font-size:26px;font-weight:300;font-family:'DM Mono',monospace}
 /* La tarjeta se parte en dos: los números a la izquierda, el anillo a la derecha. */
 .sum-fila{display:flex;align-items:center;justify-content:space-between;gap:12px}
-/* La casilla de "Pagado" tiene que quedar a la misma altura que el input de al
-   lado, no más alta ni corrida. El alto se fija igual al de .f input (8px de
-   padding arriba y abajo + el texto), así los dos campos de la fila terminan
-   parejos. */
-/* Es un <label> para que clickear en cualquier parte de la caja marque la
-   casilla. Como está adentro de un .f, hereda `.f label` (10px, uppercase,
-   display:block) y sin este selector más específico el texto salía en
-   mayúsculas y debajo del cuadrito. */
-.f label.chk-pago{display:flex;align-items:center;gap:8px;
-  font-size:13px;color:var(--txt);text-transform:none;letter-spacing:normal;margin-bottom:0;
-  height:35px;padding:0 10px;border:1px solid var(--bor2);border-radius:var(--rs);
-  background:var(--bg);cursor:pointer;box-sizing:border-box}
-/* El selector lleva .f adelante a propósito: `.f input{width:100%}` está
-   declarado más abajo y, con la misma especificidad, ganaba por orden — el
-   checkbox terminaba midiendo 204px y empujaba el texto fuera de la caja. */
-.f .chk-pago input{width:16px;height:16px;margin:0;flex-shrink:0;accent-color:var(--tan);cursor:pointer}
-.chk-pago span{line-height:1}
-.cal-barra{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+/* La fila de botones de acción de una sección (+ Cliente, + Evento...). Va
+   adentro de la pantalla y no en la barra de arriba, que es global. */
+.barra-acc{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
 .cal-ayuda{font-size:11.5px;color:var(--mut)}
 .ag-evento{font-size:11px;color:#3730A3;background:#EEF2FF;padding:1px 6px;border-radius:20px}
 .sum-aro{flex-shrink:0;position:relative;width:46px;height:46px}
@@ -122,6 +107,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
   font-size:11px;font-family:'DM Mono',monospace;color:var(--tand)}
 .badge{font-size:10px;padding:2px 8px;border-radius:20px;white-space:nowrap}
 .bp{background:#FEF3C7;color:#92400E}.bpr{background:#DBEAFE;color:#1E3A5F}.br{background:#EDE9FE;color:#3730A3}.bd{background:#D1FAE5;color:#064E3B}.bc{background:#F0FDF4;color:#166534}.bpag{background:#D1FAE5;color:#064E3B}.bnp{background:#FEE2E2;color:#991B1B}
+/* Pago parcial: ni el verde de cobrado ni el rojo de impago. */
+.bpar{background:#FEF3C7;color:#92400E}
 .fpill{font-size:10px;padding:1px 7px;border-radius:20px;background:var(--tanl);color:var(--tanlt);white-space:nowrap}
 .tasig{font-size:11px;color:var(--mut);background:var(--sur2);padding:1px 7px;border-radius:20px;white-space:nowrap}
 .tfecha{font-size:11px;color:var(--hin);font-family:'DM Mono',monospace}
@@ -614,20 +601,26 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
         </div>
       </div>
     </div>
-    <div class="scr" id="scr-clientes"><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px" id="cGrid"></div></div>
+    <div class="scr" id="scr-clientes">
+      <div class="barra-acc">
+        <button class="btn" id="btnNuevoClienteCli" onclick="openMoCliente()">+ Cliente</button>
+        <button class="btn btn-p" id="btnNuevaTareaCli" onclick="openMoTarea(null)">+ Tarea</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px" id="cGrid"></div>
+    </div>
     <div class="scr" id="scr-calendario">
       <div class="filtros" id="calVistas">
         <button class="fbtn on" onclick="setCalVista('equipo',this)">Equipo</button>
         <button class="fbtn" onclick="setCalVista('cliente',this)">Cliente</button>
       </div>
       <div id="calVistaEquipo">
-      <div class="cal-barra"><button class="btn btn-p" id="btnNuevoEvento" onclick="openMoEvento(null)">+ Evento</button>
+      <div class="barra-acc"><button class="btn btn-p" id="btnNuevoEvento" onclick="openMoEvento(null)">+ Evento</button>
         <span class="cal-ayuda">Reuniones, grabaciones, feriados: lo que no es una tarea de un cliente.</span></div>
       <div class="filtros" id="calF"><button class="fbtn on" onclick="setCalF(&quot;todo&quot;,this)">Todo</button><button class="fbtn" onclick="setCalF('E',this)">Editor</button><button class="fbtn" onclick="setCalF('D',this)">Diseñadora</button><button class="fbtn" onclick="setCalF('C',this)">CM</button><button class="fbtn" onclick="setCalF('S',this)">SMM</button></div>
       <div class="cal-wrap"><div class="cal-head" id="calHead"></div><div class="cal-grid" id="calGrid"></div></div>
       </div>
       <div id="calVistaCliente" style="display:none">
-        <div class="cal-barra">
+        <div class="barra-acc">
           <select class="sel" id="planCli" onchange="renderPlan()" aria-label="Cliente"></select>
           <button class="btn btn-p" id="btnNuevaEtapa" onclick="openMoEtapa(null)">+ Etapa</button>
           <button class="btn" id="btnExportarPlan" onclick="exportarPlan()">↓ Exportar imagen</button>
@@ -699,10 +692,21 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
     <div class="sec-div"><span>Cobro</span></div>
     <div class="f-row">
       <div class="f"><label>A pagar</label>
-        <input type="number" id="mcPagar" placeholder="0.00" min="0" step="0.01" inputmode="decimal"></div>
+        <input type="number" id="mcPagar" placeholder="0.00" min="0" step="0.01" inputmode="decimal"
+               oninput="pintarRestante()"></div>
       <div class="f"><label>Estado</label>
-        <label class="chk-pago"><input type="checkbox" id="mcPagado"><span>Pagado</span></label></div>
+        <select id="mcEstadoPago" onchange="pintarAbonado()">
+          <option value="pendiente">Pendiente</option>
+          <option value="parcial">Parcial</option>
+          <option value="pagado">Pagado</option>
+        </select></div>
     </div>
+    <!-- Solo aparece con "parcial": en los otros dos casos el monto ya lo dice
+         el estado, y un campo vacío ahí sería una pregunta sin sentido. -->
+    <div class="f" id="mcAbonadoF" style="display:none"><label>Cuánto abonó</label>
+      <input type="number" id="mcAbonado" placeholder="0.00" min="0" step="0.01" inputmode="decimal"
+             oninput="pintarRestante()">
+      <div class="f-nota" id="mcAbonadoNota"></div></div>
     <div class="sec-div"><span>Links útiles</span></div>
     <div id="mcLinks"></div><button class="al-btn" onclick="addCliLink()">+ Agregar link</button>
     <div class="sec-div"><span>Notas</span></div>
@@ -938,11 +942,45 @@ function fmtMonto(n) {
   return '$' + x.toLocaleString(undefined, {
     minimumFractionDigits: Number.isInteger(x) ? 0 : 2, maximumFractionDigits: 2 });
 }
+// La pastilla de cobro de la tarjeta del cliente.
+//
+// Con estado "pendiente" y sin monto acordado no se muestra nada: una pastilla
+// de impago sería una alarma sobre algo que nadie definió todavía. Pero si
+// alguien ya lo marcó pagado o parcial, eso sí es una decisión y se muestra
+// aunque no haya monto.
+function pastillaDeCobro(c) {
+  var estado = c.estadoPago || 'pendiente';
+  var hayMonto = c.aPagar !== null && c.aPagar !== undefined;
+  if(estado === 'pendiente' && !hayMonto) return '';
+
+  var clase, texto;
+  if(estado === 'pagado') {
+    clase = 'bpag'; texto = 'pagado' + (hayMonto ? ' ' + fmtMonto(c.aPagar) : '');
+  } else if(estado === 'parcial') {
+    clase = 'bpar';
+    texto = 'parcial ' + fmtMonto(c.abonado)
+      + (hayMonto ? ' de ' + fmtMonto(c.aPagar) : '');
+  } else {
+    clase = 'bnp'; texto = 'a pagar ' + fmtMonto(c.aPagar);
+  }
+  return ' · <span class="badge '+clase+'">'+esc(texto)+'</span>';
+}
+
 // Esconder o mostrar un control por permisos. Vivía adentro de aplicarPermisos;
 // se sacó afuera cuando la planificación del cliente también tuvo que usarlo.
 function mostrar(id, visible) {
   var el = document.getElementById(id);
   if(el) el.style.display = visible ? '' : 'none';
+}
+
+// "+ Cliente" y "+ Tarea" arriba a la derecha son los accesos rápidos del
+// dashboard, y solo se muestran ahí. En el resto de las pantallas estorbaban:
+// Clientes ahora tiene los suyos adentro, y en Calendario o Equipo apuntaban a
+// otra sección. El permiso sigue mandando: sin "full" no aparecen en ningún lado.
+function pintarBotonesDeArriba() {
+  var enDashboard = curScr === 'dashboard';
+  mostrar('btnNuevoCliente', enDashboard && puedo('clientes','full'));
+  mostrar('btnNuevaTarea', enDashboard && puedo('tareas','full'));
 }
 function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 // Tolerantes a que el modal no exista: el de "Mi cuenta" lo dibuja /js/api.js
@@ -1015,6 +1053,7 @@ function goScr(name, el) {
   curScr = name;
   document.getElementById('ptitle').textContent = PAGE[name];
   pintarSelectorDeMes();
+  pintarBotonesDeArriba();   // solo se muestran en el dashboard
   if(name==='dashboard') renderDash();
   else if(name==='calendario') renderCalendario();
   else if(name==='brainstorm') renderBS();
@@ -1258,6 +1297,8 @@ function renderSumDetalle(){
 function renderCli() {
   document.getElementById('sbCli').innerHTML=clientes.map(function(c){return '<div class="sb-cl-item" onclick="openCF('+c.id+')">'+esc(c.nombre)+'</div>';}).join('');
   var prefix=getPrefix();
+  mostrar('btnNuevoClienteCli', puedo('clientes','full'));
+  mostrar('btnNuevaTareaCli', puedo('tareas','full'));
   document.getElementById('cGrid').innerHTML=clientes.map(function(c){
     var ts=tareas.filter(function(t){return t.cid===c.id&&t.fecha&&t.fecha.startsWith(prefix);});
     var bp=ts.filter(function(t){return t.estado==='pendiente';}).length;
@@ -1268,12 +1309,8 @@ function renderCli() {
       +'<div class="cc-head"><span class="cc-nom">'+esc(c.nombre)+'</span><span style="display:flex;gap:4px">'
       +(bp?'<span class="badge bp">'+bp+'</span>':'')+(bpr?'<span class="badge bpr">'+bpr+'</span>':'')+(br?'<span class="badge br">'+br+'</span>':'')+(bd?'<span class="badge bd">'+bd+'</span>':'')
       +'</span></div>'
-      // El cobro solo se muestra si hay un monto acordado: sin monto, una
-      // pastilla de "impago" sería una alarma sobre algo que nadie definió.
       +'<div class="cc-foot"><span>'+ts.length+' tarea'+(ts.length!==1?'s':'')+' este mes'
-      +(c.aPagar!==null&&c.aPagar!==undefined
-        ? ' · <span class="badge '+(c.pagado?'bpag':'bnp')+'">'+(c.pagado?'pagado':'a pagar')+' '+fmtMonto(c.aPagar)+'</span>'
-        : '')+'</span>'
+      + pastillaDeCobro(c) + '</span>'
       +(puedo('clientes','full')?'<button class="btn-sm" onclick="event.stopPropagation();openMoClienteEdit('+c.id+')">Editar</button>':'')+'</div>'
       +'</div>';
   }).join('');
@@ -2292,10 +2329,37 @@ async function togglePago(tid) {
 }
 
 // ── MODAL CLIENTE ─────────────────────────────────────────────────────────────
+// "Cuánto abonó" solo tiene sentido en 'parcial'. En los otros dos estados el
+// monto ya está dicho (cero, o todo), así que el campo se esconde y se limpia:
+// dejarlo cargado permitiría guardar un número que contradice al estado.
+function pintarAbonado() {
+  var parcial = document.getElementById('mcEstadoPago').value === 'parcial';
+  document.getElementById('mcAbonadoF').style.display = parcial ? '' : 'none';
+  if(!parcial) document.getElementById('mcAbonado').value = '';
+  pintarRestante();
+}
+// La cuenta al lado del campo: sin ella hay que hacerla de cabeza cada vez.
+// Se recalcula al escribir en cualquiera de los dos montos, no solo en este:
+// cambiar "a pagar" después dejaría el "falta" diciendo un número viejo.
+function pintarRestante() {
+  var nota = document.getElementById('mcAbonadoNota');
+  // Acá se escribe con coma tanto como con punto, igual que lo acepta el servidor.
+  var num = function(v){ return Number(String(v).replace(',', '.')); };
+  var total = document.getElementById('mcPagar').value.trim();
+  var abonado = document.getElementById('mcAbonado').value.trim();
+  if(total === '') { nota.textContent = 'Cargá primero cuánto hay que pagar.'; return; }
+  if(abonado === '') { nota.textContent = 'De ' + fmtMonto(num(total)) + '.'; return; }
+  var falta = num(total) - num(abonado);
+  nota.textContent = falta < 0
+    ? 'Abonó más de lo que hay que pagar.'
+    : 'De ' + fmtMonto(num(total)) + ' · falta ' + fmtMonto(falta) + '.';
+}
+
 function openMoCliente() {
   editCid = null; tmpCliLinks = [];
-  ['mcNom','mcIg','mcCont','mcTel','mcNotas','mcPagar'].forEach(function(id){ document.getElementById(id).value=''; });
-  document.getElementById('mcPagado').checked = false;
+  ['mcNom','mcIg','mcCont','mcTel','mcNotas','mcPagar','mcAbonado'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('mcEstadoPago').value = 'pendiente';
+  pintarAbonado();
   document.getElementById('moCliTit').textContent = 'Nuevo cliente';
   document.getElementById('mcDelBtn').style.display = 'none';
   renderCliLinks(); openMo('moCliente');
@@ -2312,7 +2376,9 @@ function openMoClienteEdit(id) {
   // aPagar puede ser 0 (acordado, sin cargo) o null (todavía sin acordar):
   // el ?? distingue los dos, un || los aplastaría a vacío.
   document.getElementById('mcPagar').value = (c.aPagar ?? '');
-  document.getElementById('mcPagado').checked = !!c.pagado;
+  document.getElementById('mcEstadoPago').value = c.estadoPago || 'pendiente';
+  document.getElementById('mcAbonado').value = (c.abonado ?? '');
+  pintarAbonado();
   document.getElementById('moCliTit').textContent = 'Editar cliente';
   // Dar de baja un cliente es solo del admin: se lo saca de la vista de todo el equipo.
   document.getElementById('mcDelBtn').style.display = soyAdmin() ? '' : 'none';
@@ -2327,7 +2393,18 @@ function addCliLink() { tmpCliLinks.push({label:'',url:''}); renderCliLinks(); }
 async function saveCliente() {
   var nom = document.getElementById('mcNom').value.trim();
   if(!nom) { avisar('Poné un nombre para el cliente'); return; }
-  var data = {nombre:nom, ig:document.getElementById('mcIg').value.trim(), contacto:document.getElementById('mcCont').value.trim(), tel:document.getElementById('mcTel').value.trim(), links:tmpCliLinks.filter(function(l){return l.url;}), notas:document.getElementById('mcNotas').value.trim(), aPagar:document.getElementById('mcPagar').value.trim(), pagado:document.getElementById('mcPagado').checked};
+  var estadoPago = document.getElementById('mcEstadoPago').value;
+  var abonado = document.getElementById('mcAbonado').value.trim();
+  var aPagar = document.getElementById('mcPagar').value.trim();
+  // Se avisa acá además de en el servidor para poder decir qué falta en vez de
+  // devolver un error genérico.
+  if(estadoPago === 'parcial') {
+    if(abonado === '') { avisar('Si el pago es parcial, poné cuánto abonó'); return; }
+    if(aPagar !== '' && Number(abonado) > Number(aPagar)) {
+      avisar('Lo abonado no puede ser mayor a lo que hay que pagar'); return;
+    }
+  }
+  var data = {nombre:nom, ig:document.getElementById('mcIg').value.trim(), contacto:document.getElementById('mcCont').value.trim(), tel:document.getElementById('mcTel').value.trim(), links:tmpCliLinks.filter(function(l){return l.url;}), notas:document.getElementById('mcNotas').value.trim(), aPagar:aPagar, estadoPago:estadoPago, abonado:abonado};
   var guardado = editCid
     ? await ckJson('/api/clientes/'+editCid, {method:'PUT', body: JSON.stringify(data)})
     : await ckJson('/api/clientes', {method:'POST', body: JSON.stringify(data)});
@@ -2589,8 +2666,7 @@ function aplicarPermisos() {
     btn.style.display = visible ? '' : 'none';
     if(visible && !primeraVisible) primeraVisible = btn.dataset.scr;
   });
-  mostrar('btnNuevoCliente', puedo('clientes','full'));
-  mostrar('btnNuevaTarea', puedo('tareas','full'));
+  pintarBotonesDeArriba();
   mostrar('btnNuevoEvento', puedo('calendario','full'));
   // El "+" de la celda solo aparece al pasar por encima, y en un celular no
   // hay hover: sin decirlo en algún lado, tocar el día no se descubre nunca.
