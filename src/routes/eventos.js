@@ -1,9 +1,15 @@
-// Eventos del calendario: lo que pasa en una fecha y no es una tarea de un
-// cliente (una reunión, una grabación, un feriado del estudio).
+// Eventos del calendario: lo que pasa en el estudio y no es una tarea de un
+// cliente (una reunión, una grabación, un feriado, un viaje de tres días).
 //
 // Se ven con permiso "limitado" en Calendario; crearlos, editarlos y borrarlos
 // pide "full". A diferencia de las tareas, borrar un evento NO es admin-only:
 // un evento mal cargado es ruido en la grilla, no un dato que se pierde.
+//
+// Dos cosas son opcionales y cada una significa algo distinto:
+//   sin "hasta"        -> dura un solo día;
+//   sin "hora inicio"  -> es de todo el día.
+// Hacia afuera "hasta" siempre viaja con un valor (el mismo día que "desde"
+// cuando no se puso), así la pantalla no tiene que decidir nada.
 
 const { crearRouter } = require('../lib/router');
 const { pool } = require('../db');
@@ -14,14 +20,22 @@ const router = crearRouter();
 router.use(requireAuth);
 router.use(requireSectionAccess('calendario', 'limitado'));
 
-const CAMPOS = `id, titulo, to_char(fecha, 'YYYY-MM-DD') AS fecha,
+// Los mismos que acepta la base. Se repiten acá para poder rechazar con un 400
+// que se entienda, en vez de dejar que reviente el CHECK con un 500.
+const COLORES = ['azul', 'rosa', 'ambar', 'verde', 'violeta', 'turquesa'];
+
+// COALESCE en hasta: las filas cargadas antes de que los eventos tuvieran rango
+// lo tienen en NULL, y para la pantalla eso es "un solo día".
+const CAMPOS = `id, titulo, to_char(desde, 'YYYY-MM-DD') AS desde,
+                to_char(COALESCE(hasta, desde), 'YYYY-MM-DD') AS hasta,
                 to_char(hora_inicio, 'HH24:MI') AS "horaInicio",
                 to_char(hora_fin, 'HH24:MI') AS "horaFin",
-                COALESCE(descripcion, '') AS descripcion, autor, usuario_id`;
+                COALESCE(descripcion, '') AS descripcion, color, autor, usuario_id`;
 
 function fechaONull(v) {
   return /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? v : null;
 }
+
 // La hora llega del <input type="time"> como HH:MM. Vacío es válido: significa
 // "todo el día", que es distinto de una hora mal escrita.
 //
@@ -39,10 +53,43 @@ function horaONull(v) {
   return (h <= 23 && min <= 59) ? s : null;
 }
 
-// Para el aviso: "Reunión con Lumá (15/09)".
+// Devuelve el error a mostrar, o los datos ya normalizados. Se valida todo junto
+// para no ir contestando de a un problema por vez.
+function revisar(body) {
+  const titulo = String((body && body.titulo) || '').trim();
+  if (!titulo) return { error: 'Falta el título.' };
+
+  const desde = fechaONull(body && body.desde);
+  if (!desde) return { error: 'La fecha tiene que ser YYYY-MM-DD.' };
+
+  // Sin "hasta" el evento dura un solo día. Una fecha mal escrita, en cambio, no
+  // se ignora en silencio: si alguien quiso poner un rango, hay que decírselo.
+  const crudo = String((body && body.hasta) || '').trim();
+  let hasta = desde;
+  if (crudo) {
+    hasta = fechaONull(crudo);
+    if (!hasta) return { error: 'La fecha de fin tiene que ser YYYY-MM-DD.' };
+    if (hasta < desde) return { error: 'El evento no puede terminar antes de empezar.' };
+  }
+
+  const color = String((body && body.color) || 'violeta');
+  if (!COLORES.includes(color)) return { error: 'Ese color no existe.' };
+
+  return {
+    datos: {
+      titulo, desde, hasta, color,
+      horaInicio: horaONull(body && body.horaInicio),
+      horaFin: horaONull(body && body.horaFin),
+      descripcion: (body && body.descripcion) || null,
+    },
+  };
+}
+
+// Para el aviso: "Reunión con Lumá" (15/09) o "Rodaje" (15/09 al 17/09).
 function comoSeLee(ev) {
-  const [a, m, d] = ev.fecha.split('-');
-  return `"${ev.titulo}" (${d}/${m})`;
+  const corto = (f) => f.slice(8, 10) + '/' + f.slice(5, 7);
+  const cuando = ev.hasta === ev.desde ? corto(ev.desde) : corto(ev.desde) + ' al ' + corto(ev.hasta);
+  return `"${ev.titulo}" (${cuando})`;
 }
 
 router.get('/', async (req, res) => {
@@ -51,26 +98,28 @@ router.get('/', async (req, res) => {
   const h = fechaONull(hasta);
   // Sin rango se devuelve todo: la pantalla los quiere en memoria para poder
   // cambiar de mes sin volver a pedir.
+  //
+  // Con rango se piden los que SE CRUZAN con él, no los que arrancan adentro: un
+  // evento que empezó el mes pasado y sigue este también cae en esta semana.
   const result = d && h
     ? await pool.query(
-        `SELECT ${CAMPOS} FROM eventos WHERE fecha BETWEEN $1 AND $2
-         ORDER BY fecha ASC, hora_inicio ASC NULLS FIRST`, [d, h])
+        `SELECT ${CAMPOS} FROM eventos
+          WHERE desde <= $2 AND COALESCE(hasta, desde) >= $1
+          ORDER BY desde ASC, hora_inicio ASC NULLS FIRST`, [d, h])
     : await pool.query(
-        `SELECT ${CAMPOS} FROM eventos ORDER BY fecha ASC, hora_inicio ASC NULLS FIRST`);
+        `SELECT ${CAMPOS} FROM eventos ORDER BY desde ASC, hora_inicio ASC NULLS FIRST`);
   res.json(result.rows);
 });
 
 router.post('/', requireSectionAccess('calendario', 'full'), async (req, res) => {
-  const { titulo, fecha, horaInicio, horaFin, descripcion } = req.body || {};
-  if (!titulo || !String(titulo).trim()) return res.status(400).json({ error: 'Falta el título.' });
-  const f = fechaONull(fecha);
-  if (!f) return res.status(400).json({ error: 'La fecha tiene que ser YYYY-MM-DD.' });
+  const { error, datos } = revisar(req.body);
+  if (error) return res.status(400).json({ error });
 
   const result = await pool.query(
-    `INSERT INTO eventos (titulo, fecha, hora_inicio, hora_fin, descripcion, usuario_id, autor)
-     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING ${CAMPOS}`,
-    [String(titulo).trim(), f, horaONull(horaInicio), horaONull(horaFin),
-     descripcion || null, req.session.userId, req.session.nombre]
+    `INSERT INTO eventos (titulo, desde, hasta, hora_inicio, hora_fin, descripcion, color, usuario_id, autor)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING ${CAMPOS}`,
+    [datos.titulo, datos.desde, datos.hasta, datos.horaInicio, datos.horaFin,
+     datos.descripcion, datos.color, req.session.userId, req.session.nombre]
   );
   const ev = result.rows[0];
   await avisarAlEquipo(req.session, 'evento_nuevo',
@@ -79,16 +128,15 @@ router.post('/', requireSectionAccess('calendario', 'full'), async (req, res) =>
 });
 
 router.put('/:id', requireSectionAccess('calendario', 'full'), async (req, res) => {
-  const { titulo, fecha, horaInicio, horaFin, descripcion } = req.body || {};
-  if (!titulo || !String(titulo).trim()) return res.status(400).json({ error: 'Falta el título.' });
-  const f = fechaONull(fecha);
-  if (!f) return res.status(400).json({ error: 'La fecha tiene que ser YYYY-MM-DD.' });
+  const { error, datos } = revisar(req.body);
+  if (error) return res.status(400).json({ error });
 
   const result = await pool.query(
-    `UPDATE eventos SET titulo = $1, fecha = $2, hora_inicio = $3, hora_fin = $4, descripcion = $5
-     WHERE id = $6 RETURNING ${CAMPOS}`,
-    [String(titulo).trim(), f, horaONull(horaInicio), horaONull(horaFin),
-     descripcion || null, req.params.id]
+    `UPDATE eventos SET titulo = $1, desde = $2, hasta = $3, hora_inicio = $4, hora_fin = $5,
+                        descripcion = $6, color = $7
+     WHERE id = $8 RETURNING ${CAMPOS}`,
+    [datos.titulo, datos.desde, datos.hasta, datos.horaInicio, datos.horaFin,
+     datos.descripcion, datos.color, req.params.id]
   );
   if (result.rows.length === 0) return res.status(404).json({ error: 'Evento no encontrado.' });
   const ev = result.rows[0];

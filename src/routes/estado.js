@@ -81,11 +81,12 @@ router.get('/', async (req, res) => {
   // cambiar de mes sin volver a pedirlos.
   const eventos = puede('calendario')
     ? (await pool.query(
-        `SELECT id, titulo, to_char(fecha, 'YYYY-MM-DD') AS fecha,
+        `SELECT id, titulo, to_char(desde, 'YYYY-MM-DD') AS desde,
+                to_char(COALESCE(hasta, desde), 'YYYY-MM-DD') AS hasta,
                 to_char(hora_inicio, 'HH24:MI') AS "horaInicio",
                 to_char(hora_fin, 'HH24:MI') AS "horaFin",
-                COALESCE(descripcion, '') AS descripcion, autor
-         FROM eventos ORDER BY fecha ASC, hora_inicio ASC NULLS FIRST`
+                COALESCE(descripcion, '') AS descripcion, color, autor
+         FROM eventos ORDER BY desde ASC, hora_inicio ASC NULLS FIRST`
       )).rows
     : [];
 

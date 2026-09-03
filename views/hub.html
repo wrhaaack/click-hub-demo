@@ -113,11 +113,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
 .chk-pago span{line-height:1}
 .cal-barra{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
 .cal-ayuda{font-size:11.5px;color:var(--mut)}
-/* Los eventos llevan un borde a la izquierda para no confundirlos con las
-   tareas, que son bloques de color plano. */
-.cal-evento{background:#EEF2FF;color:#3730A3;border-left:3px solid #6366F1}
-.cal-ev.editable{cursor:pointer}
-.cal-ev.editable:hover{filter:brightness(.94)}
 .ag-evento{font-size:11px;color:#3730A3;background:#EEF2FF;padding:1px 6px;border-radius:20px}
 .sum-aro{flex-shrink:0;position:relative;width:46px;height:46px}
 .sum-aro svg{transform:rotate(-90deg)}
@@ -181,16 +176,39 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
 .cal-wrap{background:var(--sur);border:1px solid var(--bor);border-radius:var(--r);overflow:hidden}
 .cal-head{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--bor)}
 .cal-dn{padding:9px;font-size:10px;font-weight:500;color:var(--hin);text-align:center;text-transform:uppercase;letter-spacing:.05em}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr)}
+/* El calendario se dibuja por semanas y no como una grilla de 7 columnas
+   corrida: los eventos pueden durar varios días y sus barras se posicionan
+   dentro de la semana que cruzan. Las tareas siguen adentro de la celda. */
+.cal-grid{display:block}
+.cal-sem{position:relative}
+.cal-sem-dias{display:grid;grid-template-columns:repeat(7,1fr)}
 .cal-cell{min-height:80px;padding:7px;border-right:1px solid var(--bor);border-bottom:1px solid var(--bor)}
 .cal-cell:nth-child(7n){border-right:none}
 .cal-cell.om{background:var(--sur3);opacity:.55}
+/* Las barras de la semana se dibujan por encima de las celdas, así que cada
+   celda reserva su alto para que las tareas arranquen debajo y no queden
+   tapadas. El alto lo calcula renderCal() con CAL_BARRA_H. */
+.cal-hueco{pointer-events:none}
+/* El contenedor no recibe clicks: entre una barra y otra el click tiene que
+   llegar a la celda de abajo, que es la que abre el alta del día. top = padding
+   de la celda (7) + alto del número (16) + su margen (4). */
+.cal-barras{position:absolute;left:0;right:0;top:27px;pointer-events:none}
+.cal-ev-barra{position:absolute;height:21px;border-radius:4px;padding:0 8px;font-size:10.5px;
+  line-height:21px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  border-left:3px solid;font-weight:500;pointer-events:auto}
+.cal-ev-barra.editable{cursor:pointer}
+.cal-ev-barra.editable:hover{filter:brightness(.94)}
+/* Un evento que sigue en la semana de al lado se corta al ras de ese lado: se
+   lee como una barra sola partida y no como dos eventos distintos. */
+.cal-ev-barra.sigue-izq{border-top-left-radius:0;border-bottom-left-radius:0;border-left-width:0}
+.cal-ev-barra.sigue-der{border-top-right-radius:0;border-bottom-right-radius:0}
 /* El día de hoy lleva un aro por dentro (box-shadow inset) y no un border:
    un borde de 2px correría el contenido de la celda y se vería el salto
    contra las celdas vecinas, que ya tienen 1px de separación. */
 .cal-cell.hoy{background:var(--tanl);box-shadow:inset 0 0 0 2px var(--tan)}
 .cal-cell.hoy .cal-num{color:var(--tanlt);font-weight:600}
-.cal-num{font-size:11px;color:var(--hin);margin-bottom:4px;font-family:'DM Mono',monospace}
+/* line-height fijo a propósito: el "top" de .cal-barras lo da por sentado. */
+.cal-num{font-size:11px;line-height:16px;color:var(--hin);margin-bottom:4px;font-family:'DM Mono',monospace}
 .cal-cell.hoy .cal-num{color:var(--tand);font-weight:500}
 /* Tocar un día abre el alta de evento con esa fecha puesta. La celda solo se
    vuelve clickeable con permiso "full" en Calendario: sin él no lleva ni el
@@ -735,12 +753,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
   <div class="mo-card" style="width:420px">
     <h3 id="moEvTit">Nuevo evento</h3>
     <div class="f"><label>Título</label><input type="text" id="mevTitulo" placeholder="Ej: Reunión con Boutique Lumá"></div>
-    <div class="f"><label>Fecha</label><input type="date" id="mevFecha"></div>
+    <div class="f-row">
+      <div class="f"><label>Desde</label><input type="date" id="mevDesde"></div>
+      <div class="f"><label>Hasta</label><input type="date" id="mevHasta"></div>
+    </div>
+    <div class="f-nota" style="margin:-6px 0 12px">Sin "hasta", el evento dura un solo día.</div>
     <div class="f-row">
       <div class="f"><label>Hora de inicio</label><input type="time" id="mevIni"></div>
       <div class="f"><label>Hora de fin</label><input type="time" id="mevFin"></div>
     </div>
     <div class="f-nota" style="margin:-6px 0 12px">Sin hora, el evento es de todo el día.</div>
+    <div class="f"><label>Color</label><div class="col-pick" id="mevColores"></div></div>
     <div class="f"><label>Descripción</label><textarea id="mevDesc" placeholder="Detalles, link de la videollamada..." style="min-height:70px"></textarea></div>
     <div class="mo-btns">
       <button class="btn" id="mevDelBtn" style="margin-right:auto;color:#B91C1C;border-color:transparent;display:none" onclick="delEvento()">Eliminar</button>
@@ -758,7 +781,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
       <div class="f"><label>Desde</label><input type="date" id="metDesde"></div>
       <div class="f"><label>Hasta</label><input type="date" id="metHasta"></div>
     </div>
-    <div class="f-nota" style="margin:-6px 0 12px">Un solo día también vale: poné la misma fecha en las dos.</div>
+    <div class="f-nota" style="margin:-6px 0 12px">Sin "hasta", la etapa dura un solo día.</div>
     <div class="f"><label>Color</label><div class="col-pick" id="metColores"></div></div>
     <div class="f"><label>Nota (opcional)</label><textarea id="metNota" placeholder="Qué incluye esta etapa" style="min-height:60px"></textarea></div>
     <div class="mo-btns">
@@ -1294,9 +1317,24 @@ function pintarAgenda(datos){
     if(!porDia[fecha]) porDia[fecha]=[];
     porDia[fecha].push(html);
   }
+  // Un evento de varios días aparece en cada día que ocupa: la agenda contesta
+  // "qué pasa el jueves", y un rodaje de tres días pasa los tres.
+  var primerDia = prefix + '-01';
+  var ultimoDia = prefix + '-' + String(diasDelMes).padStart(2,'0');
   (datos.eventos||[]).forEach(function(ev){
-    var hora = ev.horaInicio ? ev.horaInicio+' ' : '';
-    meter(ev.fecha, '<div class="ag-item"><span class="ag-evento">'+esc(hora)+esc(ev.titulo)+'</span></div>');
+    // Se recorre solo la parte que cae en este mes. Empezar en ev.desde sería
+    // arrancar meses antes cuando el evento es largo, y no hay para qué.
+    var f = ev.desde > primerDia ? ev.desde : primerDia;
+    var fin = (ev.hasta || ev.desde);
+    if(fin > ultimoDia) fin = ultimoDia;
+    for(; f <= fin; f = diaSiguiente(f)){
+      // La hora va solo el día que arranca de verdad; los siguientes llevan
+      // "sigue" para que no parezca que empieza de nuevo cada mañana.
+      var etiqueta = f === ev.desde
+        ? (ev.horaInicio ? ev.horaInicio + ' ' : '') + ev.titulo
+        : ev.titulo + ' (sigue)';
+      meter(f, '<div class="ag-item"><span class="ag-evento">'+esc(etiqueta)+'</span></div>');
+    }
   });
   (datos.especiales||[]).forEach(function(f){
     meter(f.fecha, '<div class="ag-item"><span class="ag-esp">★ '+esc(f.label||'Fecha especial')+'</span><span class="ag-cli">'+esc(f.cliente)+'</span></div>');
@@ -1345,37 +1383,76 @@ var calHead = null;
 function initCalHead() {
   if(!calHead) { document.getElementById('calHead').innerHTML=DIAS.map(function(d){return '<div class="cal-dn">'+d+'</div>';}).join(''); calHead=true; }
 }
+// Alto de una barra de evento más su separación. Está también en el CSS
+// (.cal-ev-barra) y las dos tienen que decir lo mismo: la banda que se reserva
+// arriba de las tareas se calcula acá con este número.
+var CAL_BARRA_H = 23;
+
 function renderCal() {
   initCalHead();
-  var mes=getMes(),ano=getAno(),prefix=getPrefix();
-  var pd=new Date(ano,mes,1).getDay(),dm=new Date(ano,mes+1,0).getDate(),hoy=new Date();
-  // Con "full" el día entero es un botón para cargar un evento ahí. Lo de
-  // adentro (eventos y tareas) frena el click para que tocar una tarea no
-  // termine abriendo el alta de un evento del día.
+  var mes=getMes(),ano=getAno();
+  // Con "full" el día entero es un botón para cargar un evento ahí. Las tareas
+  // frenan el click para que tocar una tarea no termine abriendo el alta de un
+  // evento del día.
   var puedeEditar=puedo('calendario','full'), frenar=puedeEditar?' onclick="event.stopPropagation()"':'';
+
+  // Los eventos se dibujan como barras que cruzan los días, igual que las etapas
+  // del calendario del cliente: desde que pueden durar varios días, meterlos
+  // adentro de una celda dejaría el rango invisible. Se reusa la misma cuenta de
+  // columnas y carriles, así los dos calendarios no se pueden desincronizar.
+  //
+  // No se filtran por rol porque no tienen rol: son del estudio, no de un
+  // cliente. Con un filtro puesto, directamente no se muestran.
+  var filas = planFilas(calF==='todo' ? eventos : [], mes, ano);
+
   var h='';
-  for(var i=0;i<pd;i++) h+='<div class="cal-cell om"></div>';
-  for(var d=1;d<=dm;d++){
-    var ds=prefix+'-'+String(d).padStart(2,'0');
-    var eh=hoy.getDate()===d&&hoy.getMonth()===mes&&hoy.getFullYear()===ano;
-    var evs=tareas.filter(function(t){return t.fecha===ds&&t.estado!=='cumplido'&&(calF==='todo'||getRolIdx(t.rol)===getRolIdx(calF));});
-    h+='<div class="cal-cell'+(eh?' hoy':'')+(puedeEditar?' libre':'')+'"'
-      +(puedeEditar?' onclick="nuevoEventoEn(\''+ds+'\')"':'')+'>'
-      +'<div class="cal-num">'+d+'</div>'+(puedeEditar?'<span class="cal-mas">+</span>':'');
-    // Los eventos van primero y con su propio color: son otra cosa que las
-    // tareas, y conviene distinguirlos de un vistazo. No se filtran por rol
-    // porque no tienen rol: son del estudio, no de un cliente.
-    if(calF==='todo'){
-      eventos.filter(function(ev){return ev.fecha===ds;}).forEach(function(ev){
-        var hora = ev.horaInicio ? ev.horaInicio+' ' : '';
-        h+='<div class="cal-ev cal-evento'+(puedeEditar?' editable':'')+'" title="'+esc(ev.titulo)+'"'
-          +(puedeEditar?' onclick="event.stopPropagation();openMoEvento('+ev.id+')"':'')+'>'
-          +esc(hora)+esc(ev.titulo.substring(0,14))+(ev.titulo.length>14?'…':'')+'</div>';
+  filas.forEach(function(fila){
+    var banda = fila.carriles * CAL_BARRA_H;
+    h += '<div class="cal-sem"><div class="cal-sem-dias">';
+    fila.dias.forEach(function(dia){
+      // Los días del mes de al lado quedan como estaban: grises y vacíos. Están
+      // para completar la semana y para que una barra pueda cruzar el mes.
+      if(dia.fuera) { h += '<div class="cal-cell om"></div>'; return; }
+      var d = dia.d, ds = dia.ds;
+      var delDia = tareas.filter(function(t){return t.fecha===ds&&t.estado!=='cumplido'&&(calF==='todo'||getRolIdx(t.rol)===getRolIdx(calF));});
+      h += '<div class="cal-cell'+(dia.hoy?' hoy':'')+(puedeEditar?' libre':'')+'"'
+        + (puedeEditar?' onclick="nuevoEventoEn(\''+ds+'\')"':'') + '>'
+        + '<div class="cal-num">'+d+'</div>'+(puedeEditar?'<span class="cal-mas">+</span>':'')
+        // El hueco que dejan las barras de la semana, para que las tareas
+        // empiecen debajo y no las tape ninguna.
+        + (banda ? '<div class="cal-hueco" style="height:'+banda+'px"></div>' : '');
+      delDia.forEach(function(t){
+        var cn=clientes.find(function(c){return c.id===t.cid;});
+        h += '<div class="cal-ev '+getRolCalCls(t.rol)+'"'+frenar+' title="'+esc(t.desc)+'">'
+          + (cn?esc(cn.nombre.split(' ')[0])+': ':'')
+          + esc(t.desc.substring(0,13))+(t.desc.length>13?'…':'')+'</div>';
       });
+      h += '</div>';
+    });
+    h += '</div>';
+
+    if(fila.barras.length){
+      h += '<div class="cal-barras">';
+      fila.barras.forEach(function(b){
+        var ev = b.et, c = color(ev.color || COLOR_EVENTO_DEF);
+        // La hora va solo en el tramo donde el evento realmente arranca: en la
+        // continuación de la semana siguiente no empieza de nuevo.
+        var hora = (ev.horaInicio && !b.sigueIzq) ? ev.horaInicio+' ' : '';
+        var detalle = ev.titulo + ' · ' + planRango(ev)
+          + (ev.horaInicio ? ' · ' + ev.horaInicio + (ev.horaFin ? ' a '+ev.horaFin : '') : ' · todo el día')
+          + (ev.descripcion ? '\n' + ev.descripcion : '');
+        h += '<div class="cal-ev-barra'+(puedeEditar?' editable':'')
+          + (b.sigueIzq?' sigue-izq':'') + (b.sigueDer?' sigue-der':'') + '"'
+          + ' style="left:calc('+b.col+'/7*100% + 4px);width:calc('+b.span+'/7*100% - 8px);'
+          + 'top:'+(b.carril*CAL_BARRA_H)+'px;background:'+c.f+';border-left-color:'+c.b+';color:'+c.t+'"'
+          + ' title="'+esc(detalle)+'"'
+          + (puedeEditar?' onclick="event.stopPropagation();openMoEvento('+ev.id+')"':'') + '>'
+          + esc(hora) + esc(ev.titulo) + '</div>';
+      });
+      h += '</div>';
     }
-    evs.forEach(function(t){var cn=clientes.find(function(c){return c.id===t.cid;});h+='<div class="cal-ev '+getRolCalCls(t.rol)+'"'+frenar+' title="'+esc(t.desc)+'">'+(cn?esc(cn.nombre.split(' ')[0])+': ':'')+esc(t.desc.substring(0,13))+(t.desc.length>13?'…':'')+'</div>';});
-    h+='</div>';
-  }
+    h += '</div>';
+  });
   document.getElementById('calGrid').innerHTML=h;
 }
 function setCalF(f,el){calF=f;document.querySelectorAll('#calF .fbtn').forEach(function(b){b.classList.remove('on');});el.classList.add('on');renderCal();}
@@ -1387,8 +1464,11 @@ function verTodoEnCal(){
 }
 
 // ── EVENTOS DEL CALENDARIO ───────────────────────────────────────────────────
-// Lo que pasa en una fecha y no es una tarea de un cliente. Los ve cualquiera
+// Lo que pasa en el estudio y no es una tarea de un cliente. Los ve cualquiera
 // con acceso a Calendario; tocarlos pide "full".
+var mevColor = COLOR_EVENTO_DEF;
+function elegirColorEvento(k) { mevColor = k; pintarColores('mevColores', mevColor, 'elegirColorEvento'); }
+
 // fecha solo se usa al dar de alta: es el día que se tocó en la grilla.
 function openMoEvento(id, fecha) {
   editEvId = id;
@@ -1398,10 +1478,16 @@ function openMoEvento(id, fecha) {
   // Al editar, la del evento. Al dar de alta desde un día, ese día. Y desde el
   // botón, el mes que se está mirando y no el de hoy: si estás parado en
   // octubre, cargar un evento es casi siempre para octubre.
-  document.getElementById('mevFecha').value = ev ? ev.fecha : (fecha || getPrefix() + '-01');
+  document.getElementById('mevDesde').value = ev ? ev.desde : (fecha || getPrefix() + '-01');
+  // "Hasta" queda vacío cuando dura un solo día, que es lo mismo que significa
+  // dejarlo vacío al cargarlo. Si se llenara con la misma fecha, parecería un
+  // rango de un día y no "no puse fin".
+  document.getElementById('mevHasta').value = (ev && ev.hasta !== ev.desde) ? ev.hasta : '';
   document.getElementById('mevIni').value = ev && ev.horaInicio ? ev.horaInicio : '';
   document.getElementById('mevFin').value = ev && ev.horaFin ? ev.horaFin : '';
   document.getElementById('mevDesc').value = ev ? ev.descripcion : '';
+  mevColor = (ev && ev.color) ? ev.color : COLOR_EVENTO_DEF;
+  pintarColores('mevColores', mevColor, 'elegirColorEvento');
   document.getElementById('mevDelBtn').style.display = ev ? '' : 'none';
   openMo('moEvento');
 }
@@ -1417,13 +1503,17 @@ function nuevoEventoEn(fecha) {
 async function saveEvento() {
   var datos = {
     titulo: document.getElementById('mevTitulo').value.trim(),
-    fecha: document.getElementById('mevFecha').value,
+    desde: document.getElementById('mevDesde').value,
+    hasta: document.getElementById('mevHasta').value,
     horaInicio: document.getElementById('mevIni').value,
     horaFin: document.getElementById('mevFin').value,
+    color: mevColor,
     descripcion: document.getElementById('mevDesc').value.trim(),
   };
   if(!datos.titulo){ avisar('Poné un título para el evento'); return; }
-  if(!datos.fecha){ avisar('Elegí la fecha del evento'); return; }
+  if(!datos.desde){ avisar('Elegí desde cuándo va el evento'); return; }
+  // Vacío no es un problema: el servidor lo toma como un solo día.
+  if(datos.hasta && datos.hasta < datos.desde){ avisar('El evento no puede terminar antes de empezar'); return; }
 
   var guardado = editEvId
     ? await ckJson('/api/eventos/'+editEvId, {method:'PUT', body: JSON.stringify(datos)})
@@ -1463,11 +1553,11 @@ async function delEvento() {
 // "Grabación") y no salen de las tareas: lo que el equipo escribe para
 // organizarse casi nunca es lo que conviene mostrarle a quien paga.
 
-// La paleta vive acá y en ningún otro lado. La pantalla y la exportación leen
-// de este mismo objeto, así que la imagen no puede salir con otros colores que
-// los que viste. Los tonos de texto están elegidos para tener buen contraste
-// sobre su propio fondo.
-var PLAN_COLORES = {
+// La paleta vive acá y en ningún otro lado: la usan las barras de los eventos,
+// las de las etapas y la exportación a imagen. Por eso la imagen no puede salir
+// con otros colores que los que viste. Los tonos de texto están elegidos para
+// tener buen contraste sobre su propio fondo.
+var COLORES = {
   azul:     {f:'#DBEAFE', b:'#3B82F6', t:'#1E40AF', n:'Azul'},
   rosa:     {f:'#FCE7F3', b:'#EC4899', t:'#9D174D', n:'Rosa'},
   ambar:    {f:'#FEF3C7', b:'#F59E0B', t:'#92400E', n:'Ámbar'},
@@ -1475,11 +1565,32 @@ var PLAN_COLORES = {
   violeta:  {f:'#EDE9FE', b:'#8B5CF6', t:'#5B21B6', n:'Violeta'},
   turquesa: {f:'#CCFBF1', b:'#14B8A6', t:'#115E59', n:'Turquesa'}
 };
-var PLAN_COLOR_DEF = 'azul';
+// Las etapas arrancan en azul. Los eventos, en violeta: es el color que tenían
+// todos antes de que se pudiera elegir, así que los que ya estaban cargados no
+// cambian de aspecto.
+var COLOR_ETAPA_DEF = 'azul';
+var COLOR_EVENTO_DEF = 'violeta';
+function color(k) { return COLORES[k] || COLORES[COLOR_ETAPA_DEF]; }
+
+// Dibuja la fila de colores de un modal. La usan el de evento y el de etapa.
+function pintarColores(contenedor, elegido, alElegir) {
+  document.getElementById(contenedor).innerHTML = Object.keys(COLORES).map(function(k){
+    var c = COLORES[k];
+    return '<button type="button" class="col-op'+(k===elegido?' on':'')+'" data-color="'+k+'"'
+      + ' style="background:'+c.f+';box-shadow:inset 0 0 0 3px '+c.b+'"'
+      + ' title="'+esc(c.n)+'" aria-label="'+esc(c.n)+'" onclick="'+alElegir+'(\''+k+'\')"></button>';
+  }).join('');
+}
+
+// El día siguiente a un 'YYYY-MM-DD'. Se usa para recorrer un rango día por día.
+function diaSiguiente(f) {
+  var d = new Date(Number(f.slice(0,4)), Number(f.slice(5,7))-1, Number(f.slice(8,10)) + 1);
+  return planIso(d);
+}
 
 var calVista = 'equipo';
 var editEtId = null;
-var metColor = PLAN_COLOR_DEF;
+var metColor = COLOR_ETAPA_DEF;
 
 function setCalVista(v, el) {
   calVista = v;
@@ -1496,12 +1607,15 @@ function renderCalendario() { if(calVista === 'cliente') renderPlan(); else rend
 function planIso(d) {
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
+// "3 de septiembre", "3 al 11 de septiembre", "24 de septiembre al 2 de octubre".
+// Sirve para etapas y para eventos: los dos tienen desde/hasta.
 function planRango(et) {
   var num = function(f){ return String(Number(f.slice(8,10))); };
   var mes = function(f){ return MESES[Number(f.slice(5,7))-1].toLowerCase(); };
-  if(et.desde === et.hasta) return num(et.desde) + ' de ' + mes(et.desde);
-  if(et.desde.slice(0,7) === et.hasta.slice(0,7)) return num(et.desde) + ' al ' + num(et.hasta) + ' de ' + mes(et.desde);
-  return num(et.desde) + ' de ' + mes(et.desde) + ' al ' + num(et.hasta) + ' de ' + mes(et.hasta);
+  var hasta = et.hasta || et.desde;
+  if(et.desde === hasta) return num(et.desde) + ' de ' + mes(et.desde);
+  if(et.desde.slice(0,7) === hasta.slice(0,7)) return num(et.desde) + ' al ' + num(hasta) + ' de ' + mes(et.desde);
+  return num(et.desde) + ' de ' + mes(et.desde) + ' al ' + num(hasta) + ' de ' + mes(hasta);
 }
 
 function pintarClientesPlan() {
@@ -1541,13 +1655,16 @@ function planFilas(lista, mes, ano) {
     var desdeSem = dias[0].ds, hastaSem = dias[6].ds;
     var barras = [];
     lista.forEach(function(et){
-      if(et.hasta < desdeSem || et.desde > hastaSem) return;   // no toca esta semana
+      // El servidor manda hasta siempre lleno, pero no cuesta nada aguantar que
+      // falte: sin fin, dura un solo día. Es la misma regla de todo el resto.
+      var fin0 = et.hasta || et.desde;
+      if(fin0 < desdeSem || et.desde > hastaSem) return;   // no toca esta semana
       var ini = et.desde > desdeSem ? et.desde : desdeSem;
-      var fin = et.hasta < hastaSem ? et.hasta : hastaSem;
+      var fin = fin0 < hastaSem ? fin0 : hastaSem;
       var col = dias.findIndex(function(x){ return x.ds === ini; });
       var col2 = dias.findIndex(function(x){ return x.ds === fin; });
       barras.push({ et: et, col: col, span: col2 - col + 1,
-                    sigueIzq: et.desde < desdeSem, sigueDer: et.hasta > hastaSem, carril: 0 });
+                    sigueIzq: et.desde < desdeSem, sigueDer: fin0 > hastaSem, carril: 0 });
     });
 
     // Carriles: se ordenan por día de inicio y cada una baja hasta el primer
@@ -1610,7 +1727,7 @@ function renderPlan() {
     }).join('') + '</div>';
     h += '<div class="plan-barras" style="height:'+altoBarras+'px">';
     fila.barras.forEach(function(b){
-      var c = PLAN_COLORES[b.et.color] || PLAN_COLORES[PLAN_COLOR_DEF];
+      var c = color(b.et.color);
       var titulo = b.et.titulo + ' · ' + planRango(b.et) + (b.et.nota ? '\n' + b.et.nota : '');
       h += '<div class="plan-b'+(puedeEditar?' editable':'')
         + (b.sigueIzq?' sigue-izq':'') + (b.sigueDer?' sigue-der':'') + '"'
@@ -1631,7 +1748,7 @@ function renderPlan() {
   });
   if(delMesVisible.length) {
     h += '<div class="plan-leyenda">' + delMesVisible.map(function(e){
-      var c = PLAN_COLORES[e.color] || PLAN_COLORES[PLAN_COLOR_DEF];
+      var c = color(e.color);
       return '<div class="plan-lg"><div class="plan-lg-c" style="background:'+c.b+'"></div>'
         + '<span><b>'+esc(e.titulo)+'</b> · '+esc(planRango(e))
         + (e.nota ? ' · '+esc(e.nota) : '') + '</span></div>';
@@ -1655,15 +1772,7 @@ function planClickSemana(e, fila, primerDia) {
   openMoEtapa(null, planIso(d));
 }
 
-function pintarColoresEtapa() {
-  document.getElementById('metColores').innerHTML = Object.keys(PLAN_COLORES).map(function(k){
-    var c = PLAN_COLORES[k];
-    return '<button type="button" class="col-op'+(k===metColor?' on':'')+'" data-color="'+k+'"'
-      + ' style="background:'+c.f+';box-shadow:inset 0 0 0 3px '+c.b+'"'
-      + ' title="'+esc(c.n)+'" aria-label="'+esc(c.n)+'" onclick="elegirColorEtapa(\''+k+'\')"></button>';
-  }).join('');
-}
-function elegirColorEtapa(k) { metColor = k; pintarColoresEtapa(); }
+function elegirColorEtapa(k) { metColor = k; pintarColores('metColores', metColor, 'elegirColorEtapa'); }
 
 // desde solo se usa al dar de alta: es el día que se tocó en la grilla.
 function openMoEtapa(id, desde) {
@@ -1674,10 +1783,13 @@ function openMoEtapa(id, desde) {
   document.getElementById('moEtTit').textContent = et ? 'Editar etapa' : 'Nueva etapa';
   document.getElementById('metTitulo').value = et ? et.titulo : '';
   document.getElementById('metDesde').value = et ? et.desde : (desde || getPrefix() + '-01');
-  document.getElementById('metHasta').value = et ? et.hasta : (desde || getPrefix() + '-01');
+  // "Hasta" queda vacío cuando dura un solo día, que es lo mismo que significa
+  // dejarlo vacío al cargarla. Si se llenara con la misma fecha, parecería un
+  // rango de un día y no "no puse fin".
+  document.getElementById('metHasta').value = (et && et.hasta !== et.desde) ? et.hasta : '';
   document.getElementById('metNota').value = et ? et.nota : '';
-  metColor = et ? et.color : PLAN_COLOR_DEF;
-  pintarColoresEtapa();
+  metColor = et ? et.color : COLOR_ETAPA_DEF;
+  pintarColores('metColores', metColor, 'elegirColorEtapa');
   document.getElementById('metDelBtn').style.display = et ? '' : 'none';
   openMo('moEtapa');
 }
@@ -1694,10 +1806,11 @@ async function saveEtapa() {
     nota: document.getElementById('metNota').value.trim()
   };
   if(!datos.titulo){ avisar('Poné un título para la etapa'); return; }
-  if(!datos.desde || !datos.hasta){ avisar('Elegí desde y hasta cuándo va la etapa'); return; }
+  if(!datos.desde){ avisar('Elegí desde cuándo va la etapa'); return; }
   // Se avisa acá además de en el servidor para poder decir qué está mal en vez
-  // de un error genérico.
-  if(datos.hasta < datos.desde){ avisar('La etapa no puede terminar antes de empezar'); return; }
+  // de un error genérico. Vacío no es un problema: el servidor lo toma como un
+  // solo día.
+  if(datos.hasta && datos.hasta < datos.desde){ avisar('La etapa no puede terminar antes de empezar'); return; }
 
   var guardado = editEtId
     ? await ckJson('/api/etapas/'+editEtId, {method:'PUT', body: JSON.stringify(datos)})
@@ -1851,7 +1964,7 @@ async function planCanvas() {
       ctx.globalAlpha = 1;
     });
     fila.barras.forEach(function(b){
-      var c = PLAN_COLORES[b.et.color] || PLAN_COLORES[PLAN_COLOR_DEF];
+      var c = color(b.et.color);
       var x = PAD + colW*b.col + 4, w = colW*b.span - 8, alt = 22;
       var by = y + 28 + b.carril*28;
       ctx.fillStyle = c.f;
@@ -1877,7 +1990,7 @@ async function planCanvas() {
     ctx.fillText('ETAPAS DEL MES', PAD, y + 12);
     y += 22;
     visibles.forEach(function(e){
-      var c = PLAN_COLORES[e.color] || PLAN_COLORES[PLAN_COLOR_DEF];
+      var c = color(e.color);
       ctx.fillStyle = c.b; planRedondeado(ctx, PAD, y + 6, 11, 11, 3); ctx.fill();
       ctx.fillStyle = '#3F3A34';
       ctx.font = "500 13px 'DM Sans', sans-serif";

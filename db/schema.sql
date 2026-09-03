@@ -150,23 +150,35 @@ CREATE TABLE IF NOT EXISTS actividad (
 );
 
 -- ---------- EVENTOS DEL CALENDARIO ----------
--- Cosas que pasan en una fecha y no son tareas de un cliente: una reunión, una
--- grabación, un feriado del estudio. Van en el calendario junto a las tareas
--- pero con su propio color.
+-- Cosas que pasan y no son tareas de un cliente: una reunión, una grabación, un
+-- feriado del estudio, un viaje de tres días. Van en el calendario junto a las
+-- tareas pero dibujados como barras, con el color que se les eligió.
 --
--- La hora es opcional: sin hora_inicio el evento es "todo el día".
+-- Todo lo opcional acá significa algo:
+--   hasta NULL        -> el evento dura un solo día (el de "desde");
+--   hora_inicio NULL  -> es de todo el día, sin horario.
+--
 -- El autor se copia como texto además del usuario_id para que el evento siga
 -- diciendo quién lo creó aunque después se dé de baja a esa persona.
 CREATE TABLE IF NOT EXISTS eventos (
   id           BIGSERIAL PRIMARY KEY,
   titulo       TEXT NOT NULL,
-  fecha        DATE NOT NULL,
+  desde        DATE NOT NULL,
+  hasta        DATE,
   hora_inicio  TIME,
   hora_fin     TIME,
   descripcion  TEXT,
+  -- Una clave de la paleta, igual que en etapas: el que carga no puede elegir un
+  -- color ilegible y la exportación dibuja lo mismo que la pantalla. 'violeta'
+  -- es el que tenían todos los eventos antes de que se pudiera elegir, así que
+  -- los que ya estaban no cambian de aspecto.
+  color        TEXT NOT NULL DEFAULT 'violeta'
+               CHECK (color IN ('azul','rosa','ambar','verde','violeta','turquesa')),
   usuario_id   UUID REFERENCES usuarios(id) ON DELETE SET NULL,
   autor        TEXT NOT NULL,
-  creado_en    TIMESTAMPTZ NOT NULL DEFAULT now()
+  creado_en    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  -- Con nombre para que la puesta al día pueda preguntar si ya está.
+  CONSTRAINT eventos_hasta_ok CHECK (hasta IS NULL OR hasta >= desde)
 );
 
 -- ---------- ETAPAS (la planificación que se le muestra al cliente) ----------
@@ -240,6 +252,26 @@ CREATE TABLE IF NOT EXISTS notificaciones (
 -- después (no hay qué poner en las filas que ya están), así que esas viven
 -- únicamente en el CREATE TABLE.
 
+-- Renombres. Van primero porque lo de abajo ya habla del nombre nuevo.
+--
+-- eventos.fecha pasó a llamarse eventos.desde cuando los eventos dejaron de ser
+-- de un solo día. Se renombró en vez de dejarlo así: un evento con rango y una
+-- columna llamada "fecha" es una trampa para la próxima consulta que alguien
+-- escriba, y ya había una tabla al lado (etapas) usando desde/hasta.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns
+              WHERE table_schema = 'public' AND table_name = 'eventos' AND column_name = 'fecha')
+     AND NOT EXISTS (SELECT 1 FROM information_schema.columns
+              WHERE table_schema = 'public' AND table_name = 'eventos' AND column_name = 'desde')
+  THEN
+    ALTER TABLE eventos RENAME COLUMN fecha TO desde;
+  END IF;
+END $$;
+-- El índice viejo sigue funcionando tras el renombre, pero con un nombre que
+-- miente. Se lo saca y más abajo se crea el que corresponde.
+DROP INDEX IF EXISTS idx_eventos_fecha;
+
 ALTER TABLE roles ADD COLUMN IF NOT EXISTS orden    INT   NOT NULL DEFAULT 0;
 ALTER TABLE roles ADD COLUMN IF NOT EXISTS permisos JSONB NOT NULL DEFAULT '{}';
 
@@ -291,11 +323,23 @@ ALTER TABLE actividad ADD COLUMN IF NOT EXISTS entidad_id BIGINT;
 ALTER TABLE actividad ADD COLUMN IF NOT EXISTS usuario_id UUID REFERENCES usuarios(id) ON DELETE SET NULL;
 ALTER TABLE actividad ADD COLUMN IF NOT EXISTS creado_en  TIMESTAMPTZ NOT NULL DEFAULT now();
 
+ALTER TABLE eventos ADD COLUMN IF NOT EXISTS hasta       DATE;
 ALTER TABLE eventos ADD COLUMN IF NOT EXISTS hora_inicio TIME;
 ALTER TABLE eventos ADD COLUMN IF NOT EXISTS hora_fin    TIME;
 ALTER TABLE eventos ADD COLUMN IF NOT EXISTS descripcion TEXT;
+ALTER TABLE eventos ADD COLUMN IF NOT EXISTS color       TEXT NOT NULL DEFAULT 'violeta'
+       CHECK (color IN ('azul','rosa','ambar','verde','violeta','turquesa'));
 ALTER TABLE eventos ADD COLUMN IF NOT EXISTS usuario_id  UUID REFERENCES usuarios(id) ON DELETE SET NULL;
 ALTER TABLE eventos ADD COLUMN IF NOT EXISTS creado_en   TIMESTAMPTZ NOT NULL DEFAULT now();
+-- ADD COLUMN IF NOT EXISTS no sirve para una restricción que mira dos columnas,
+-- y ALTER TABLE ADD CONSTRAINT no tiene IF NOT EXISTS. Se pregunta a mano para
+-- que se pueda correr de nuevo sin explotar.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'eventos_hasta_ok') THEN
+    ALTER TABLE eventos ADD CONSTRAINT eventos_hasta_ok CHECK (hasta IS NULL OR hasta >= desde);
+  END IF;
+END $$;
 
 ALTER TABLE etapas ADD COLUMN IF NOT EXISTS color      TEXT NOT NULL DEFAULT 'azul'
        CHECK (color IN ('azul','rosa','ambar','verde','violeta','turquesa'));
@@ -329,7 +373,7 @@ CREATE INDEX IF NOT EXISTS idx_fechas_cliente ON fechas_especiales(cliente_id, p
 
 CREATE INDEX IF NOT EXISTS idx_actividad_fecha ON actividad(creado_en DESC);
 
-CREATE INDEX IF NOT EXISTS idx_eventos_fecha ON eventos(fecha);
+CREATE INDEX IF NOT EXISTS idx_eventos_desde ON eventos(desde);
 
 -- Se consulta siempre por cliente y ordenado por fecha de inicio: es como se
 -- dibuja la tira de la planificación.

@@ -41,10 +41,18 @@ function revisar(body) {
   if (!Number.isInteger(clienteId) || clienteId <= 0) return { error: 'Falta el cliente.' };
 
   const desde = fechaONull(body && body.desde);
-  const hasta = fechaONull(body && body.hasta);
-  if (!desde || !hasta) return { error: 'Las fechas tienen que ser YYYY-MM-DD.' };
-  // La base también lo controla; acá se corta antes para poder explicarlo.
-  if (hasta < desde) return { error: 'La etapa no puede terminar antes de empezar.' };
+  if (!desde) return { error: 'La fecha tiene que ser YYYY-MM-DD.' };
+
+  // Sin "hasta" la etapa dura un solo día. Una fecha mal escrita, en cambio, no
+  // se ignora en silencio: si alguien quiso poner un rango, hay que decírselo.
+  const crudo = String((body && body.hasta) || '').trim();
+  let hasta = desde;
+  if (crudo) {
+    hasta = fechaONull(crudo);
+    if (!hasta) return { error: 'La fecha de fin tiene que ser YYYY-MM-DD.' };
+    // La base también lo controla; acá se corta antes para poder explicarlo.
+    if (hasta < desde) return { error: 'La etapa no puede terminar antes de empezar.' };
+  }
 
   const color = String((body && body.color) || 'azul');
   if (!COLORES.includes(color)) return { error: 'Ese color no existe.' };

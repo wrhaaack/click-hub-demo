@@ -51,12 +51,18 @@ router.get('/agenda', async (req, res) => {
 
   // Los eventos del calendario también caen en la agenda: para el que la mira,
   // una reunión del martes es tan parte del día como una tarea.
+  //
+  // Se piden los que SE CRUZAN con el mes, no los que arrancan adentro: un
+  // evento de varios días que empezó el 30 del mes pasado sigue pasando este.
   const eventos = await pool.query(
-    `SELECT to_char(fecha, 'YYYY-MM-DD') AS fecha, titulo,
+    `SELECT to_char(desde, 'YYYY-MM-DD') AS desde,
+            to_char(COALESCE(hasta, desde), 'YYYY-MM-DD') AS hasta,
+            titulo, color,
             to_char(hora_inicio, 'HH24:MI') AS "horaInicio"
      FROM eventos
-     WHERE date_trunc('month', fecha) = date_trunc('month', $1::date)
-     ORDER BY fecha ASC, hora_inicio ASC NULLS FIRST`,
+     WHERE desde <= (date_trunc('month', $1::date) + interval '1 month - 1 day')::date
+       AND COALESCE(hasta, desde) >= date_trunc('month', $1::date)::date
+     ORDER BY desde ASC, hora_inicio ASC NULLS FIRST`,
     [periodoSql]
   );
 
