@@ -279,6 +279,26 @@ pantallas estorbaban o apuntaban a otra sección.
 Entrando a un cliente, la pestaña **Info** muestra sus datos y también el cobro,
 con el botón "Editar info y cobro" que abre todo en el mismo formulario.
 
+### El botón ↓ Excel
+
+Baja una planilla con todo lo del cliente, **para uso interno**: lleva el cobro y
+las notas del equipo, así que no es para mandársela a nadie. Lo que se le manda
+al cliente es la imagen del calendario (pestaña Cliente en Calendario).
+
+Son seis hojas: **Cliente** (campo por campo, con los montos como números para
+poder sumarlos), **Links**, **Tareas**, **Planificación** (las etapas),
+**Fechas especiales** y **Brainstorming**. La primera fila de cada hoja va en
+negrita, congelada y con el filtro de Excel puesto.
+
+Las tareas van **todas**, no solo las del mes que estás viendo, con una columna
+de mes en palabras ("Agosto 2026") para poder filtrar. En una planilla filtrar
+es gratis; volver a exportar doce veces, no.
+
+El `.xlsx` se arma en el navegador sin ninguna librería (un xlsx es un ZIP con
+XML adentro). Se hizo así en vez de un `.csv` o una tabla HTML con extensión
+`.xls` porque el CSV no tiene hojas y las otras dos hacen que Excel abra con el
+cartel de "el formato y la extensión no coinciden" cada vez.
+
 ### El cobro
 
 Cada cliente tiene un monto (**A pagar**) y un **estado**, que es un desplegable
