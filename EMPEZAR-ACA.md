@@ -272,9 +272,12 @@ la lista de ruido y taparían los movimientos que importan.
 
 Una tarjeta por cliente, con las tareas del mes que está seleccionado arriba.
 Los botones **+ Cliente** y **+ Tarea** están dentro de la sección, igual que
-"+ Evento" en Calendario. Arriba a la derecha aparecen los mismos dos botones
+"+ Etapa" en Calendario. Arriba a la derecha aparecen los mismos dos botones
 pero **solo en el Dashboard**: ahí son el acceso rápido, y en el resto de las
 pantallas estorbaban o apuntaban a otra sección.
+
+Entrando a un cliente, la pestaña **Info** muestra sus datos y también el cobro,
+con el botón "Editar info y cobro" que abre todo en el mismo formulario.
 
 ### El cobro
 
@@ -305,6 +308,13 @@ estado: ese es justamente el dato.
 
 ## El calendario
 
+Arriba de la grilla dice el mes que estás viendo, en las dos pestañas. Los dos
+calendarios —el del equipo y el del cliente— usan la **misma** estructura y los
+mismos estilos: los días del mes de al lado rayados, los números arriba a la
+derecha, el día de hoy resaltado y las barras cruzando los días. Antes eran dos
+hojas de estilo parecidas pero no iguales, y se iban separando solas cada vez
+que se tocaba una.
+
 Muestra dos cosas distintas y las dibuja distinto. Las **tareas** de los
 clientes van adentro de la celda de su día, con el color del rol que las tiene
 que hacer. Los **eventos** del estudio (reuniones, grabaciones, feriados, un
@@ -324,7 +334,9 @@ Con permiso **full** en Calendario, la grilla se maneja tocándola:
 
 - **Tocás un día** y se abre el alta con esa fecha ya puesta. Al pasar el mouse
   por encima aparece un `+` en la esquina; en un celular no hay dónde pasar el
-  mouse, así que el texto de arriba lo dice y el botón "+ Evento" sigue estando.
+  mouse, así que el texto de arriba lo dice. No hay botón "+ Evento": tocar el
+  día ya lo hace, también en pantalla táctil, y el botón era una segunda puerta
+  al mismo formulario.
 - **Tocás un evento** y se abre para editarlo o eliminarlo. Podés cambiarle las
   fechas y la barra se muda sola.
 - **Tocar una tarea no hace nada** a propósito: es de un cliente y se maneja

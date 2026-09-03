@@ -160,98 +160,79 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
 .fbtn{padding:5px 13px;border-radius:20px;border:1px solid var(--bor2);background:var(--sur);font-size:12px;color:var(--mut);cursor:pointer;font-family:'DM Sans',sans-serif}
 .fbtn:hover{background:var(--sur2);color:var(--txt)}
 .fbtn.on{background:var(--tan);color:#fff;border-color:var(--tan);font-weight:500}
+/* ── LOS CALENDARIOS ────────────────────────────────────────────────────────
+   Hay dos —el del equipo y el del cliente— y comparten toda la estructura, así
+   que comparten también estas clases. Antes eran dos hojas parecidas pero no
+   iguales, y se iban separando sola cada vez que se tocaba una.
+
+   Cada semana es una fila apilada así:
+     .cal-dias    el fondo (absoluto): bordes, el día de hoy, los días rayados
+     .cal-nums    los números, arriba a la derecha de cada columna
+     .cal-barras  las barras que cruzan días (eventos o etapas)
+     .cal-cuerpo  lo que va adentro del día (las tareas; solo en el de equipo)
+
+   El fondo va primero y absoluto, y las capas de arriba vienen después en el
+   HTML: por eso quedan encima sin necesidad de z-index. Y las capas de arriba
+   no reciben clicks, para que tocar un hueco llegue siempre al día de abajo. */
+.cal-mes{font-size:13px;font-weight:500;font-family:'Syne',sans-serif;color:var(--txt);
+  margin-bottom:8px;text-transform:capitalize}
 .cal-wrap{background:var(--sur);border:1px solid var(--bor);border-radius:var(--r);overflow:hidden}
-.cal-head{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--bor)}
+.cal-head{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-bottom:1px solid var(--bor)}
 .cal-dn{padding:9px;font-size:10px;font-weight:500;color:var(--hin);text-align:center;text-transform:uppercase;letter-spacing:.05em}
-/* El calendario se dibuja por semanas y no como una grilla de 7 columnas
-   corrida: los eventos pueden durar varios días y sus barras se posicionan
-   dentro de la semana que cruzan. Las tareas siguen adentro de la celda. */
-.cal-grid{display:block}
-.cal-sem{position:relative}
-.cal-sem-dias{display:grid;grid-template-columns:repeat(7,1fr)}
-.cal-cell{min-height:80px;padding:7px;border-right:1px solid var(--bor);border-bottom:1px solid var(--bor)}
-.cal-cell:nth-child(7n){border-right:none}
-.cal-cell.om{background:var(--sur3);opacity:.55}
-/* Las barras de la semana se dibujan por encima de las celdas, así que cada
-   celda reserva su alto para que las tareas arranquen debajo y no queden
-   tapadas. El alto lo calcula renderCal() con CAL_BARRA_H. */
-.cal-hueco{pointer-events:none}
-/* El contenedor no recibe clicks: entre una barra y otra el click tiene que
-   llegar a la celda de abajo, que es la que abre el alta del día. top = padding
-   de la celda (7) + alto del número (16) + su margen (4). */
-.cal-barras{position:absolute;left:0;right:0;top:27px;pointer-events:none}
-.cal-ev-barra{position:absolute;height:21px;border-radius:4px;padding:0 8px;font-size:10.5px;
-  line-height:21px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  border-left:3px solid;font-weight:500;pointer-events:auto}
-.cal-ev-barra.editable{cursor:pointer}
-.cal-ev-barra.editable:hover{filter:brightness(.94)}
-/* Un evento que sigue en la semana de al lado se corta al ras de ese lado: se
-   lee como una barra sola partida y no como dos eventos distintos. */
-.cal-ev-barra.sigue-izq{border-top-left-radius:0;border-bottom-left-radius:0;border-left-width:0}
-.cal-ev-barra.sigue-der{border-top-right-radius:0;border-bottom-right-radius:0}
-/* El día de hoy lleva un aro por dentro (box-shadow inset) y no un border:
-   un borde de 2px correría el contenido de la celda y se vería el salto
-   contra las celdas vecinas, que ya tienen 1px de separación. */
-.cal-cell.hoy{background:var(--tanl);box-shadow:inset 0 0 0 2px var(--tan)}
-.cal-cell.hoy .cal-num{color:var(--tanlt);font-weight:600}
-/* line-height fijo a propósito: el "top" de .cal-barras lo da por sentado. */
-.cal-num{font-size:11px;line-height:16px;color:var(--hin);margin-bottom:4px;font-family:'DM Mono',monospace}
-.cal-cell.hoy .cal-num{color:var(--tand);font-weight:500}
-/* Tocar un día abre el alta de evento con esa fecha puesta. La celda solo se
-   vuelve clickeable con permiso "full" en Calendario: sin él no lleva ni el
-   cursor ni el hover, para no prometer algo que después no va a pasar. */
-.cal-cell.libre{cursor:pointer;position:relative}
-.cal-cell.libre:hover{background:var(--sur2)}
-/* Hoy ya viene con fondo propio: si el hover se lo pisa con el gris, la celda
-   parece perder el resaltado justo cuando la estás por tocar. */
-.cal-cell.libre.hoy:hover{background:var(--tanl);filter:brightness(.96)}
+.cal-sem{position:relative;border-bottom:1px solid var(--bor)}
+.cal-sem:last-child{border-bottom:none}
+.cal-dias{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));position:absolute;inset:0}
+.cal-dia{border-right:1px solid var(--bor);position:relative}
+.cal-dia:last-child{border-right:none}
+/* Los días del mes de al lado se rayan en vez de esconderse: ubican la semana
+   sin competir con lo que sí es del mes, y dejan que una barra cruce el mes. */
+.cal-dia.fuera{background:repeating-linear-gradient(45deg,var(--sur3),var(--sur3) 5px,transparent 5px,transparent 10px)}
+.cal-dia.hoy{background:var(--tanl)}
+/* Tocar un día abre el alta con esa fecha. Solo con permiso "full": sin él no
+   lleva ni cursor ni hover, para no prometer algo que después no va a pasar. */
+.cal-dia.libre{cursor:pointer}
+.cal-dia.libre:hover{background:var(--sur2)}
+/* Hoy ya viene con fondo propio: si el hover se lo pisa con el gris, el día
+   parece perder el resaltado justo cuando lo estás por tocar. */
+.cal-dia.libre.hoy:hover{background:var(--tanl);filter:brightness(.96)}
 /* El "+" es la única pista de que el día se puede tocar. pointer-events:none
-   para que el click siempre lo maneje la celda y nunca este cartelito. */
+   para que el click lo maneje siempre el día y nunca este cartelito. */
 .cal-mas{position:absolute;top:5px;right:6px;width:15px;height:15px;border-radius:3px;
   display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1;
   color:#fff;background:var(--tan);opacity:0;transition:opacity .12s;pointer-events:none}
-.cal-cell.libre:hover .cal-mas{opacity:1}
-/* ── PLANIFICACIÓN DEL CLIENTE ──────────────────────────────────────────────
-   El segundo calendario de la sección. El del equipo mete cosas adentro de la
-   celda del día porque una tarea es de un día; acá una etapa dura varios, así
-   que se dibujan barras POR ENCIMA de la semana y las celdas quedan de fondo. */
-.plan-wrap{background:var(--sur);border:1px solid var(--bor);border-radius:var(--r);overflow:hidden}
-.plan-head{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--bor)}
-.plan-dn{padding:9px;font-size:10px;font-weight:500;color:var(--hin);text-align:center;text-transform:uppercase;letter-spacing:.05em}
-.plan-sem{position:relative;border-bottom:1px solid var(--bor)}
-.plan-sem:last-child{border-bottom:none}
-/* Las celdas van absolutas y primeras: son el fondo. Los números y las barras
-   vienen después en el HTML y por eso quedan encima, sin necesidad de z-index. */
-.plan-dias{display:grid;grid-template-columns:repeat(7,1fr);position:absolute;inset:0}
-.plan-dia{border-right:1px solid var(--bor)}
-.plan-dia:last-child{border-right:none}
-/* Los días del mes de al lado se rayan en vez de esconderse: ubican la semana
-   sin competir con lo que sí es del mes. */
-.plan-dia.fuera{background:repeating-linear-gradient(45deg,var(--sur3),var(--sur3) 5px,transparent 5px,transparent 10px)}
-.plan-dia.hoy{background:var(--tanl)}
-.plan-nums{display:grid;grid-template-columns:repeat(7,1fr);position:relative}
-.plan-num{padding:7px 9px 2px;font-size:11px;color:var(--hin);font-family:'DM Mono',monospace;text-align:right}
-.plan-num.fuera{opacity:.45}
-.plan-num.hoy{color:var(--tand);font-weight:600}
-.plan-barras{position:relative;min-height:46px}
-.plan-b{position:absolute;height:21px;border-radius:4px;padding:0 8px;font-size:11px;line-height:21px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:3px solid;font-weight:500}
-.plan-b.editable{cursor:pointer}
-.plan-b.editable:hover{filter:brightness(.94)}
-/* Una etapa que sigue en la semana de al lado se corta al ras de ese lado, así
-   se lee como una barra sola partida y no como dos etapas distintas. */
-.plan-b.sigue-izq{border-top-left-radius:0;border-bottom-left-radius:0;border-left-width:0;padding-left:8px}
-.plan-b.sigue-der{border-top-right-radius:0;border-bottom-right-radius:0}
-.plan-vacio{padding:44px 20px;text-align:center;color:var(--mut);font-size:13px;line-height:1.6}
-.plan-leyenda{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px}
-.plan-lg{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--mut)}
-.plan-lg-c{width:11px;height:11px;border-radius:3px;flex-shrink:0}
-/* El elegidor de color del modal. */
+.cal-dia.libre:hover .cal-mas{opacity:1}
+.cal-nums{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));position:relative;pointer-events:none}
+.cal-num{padding:7px 9px 2px;font-size:11px;color:var(--hin);font-family:'DM Mono',monospace;text-align:right}
+.cal-num.fuera{opacity:.45}
+.cal-num.hoy{color:var(--tand);font-weight:600}
+/* min-height para que una semana sin barras no quede aplastada. */
+.cal-barras{position:relative;min-height:26px;pointer-events:none}
+.cal-b{position:absolute;height:21px;border-radius:4px;padding:0 8px;font-size:11px;line-height:21px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:3px solid;font-weight:500;
+  pointer-events:auto}
+.cal-b.editable{cursor:pointer}
+.cal-b.editable:hover{filter:brightness(.94)}
+/* Una barra que sigue en la semana de al lado se corta al ras de ese lado, así
+   se lee como una barra sola partida y no como dos cosas distintas. */
+.cal-b.sigue-izq{border-top-left-radius:0;border-bottom-left-radius:0;border-left-width:0}
+.cal-b.sigue-der{border-top-right-radius:0;border-bottom-right-radius:0}
+/* Solo el calendario del equipo: las tareas, que son de un día y van adentro de
+   la columna. El alto mínimo es lo que le da al mes su altura de siempre. */
+.cal-cuerpo{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));position:relative;pointer-events:none}
+.cal-dcol{min-height:46px;padding:0 6px 7px}
+/* Las tareas sí reciben el click, para que se les vea el título al pasar por
+   encima. Frenan la propagación así tocar una no abre el alta del día. */
+.cal-ev{font-size:10px;padding:2px 5px;border-radius:3px;margin-bottom:2px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;pointer-events:auto}
+.cal-vacio{padding:44px 20px;text-align:center;color:var(--mut);font-size:13px;line-height:1.6}
+.cal-leyenda{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px}
+.cal-lg{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--mut)}
+.cal-lg-c{width:11px;height:11px;border-radius:3px;flex-shrink:0}
+/* El elegidor de color de los modales. */
 .col-pick{display:flex;gap:9px;flex-wrap:wrap}
 .col-op{width:27px;height:27px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;outline:none}
 .col-op.on{border-color:var(--txt)}
 .col-op:focus-visible{box-shadow:0 0 0 3px var(--tanl)}
-.cal-ev{font-size:10px;padding:2px 5px;border-radius:3px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* Las tarjetas del resumen ahora son botones: se abren para mostrar de qué
    tareas hablan. Se les rehace el aspecto porque un <button> trae lo suyo. */
 .sum-c{font-family:'DM Sans',sans-serif;text-align:left;cursor:pointer;transition:all .15s;width:100%}
@@ -614,10 +595,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
         <button class="fbtn" onclick="setCalVista('cliente',this)">Cliente</button>
       </div>
       <div id="calVistaEquipo">
-      <div class="barra-acc"><button class="btn btn-p" id="btnNuevoEvento" onclick="openMoEvento(null)">+ Evento</button>
-        <span class="cal-ayuda">Reuniones, grabaciones, feriados: lo que no es una tarea de un cliente.</span></div>
+      <div class="barra-acc"><span class="cal-ayuda">Reuniones, grabaciones, feriados: lo que no es una tarea de un cliente.</span></div>
       <div class="filtros" id="calF"><button class="fbtn on" onclick="setCalF(&quot;todo&quot;,this)">Todo</button><button class="fbtn" onclick="setCalF('E',this)">Editor</button><button class="fbtn" onclick="setCalF('D',this)">Diseñadora</button><button class="fbtn" onclick="setCalF('C',this)">CM</button><button class="fbtn" onclick="setCalF('S',this)">SMM</button></div>
-      <div class="cal-wrap"><div class="cal-head" id="calHead"></div><div class="cal-grid" id="calGrid"></div></div>
+      <div class="cal-mes" id="calMesEquipo"></div>
+      <div class="cal-wrap" id="calGrid"></div>
       </div>
       <div id="calVistaCliente" style="display:none">
         <div class="barra-acc">
@@ -626,6 +607,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
           <button class="btn" id="btnExportarPlan" onclick="exportarPlan()">↓ Exportar imagen</button>
           <span class="cal-ayuda" id="planAyuda"></span>
         </div>
+        <div class="cal-mes" id="calMesCliente"></div>
         <div id="planWrap"></div>
       </div>
     </div>
@@ -966,6 +948,26 @@ function pastillaDeCobro(c) {
   return ' · <span class="badge '+clase+'">'+esc(texto)+'</span>';
 }
 
+// El cobro en la pestaña Info del cliente. A diferencia de la pastilla de la
+// tarjeta, acá se dice todo aunque no haya monto acordado: es la ficha, y "sin
+// monto acordado" también es un dato que conviene ver.
+function cobroEnInfo(c) {
+  var estado = c.estadoPago || 'pendiente';
+  var monto = (c.aPagar !== null && c.aPagar !== undefined)
+    ? fmtMonto(c.aPagar) : 'sin monto acordado';
+  var detalle = estado === 'parcial'
+    ? 'abonó ' + fmtMonto(c.abonado)
+      + ((c.aPagar !== null && c.aPagar !== undefined)
+          ? ' · falta ' + fmtMonto(c.aPagar - c.abonado) : '')
+    : (estado === 'pagado' ? 'cobrado completo' : 'todavía sin cobrar');
+  var clase = estado === 'pagado' ? 'bpag' : (estado === 'parcial' ? 'bpar' : 'bnp');
+  var nombre = {pendiente:'Pendiente', parcial:'Parcial', pagado:'Pagado'}[estado];
+  return '<div style="display:flex;align-items:center;gap:8px;font-size:13px">'
+    + '<span class="badge '+clase+'">'+esc(nombre)+'</span>'
+    + '<span>'+esc(monto)+'</span>'
+    + '<span style="color:var(--mut);font-size:12px">'+esc(detalle)+'</span></div>';
+}
+
 // Esconder o mostrar un control por permisos. Vivía adentro de aplicarPermisos;
 // se sacó afuera cuando la planificación del cliente también tuvo que usarlo.
 function mostrar(id, visible) {
@@ -1162,8 +1164,13 @@ function renderCF() {
       +(c.contacto?'<div><div class="rol-lbl">Contacto</div><div style="font-size:13px">'+esc(c.contacto)+'</div></div>':'')
       +(c.tel?'<div><div class="rol-lbl">Teléfono</div><div style="font-size:13px">'+esc(c.tel)+'</div></div>':'')
       +(links?'<div><div class="rol-lbl">Links</div>'+links+'</div>':'')
+      // El cobro se muestra acá y no solo en la tarjeta: es el lugar donde uno
+      // entra a mirar los datos del cliente, y el monto es uno de ellos.
+      +'<div><div class="rol-lbl">Cobro</div>'+cobroEnInfo(c)+'</div>'
       +(c.notas?'<div style="background:var(--sur2);border-radius:var(--rs);padding:12px;font-size:12px;color:var(--mut);white-space:pre-wrap">'+esc(c.notas)+'</div>':'')
-      +(puedo('clientes','full')?'<button class="btn-sm" style="align-self:flex-start" onclick="openMoClienteEdit('+cid+')">Editar info</button>':'')
+      // Un solo botón para todo: el modal que abre trae los datos y el cobro.
+      // Dos botones separados harían pensar que son dos formularios distintos.
+      +(puedo('clientes','full')?'<button class="btn-sm" style="align-self:flex-start" onclick="openMoClienteEdit('+cid+')">Editar info y cobro</button>':'')
       +'</div>';
   }
 }
@@ -1416,81 +1423,110 @@ function pintarActividad(lista){
 }
 
 // ── RENDER CALENDARIO ─────────────────────────────────────────────────────────
-var calHead = null;
-function initCalHead() {
-  if(!calHead) { document.getElementById('calHead').innerHTML=DIAS.map(function(d){return '<div class="cal-dn">'+d+'</div>';}).join(''); calHead=true; }
-}
-// Alto de una barra de evento más su separación. Está también en el CSS
-// (.cal-ev-barra) y las dos tienen que decir lo mismo: la banda que se reserva
-// arriba de las tareas se calcula acá con este número.
+// Alto de un carril de barras: la barra (21) más el aire hasta la de abajo.
+// Está acá y no en el CSS porque el "top" de cada barra se calcula en JS.
 var CAL_BARRA_H = 23;
 
-function renderCal() {
-  initCalHead();
-  var mes=getMes(),ano=getAno();
-  // Con "full" el día entero es un botón para cargar un evento ahí. Las tareas
-  // frenan el click para que tocar una tarea no termine abriendo el alta de un
-  // evento del día.
-  var puedeEditar=puedo('calendario','full'), frenar=puedeEditar?' onclick="event.stopPropagation()"':'';
+// ── LAS CAPAS DE UNA SEMANA ──────────────────────────────────────────────────
+// Las comparten los dos calendarios. Antes cada uno armaba su propio HTML y se
+// fueron separando solos: mismos datos, distinto aspecto. Ahora la estructura
+// sale de un lugar y lo único que cambia es qué se dibuja adentro.
 
-  // Los eventos se dibujan como barras que cruzan los días, igual que las etapas
-  // del calendario del cliente: desde que pueden durar varios días, meterlos
-  // adentro de una celda dejaría el rango invisible. Se reusa la misma cuenta de
-  // columnas y carriles, así los dos calendarios no se pueden desincronizar.
-  //
-  // No se filtran por rol porque no tienen rol: son del estudio, no de un
-  // cliente. Con un filtro puesto, directamente no se muestran.
-  var filas = planFilas(calF==='todo' ? eventos : [], mes, ano);
+// El fondo: bordes, el día de hoy, los días rayados del mes de al lado, y —si
+// hay con qué editar— cada día como botón con su "+" al pasar por encima.
+// `alTocar` es el nombre de la función a llamar con la fecha, o null.
+function calCapaDias(fila, alTocar) {
+  return '<div class="cal-dias">' + fila.dias.map(function(d){
+    // Los días del mes de al lado no se pueden tocar: cargar algo ahí sería
+    // cargarlo en un mes que no estás mirando.
+    var libre = alTocar && !d.fuera;
+    return '<div class="cal-dia'+(d.fuera?' fuera':'')+(d.hoy?' hoy':'')+(libre?' libre':'')+'"'
+      + (libre ? ' onclick="'+alTocar+'(\''+d.ds+'\')"' : '') + '>'
+      + (libre ? '<span class="cal-mas">+</span>' : '') + '</div>';
+  }).join('') + '</div>';
+}
 
-  var h='';
-  filas.forEach(function(fila){
-    var banda = fila.carriles * CAL_BARRA_H;
-    h += '<div class="cal-sem"><div class="cal-sem-dias">';
-    fila.dias.forEach(function(dia){
-      // Los días del mes de al lado quedan como estaban: grises y vacíos. Están
-      // para completar la semana y para que una barra pueda cruzar el mes.
-      if(dia.fuera) { h += '<div class="cal-cell om"></div>'; return; }
-      var d = dia.d, ds = dia.ds;
-      var delDia = tareas.filter(function(t){return t.fecha===ds&&t.estado!=='cumplido'&&(calF==='todo'||getRolIdx(t.rol)===getRolIdx(calF));});
-      h += '<div class="cal-cell'+(dia.hoy?' hoy':'')+(puedeEditar?' libre':'')+'"'
-        + (puedeEditar?' onclick="nuevoEventoEn(\''+ds+'\')"':'') + '>'
-        + '<div class="cal-num">'+d+'</div>'+(puedeEditar?'<span class="cal-mas">+</span>':'')
-        // El hueco que dejan las barras de la semana, para que las tareas
-        // empiecen debajo y no las tape ninguna.
-        + (banda ? '<div class="cal-hueco" style="height:'+banda+'px"></div>' : '');
-      delDia.forEach(function(t){
-        var cn=clientes.find(function(c){return c.id===t.cid;});
-        h += '<div class="cal-ev '+getRolCalCls(t.rol)+'"'+frenar+' title="'+esc(t.desc)+'">'
-          + (cn?esc(cn.nombre.split(' ')[0])+': ':'')
-          + esc(t.desc.substring(0,13))+(t.desc.length>13?'…':'')+'</div>';
-      });
-      h += '</div>';
-    });
-    h += '</div>';
+function calCapaNums(fila) {
+  return '<div class="cal-nums">' + fila.dias.map(function(d){
+    return '<div class="cal-num'+(d.fuera?' fuera':'')+(d.hoy?' hoy':'')+'">'+d.d+'</div>';
+  }).join('') + '</div>';
+}
 
-    if(fila.barras.length){
-      h += '<div class="cal-barras">';
-      fila.barras.forEach(function(b){
-        var ev = b.et, c = color(ev.color || COLOR_EVENTO_DEF);
-        // La hora va solo en el tramo donde el evento realmente arranca: en la
-        // continuación de la semana siguiente no empieza de nuevo.
-        var hora = (ev.horaInicio && !b.sigueIzq) ? ev.horaInicio+' ' : '';
-        var detalle = ev.titulo + ' · ' + planRango(ev)
-          + (ev.horaInicio ? ' · ' + ev.horaInicio + (ev.horaFin ? ' a '+ev.horaFin : '') : ' · todo el día')
-          + (ev.descripcion ? '\n' + ev.descripcion : '');
-        h += '<div class="cal-ev-barra'+(puedeEditar?' editable':'')
-          + (b.sigueIzq?' sigue-izq':'') + (b.sigueDer?' sigue-der':'') + '"'
-          + ' style="left:calc('+b.col+'/7*100% + 4px);width:calc('+b.span+'/7*100% - 8px);'
-          + 'top:'+(b.carril*CAL_BARRA_H)+'px;background:'+c.f+';border-left-color:'+c.b+';color:'+c.t+'"'
-          + ' title="'+esc(detalle)+'"'
-          + (puedeEditar?' onclick="event.stopPropagation();openMoEvento('+ev.id+')"':'') + '>'
-          + esc(hora) + esc(ev.titulo) + '</div>';
-      });
-      h += '</div>';
-    }
-    h += '</div>';
+// Las barras que cruzan días. `pintar(b)` devuelve el color, el texto de la
+// barra y el del tooltip: es lo único que distingue un evento de una etapa.
+// `altoMin` existe porque en el del cliente esta capa es todo el contenido de
+// la semana y necesita aire, y en el del equipo abajo van las tareas.
+function calCapaBarras(fila, puedeEditar, alTocar, pintar, altoMin) {
+  var alto = Math.max(fila.carriles * CAL_BARRA_H + (fila.carriles ? 5 : 0), altoMin);
+  var h = '<div class="cal-barras" style="height:'+alto+'px">';
+  fila.barras.forEach(function(b){
+    var p = pintar(b);
+    h += '<div class="cal-b'+(puedeEditar?' editable':'')
+      + (b.sigueIzq?' sigue-izq':'') + (b.sigueDer?' sigue-der':'') + '"'
+      + ' style="left:calc('+b.col+'/7*100% + 4px);width:calc('+b.span+'/7*100% - 8px);'
+      + 'top:'+(b.carril*CAL_BARRA_H)+'px;background:'+p.c.f+';border-left-color:'+p.c.b+';color:'+p.c.t+'"'
+      + ' title="'+esc(p.titulo)+'"'
+      + (puedeEditar?' onclick="event.stopPropagation();'+alTocar+'('+b.et.id+')"':'') + '>'
+      + esc(p.texto) + '</div>';
   });
-  document.getElementById('calGrid').innerHTML=h;
+  return h + '</div>';
+}
+
+function calCabecera() {
+  return '<div class="cal-head">'
+    + DIAS.map(function(d){ return '<div class="cal-dn">'+d+'</div>'; }).join('')
+    + '</div>';
+}
+
+// ── EL CALENDARIO DEL EQUIPO ─────────────────────────────────────────────────
+// Igual que el del cliente, más una capa: las tareas, que son de un día y van
+// adentro de la columna. Los eventos van como barras porque pueden durar varios
+// días, y adentro de una celda el rango quedaría invisible.
+function renderCal() {
+  var mes=getMes(), ano=getAno();
+  document.getElementById('calMesEquipo').textContent = MESES[mes] + ' ' + ano;
+  var puedeEditar = puedo('calendario','full');
+
+  // Los eventos no se filtran por rol porque no tienen rol: son del estudio, no
+  // de un cliente. Con un filtro puesto, directamente no se muestran.
+  var filas = filasDelMes(calF==='todo' ? eventos : [], mes, ano);
+
+  var h = calCabecera();
+  filas.forEach(function(fila){
+    h += '<div class="cal-sem">'
+      + calCapaDias(fila, puedeEditar ? 'nuevoEventoEn' : null)
+      + calCapaNums(fila)
+      + calCapaBarras(fila, puedeEditar, 'openMoEvento', function(b){
+          var ev = b.et;
+          // La hora va solo en el tramo donde el evento arranca de verdad: en la
+          // continuación de la semana siguiente no empieza de nuevo.
+          var hora = (ev.horaInicio && !b.sigueIzq) ? ev.horaInicio+' ' : '';
+          return {
+            c: color(ev.color || COLOR_EVENTO_DEF),
+            texto: hora + ev.titulo,
+            titulo: ev.titulo + ' · ' + rangoEnTexto(ev)
+              + (ev.horaInicio ? ' · ' + ev.horaInicio + (ev.horaFin ? ' a '+ev.horaFin : '') : ' · todo el día')
+              + (ev.descripcion ? '\n' + ev.descripcion : '')
+          };
+        }, 4)
+      + '<div class="cal-cuerpo">' + fila.dias.map(function(d){
+          if(d.fuera) return '<div class="cal-dcol"></div>';
+          var delDia = tareas.filter(function(t){
+            return t.fecha===d.ds && t.estado!=='cumplido'
+              && (calF==='todo' || getRolIdx(t.rol)===getRolIdx(calF));
+          });
+          return '<div class="cal-dcol">' + delDia.map(function(t){
+            var cn = clientes.find(function(c){ return c.id===t.cid; });
+            // Frena el click para que tocar una tarea no abra el alta del día.
+            return '<div class="cal-ev '+getRolCalCls(t.rol)+'" onclick="event.stopPropagation()"'
+              + ' title="'+esc(t.desc)+'">'
+              + (cn?esc(cn.nombre.split(' ')[0])+': ':'')
+              + esc(t.desc.substring(0,13))+(t.desc.length>13?'…':'')+'</div>';
+          }).join('') + '</div>';
+        }).join('') + '</div>'
+      + '</div>';
+  });
+  document.getElementById('calGrid').innerHTML = h;
 }
 function setCalF(f,el){calF=f;document.querySelectorAll('#calF .fbtn').forEach(function(b){b.classList.remove('on');});el.classList.add('on');renderCal();}
 // Vuelve a "Todo" sin depender de que alguien haya tocado el botón.
@@ -1622,7 +1658,7 @@ function pintarColores(contenedor, elegido, alElegir) {
 // El día siguiente a un 'YYYY-MM-DD'. Se usa para recorrer un rango día por día.
 function diaSiguiente(f) {
   var d = new Date(Number(f.slice(0,4)), Number(f.slice(5,7))-1, Number(f.slice(8,10)) + 1);
-  return planIso(d);
+  return isoDe(d);
 }
 
 var calVista = 'equipo';
@@ -1641,12 +1677,12 @@ function setCalVista(v, el) {
 // Calendario tiene dos vistas: siempre se dibuja la que está adelante.
 function renderCalendario() { if(calVista === 'cliente') renderPlan(); else renderCal(); }
 
-function planIso(d) {
+function isoDe(d) {
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 // "3 de septiembre", "3 al 11 de septiembre", "24 de septiembre al 2 de octubre".
 // Sirve para etapas y para eventos: los dos tienen desde/hasta.
-function planRango(et) {
+function rangoEnTexto(et) {
   var num = function(f){ return String(Number(f.slice(8,10))); };
   var mes = function(f){ return MESES[Number(f.slice(5,7))-1].toLowerCase(); };
   var hasta = et.hasta || et.desde;
@@ -1674,11 +1710,11 @@ function clientePlan() {
 //
 // Es la única cuenta de posiciones que hay. La usan la pantalla y la
 // exportación, así que la imagen no puede quedar distinta de lo que ves.
-function planFilas(lista, mes, ano) {
+function filasDelMes(lista, mes, ano) {
   var pd = new Date(ano, mes, 1).getDay();
   var dm = new Date(ano, mes+1, 0).getDate();
   var semanas = Math.ceil((pd + dm) / 7);
-  var hoy = planIso(new Date());
+  var hoy = isoDe(new Date());
   var filas = [];
 
   for(var w = 0; w < semanas; w++) {
@@ -1686,7 +1722,7 @@ function planFilas(lista, mes, ano) {
     for(var i = 0; i < 7; i++) {
       // El día 1 menos los que sobran adelante: JS resuelve solo el mes anterior.
       var f = new Date(ano, mes, 1 - pd + w*7 + i);
-      var ds = planIso(f);
+      var ds = isoDe(f);
       dias.push({ ds: ds, d: f.getDate(), fuera: f.getMonth() !== mes, hoy: ds === hoy });
     }
     var desdeSem = dias[0].ds, hastaSem = dias[6].ds;
@@ -1733,11 +1769,12 @@ function renderPlan() {
   document.getElementById('planAyuda').textContent = puedeEditar
     ? 'Tocá un día para agregar una etapa, o una etapa para editarla.'
     : 'Así se le muestra la planificación al cliente.';
+  document.getElementById('calMesCliente').textContent = MESES[getMes()] + ' ' + getAno();
 
   var wrap = document.getElementById('planWrap');
   var cli = clientePlan();
   if(!cli) {
-    wrap.innerHTML = '<div class="plan-wrap"><div class="plan-vacio">No hay clientes para planificar.</div></div>';
+    wrap.innerHTML = '<div class="cal-wrap"><div class="cal-vacio">No hay clientes para planificar.</div></div>';
     mostrar('btnNuevaEtapa', false);
     mostrar('btnExportarPlan', false);
     return;
@@ -1745,36 +1782,21 @@ function renderPlan() {
   mostrar('btnExportarPlan', true);
 
   var delMes = etapasDe(cli.id);
-  var filas = planFilas(delMes, getMes(), getAno());
+  var filas = filasDelMes(delMes, getMes(), getAno());
 
-  var h = '<div class="plan-wrap"><div class="plan-head">'
-    + DIAS.map(function(d){ return '<div class="plan-dn">'+d+'</div>'; }).join('')
-    + '</div>';
-
+  var h = '<div class="cal-wrap">' + calCabecera();
   filas.forEach(function(fila){
-    var altoBarras = Math.max(fila.carriles * 25 + 8, 46);
-    h += '<div class="plan-sem"'
-      + (puedeEditar ? ' onclick="planClickSemana(event,this,\''+fila.dias[0].ds+'\')"' +
-                       ' style="cursor:pointer"' : '') + '>';
-    h += '<div class="plan-dias">' + fila.dias.map(function(d){
-      return '<div class="plan-dia'+(d.fuera?' fuera':'')+(d.hoy?' hoy':'')+'"></div>';
-    }).join('') + '</div>';
-    h += '<div class="plan-nums">' + fila.dias.map(function(d){
-      return '<div class="plan-num'+(d.fuera?' fuera':'')+(d.hoy?' hoy':'')+'">'+d.d+'</div>';
-    }).join('') + '</div>';
-    h += '<div class="plan-barras" style="height:'+altoBarras+'px">';
-    fila.barras.forEach(function(b){
-      var c = color(b.et.color);
-      var titulo = b.et.titulo + ' · ' + planRango(b.et) + (b.et.nota ? '\n' + b.et.nota : '');
-      h += '<div class="plan-b'+(puedeEditar?' editable':'')
-        + (b.sigueIzq?' sigue-izq':'') + (b.sigueDer?' sigue-der':'') + '"'
-        + ' style="left:calc('+b.col+'/7*100% + 4px);width:calc('+b.span+'/7*100% - 8px);'
-        + 'top:'+(b.carril*25+4)+'px;background:'+c.f+';border-left-color:'+c.b+';color:'+c.t+'"'
-        + ' title="'+esc(titulo)+'"'
-        + (puedeEditar?' onclick="event.stopPropagation();openMoEtapa('+b.et.id+')"':'') + '>'
-        + esc(b.et.titulo) + '</div>';
-    });
-    h += '</div></div>';
+    h += '<div class="cal-sem">'
+      + calCapaDias(fila, puedeEditar ? 'nuevaEtapaEn' : null)
+      + calCapaNums(fila)
+      + calCapaBarras(fila, puedeEditar, 'openMoEtapa', function(b){
+          return {
+            c: color(b.et.color),
+            texto: b.et.titulo,
+            titulo: b.et.titulo + ' · ' + rangoEnTexto(b.et) + (b.et.nota ? '\n' + b.et.nota : '')
+          };
+        }, 46)
+      + '</div>';
   });
   h += '</div>';
 
@@ -1784,31 +1806,26 @@ function renderPlan() {
     return e.hasta >= filas[0].dias[0].ds && e.desde <= filas[filas.length-1].dias[6].ds;
   });
   if(delMesVisible.length) {
-    h += '<div class="plan-leyenda">' + delMesVisible.map(function(e){
+    h += '<div class="cal-leyenda">' + delMesVisible.map(function(e){
       var c = color(e.color);
-      return '<div class="plan-lg"><div class="plan-lg-c" style="background:'+c.b+'"></div>'
-        + '<span><b>'+esc(e.titulo)+'</b> · '+esc(planRango(e))
+      return '<div class="cal-lg"><div class="cal-lg-c" style="background:'+c.b+'"></div>'
+        + '<span><b>'+esc(e.titulo)+'</b> · '+esc(rangoEnTexto(e))
         + (e.nota ? ' · '+esc(e.nota) : '') + '</span></div>';
     }).join('') + '</div>';
   } else {
-    h += '<div class="plan-vacio" style="padding:22px">Este mes no tiene etapas cargadas'
+    h += '<div class="cal-vacio" style="padding:22px">Este mes no tiene etapas cargadas'
       + (puedeEditar ? '. Tocá un día para agregar la primera.' : '.') + '</div>';
   }
   wrap.innerHTML = h;
 }
 
-// Tocar la fila de una semana abre el alta con el día que tocaste. Se calcula
-// por posición y no con una celda por día porque las barras van por encima:
-// meter otra grilla clickeable arriba les robaría el click.
-function planClickSemana(e, fila, primerDia) {
+// El atajo de la grilla. Revalida el permiso aunque el onclick no se ponga sin
+// él: el que manda es el servidor, pero abrir un formulario que después va a
+// rebotar con 403 es peor que no abrirlo.
+function nuevaEtapaEn(fecha) {
   if(!puedo('calendario','full')) return;
-  var r = fila.getBoundingClientRect();
-  var col = Math.floor((e.clientX - r.left) / (r.width / 7));
-  col = Math.max(0, Math.min(6, col));
-  var d = new Date(Number(primerDia.slice(0,4)), Number(primerDia.slice(5,7))-1, Number(primerDia.slice(8,10)) + col);
-  openMoEtapa(null, planIso(d));
+  openMoEtapa(null, fecha);
 }
-
 function elegirColorEtapa(k) { metColor = k; pintarColores('metColores', metColor, 'elegirColorEtapa'); }
 
 // desde solo se usa al dar de alta: es el día que se tocó en la grilla.
@@ -1925,7 +1942,7 @@ async function planCanvas() {
   var cli = clientePlan();
   if(!cli) { avisar('Elegí un cliente'); return; }
   var mes = getMes(), ano = getAno(), mesLbl = MESES[mes] + ' ' + ano;
-  var filas = planFilas(etapasDe(cli.id), mes, ano);
+  var filas = filasDelMes(etapasDe(cli.id), mes, ano);
   var visibles = etapasDe(cli.id).filter(function(e){
     return e.hasta >= filas[0].dias[0].ds && e.desde <= filas[filas.length-1].dias[6].ds;
   });
@@ -2035,7 +2052,7 @@ async function planCanvas() {
       var an = ctx.measureText(e.titulo).width;
       ctx.fillStyle = '#7B736A';
       ctx.font = "400 13px 'DM Sans', sans-serif";
-      ctx.fillText(planCortar(ctx, '· ' + planRango(e) + (e.nota ? ' · ' + e.nota : ''), CW - an - 30),
+      ctx.fillText(planCortar(ctx, '· ' + rangoEnTexto(e) + (e.nota ? ' · ' + e.nota : ''), CW - an - 30),
                    PAD + 28 + an, y + 16);
       y += 26;
     });
@@ -2667,7 +2684,6 @@ function aplicarPermisos() {
     if(visible && !primeraVisible) primeraVisible = btn.dataset.scr;
   });
   pintarBotonesDeArriba();
-  mostrar('btnNuevoEvento', puedo('calendario','full'));
   // El "+" de la celda solo aparece al pasar por encima, y en un celular no
   // hay hover: sin decirlo en algún lado, tocar el día no se descubre nunca.
   var ayuda = document.querySelector('#scr-calendario .cal-ayuda');
@@ -2697,8 +2713,6 @@ function aplicarPermisos() {
 
 // ── ARRANQUE ─────────────────────────────────────────────────────────────────
 (async function init(){
-  initCalHead();
-
   // El hub abre en el mes actual. Antes venía fijo en mayo 2026 porque los datos
   // de ejemplo eran de ese mes; ahora los datos son reales y lo natural es
   // entrar viendo el mes en el que estás parado.
