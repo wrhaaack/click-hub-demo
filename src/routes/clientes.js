@@ -8,7 +8,18 @@ router.use(requireAuth);
 router.use(requireSectionAccess('clientes', 'limitado'));
 
 const CAMPOS = `id, nombre, COALESCE(ig,'') AS ig, COALESCE(contacto,'') AS contacto,
-                COALESCE(tel,'') AS tel, links, COALESCE(notas,'') AS notas`;
+                COALESCE(tel,'') AS tel, links, COALESCE(notas,'') AS notas,
+                a_pagar::float8 AS "aPagar", pagado`;
+
+// El monto llega del formulario como texto. Vacío es NULL a propósito: significa
+// "todavía no se acordó cuánto", que no es lo mismo que acordar cero. Se rechaza
+// lo que no sea un número: guardar 0 en silencio ante un dedazo sería peor.
+function montoONull(v) {
+  if (v === null || v === undefined || String(v).trim() === '') return null;
+  const n = Number(String(v).replace(',', '.'));
+  if (!Number.isFinite(n) || n < 0) return undefined;   // undefined = inválido
+  return Math.round(n * 100) / 100;
+}
 
 // Los links vienen del formulario como [{label,url}]. Se limpia lo que no
 // tenga url (igual que hacía la pantalla antes de guardar en localStorage).
@@ -28,16 +39,19 @@ router.get('/', async (req, res) => {
 });
 
 router.post('/', requireSectionAccess('clientes', 'full'), async (req, res) => {
-  const { nombre, ig, contacto, tel, links, notas } = req.body || {};
+  const { nombre, ig, contacto, tel, links, notas, aPagar, pagado } = req.body || {};
   if (!nombre || !String(nombre).trim()) {
     return res.status(400).json({ error: 'Falta el nombre del cliente.' });
   }
+  const monto = montoONull(aPagar);
+  if (monto === undefined) return res.status(400).json({ error: 'El monto a pagar tiene que ser un número.' });
+
   const result = await pool.query(
-    `INSERT INTO clientes (nombre, ig, contacto, tel, links, notas, creado_por)
-     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING ${CAMPOS}`,
+    `INSERT INTO clientes (nombre, ig, contacto, tel, links, notas, a_pagar, pagado, creado_por)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING ${CAMPOS}`,
     [
       String(nombre).trim(), ig || null, contacto || null, tel || null,
-      JSON.stringify(sanitizarLinks(links)), notas || null, req.session.userId,
+      JSON.stringify(sanitizarLinks(links)), notas || null, monto, !!pagado, req.session.userId,
     ]
   );
   const cliente = result.rows[0];
@@ -52,32 +66,52 @@ router.post('/', requireSectionAccess('clientes', 'full'), async (req, res) => {
 });
 
 router.put('/:id', requireSectionAccess('clientes', 'full'), async (req, res) => {
-  const { nombre, ig, contacto, tel, links, notas } = req.body || {};
+  const { nombre, ig, contacto, tel, links, notas, aPagar, pagado } = req.body || {};
   if (!nombre || !String(nombre).trim()) {
     return res.status(400).json({ error: 'Falta el nombre del cliente.' });
   }
-  const previo = await pool.query('SELECT nombre FROM clientes WHERE id = $1 AND activo = true', [req.params.id]);
+  const monto = montoONull(aPagar);
+  if (monto === undefined) return res.status(400).json({ error: 'El monto a pagar tiene que ser un número.' });
+
+  const previo = await pool.query(
+    'SELECT nombre, pagado FROM clientes WHERE id = $1 AND activo = true', [req.params.id]);
   if (previo.rows.length === 0) return res.status(404).json({ error: 'Cliente no encontrado.' });
 
   const result = await pool.query(
-    `UPDATE clientes SET nombre = $1, ig = $2, contacto = $3, tel = $4, links = $5, notas = $6
-     WHERE id = $7 AND activo = true RETURNING ${CAMPOS}`,
+    `UPDATE clientes SET nombre = $1, ig = $2, contacto = $3, tel = $4, links = $5, notas = $6,
+                         a_pagar = $7, pagado = $8
+     WHERE id = $9 AND activo = true RETURNING ${CAMPOS}`,
     [
       String(nombre).trim(), ig || null, contacto || null, tel || null,
-      JSON.stringify(sanitizarLinks(links)), notas || null, req.params.id,
+      JSON.stringify(sanitizarLinks(links)), notas || null, monto, !!pagado, req.params.id,
     ]
   );
   if (result.rows.length === 0) return res.status(404).json({ error: 'Cliente no encontrado.' });
 
   const anterior = previo.rows[0].nombre;
   const actual = result.rows[0].nombre;
-  await avisarAlEquipo(
-    req.session, 'cliente_editado',
-    anterior === actual
-      ? `${req.session.nombre} editó los datos de ${actual}`
-      : `${req.session.nombre} renombró "${anterior}" a "${actual}"`,
-    '/hub.html', null, req.params.id
-  );
+
+  // El cobro lleva su propio aviso: "marcó como pagado a Lumá" dice algo, y
+  // "editó los datos de Lumá" lo taparía. Si además se renombró, gana el pago:
+  // es el cambio que al equipo le importa enterarse.
+  if (previo.rows[0].pagado !== !!pagado) {
+    const plata = result.rows[0].aPagar !== null ? ` (${result.rows[0].aPagar})` : '';
+    await avisarAlEquipo(
+      req.session, 'cliente_pago',
+      pagado
+        ? `${req.session.nombre} marcó como PAGADO a ${actual}${plata}`
+        : `${req.session.nombre} marcó como impago a ${actual}${plata}`,
+      '/hub.html', null, req.params.id
+    );
+  } else {
+    await avisarAlEquipo(
+      req.session, 'cliente_editado',
+      anterior === actual
+        ? `${req.session.nombre} editó los datos de ${actual}`
+        : `${req.session.nombre} renombró "${anterior}" a "${actual}"`,
+      '/hub.html', null, req.params.id
+    );
+  }
   res.json(result.rows[0]);
 });
 

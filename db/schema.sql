@@ -70,6 +70,11 @@ CREATE TABLE IF NOT EXISTS clientes (
   tel         TEXT,
   links       JSONB NOT NULL DEFAULT '[]',
   notas       TEXT,
+  -- Cobro del cliente. a_pagar es NUMERIC y no float: con dinero, 0.1 + 0.2 no
+  -- puede dar 0.30000000000000004. NULL = todavía no se acordó un monto, que es
+  -- distinto de 0 (acordado y sin cargo).
+  a_pagar     NUMERIC(12,2),
+  pagado      BOOLEAN NOT NULL DEFAULT false,
   activo      BOOLEAN NOT NULL DEFAULT true,
   creado_por  UUID REFERENCES usuarios(id) ON DELETE SET NULL,
   creado_en   TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -150,6 +155,27 @@ CREATE TABLE IF NOT EXISTS actividad (
   creado_en   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_actividad_fecha ON actividad(creado_en DESC);
+
+-- ---------- EVENTOS DEL CALENDARIO ----------
+-- Cosas que pasan en una fecha y no son tareas de un cliente: una reunión, una
+-- grabación, un feriado del estudio. Van en el calendario junto a las tareas
+-- pero con su propio color.
+--
+-- La hora es opcional: sin hora_inicio el evento es "todo el día".
+-- El autor se copia como texto además del usuario_id para que el evento siga
+-- diciendo quién lo creó aunque después se dé de baja a esa persona.
+CREATE TABLE IF NOT EXISTS eventos (
+  id           BIGSERIAL PRIMARY KEY,
+  titulo       TEXT NOT NULL,
+  fecha        DATE NOT NULL,
+  hora_inicio  TIME,
+  hora_fin     TIME,
+  descripcion  TEXT,
+  usuario_id   UUID REFERENCES usuarios(id) ON DELETE SET NULL,
+  autor        TEXT NOT NULL,
+  creado_en    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_eventos_fecha ON eventos(fecha);
 
 -- ---------- CONFIGURACION (clave/valor: los datos del estudio) ----------
 CREATE TABLE IF NOT EXISTS configuracion (

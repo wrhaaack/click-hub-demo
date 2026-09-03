@@ -92,6 +92,39 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
 .sum-c{background:var(--sur);border:1px solid var(--bor);border-radius:var(--r);padding:14px 16px}
 .sum-l{font-size:10px;color:var(--mut);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em}
 .sum-v{font-size:26px;font-weight:300;font-family:'DM Mono',monospace}
+/* La tarjeta se parte en dos: los números a la izquierda, el anillo a la derecha. */
+.sum-fila{display:flex;align-items:center;justify-content:space-between;gap:12px}
+/* La casilla de "Pagado" tiene que quedar a la misma altura que el input de al
+   lado, no más alta ni corrida. El alto se fija igual al de .f input (8px de
+   padding arriba y abajo + el texto), así los dos campos de la fila terminan
+   parejos. */
+/* Es un <label> para que clickear en cualquier parte de la caja marque la
+   casilla. Como está adentro de un .f, hereda `.f label` (10px, uppercase,
+   display:block) y sin este selector más específico el texto salía en
+   mayúsculas y debajo del cuadrito. */
+.f label.chk-pago{display:flex;align-items:center;gap:8px;
+  font-size:13px;color:var(--txt);text-transform:none;letter-spacing:normal;margin-bottom:0;
+  height:35px;padding:0 10px;border:1px solid var(--bor2);border-radius:var(--rs);
+  background:var(--bg);cursor:pointer;box-sizing:border-box}
+/* El selector lleva .f adelante a propósito: `.f input{width:100%}` está
+   declarado más abajo y, con la misma especificidad, ganaba por orden — el
+   checkbox terminaba midiendo 204px y empujaba el texto fuera de la caja. */
+.f .chk-pago input{width:16px;height:16px;margin:0;flex-shrink:0;accent-color:var(--tan);cursor:pointer}
+.chk-pago span{line-height:1}
+.cal-barra{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.cal-ayuda{font-size:11.5px;color:var(--mut)}
+/* Los eventos llevan un borde a la izquierda para no confundirlos con las
+   tareas, que son bloques de color plano. */
+.cal-evento{background:#EEF2FF;color:#3730A3;border-left:3px solid #6366F1}
+.cal-ev.editable{cursor:pointer}
+.cal-ev.editable:hover{filter:brightness(.94)}
+.ag-evento{font-size:11px;color:#3730A3;background:#EEF2FF;padding:1px 6px;border-radius:20px}
+.sum-aro{flex-shrink:0;position:relative;width:46px;height:46px}
+.sum-aro svg{transform:rotate(-90deg)}
+.sum-aro-pista{stroke:var(--sur2)}
+.sum-aro-arco{stroke:var(--tan);transition:stroke-dasharray .35s ease}
+.sum-aro-txt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-family:'DM Mono',monospace;color:var(--tand)}
 .badge{font-size:10px;padding:2px 8px;border-radius:20px;white-space:nowrap}
 .bp{background:#FEF3C7;color:#92400E}.bpr{background:#DBEAFE;color:#1E3A5F}.br{background:#EDE9FE;color:#3730A3}.bd{background:#D1FAE5;color:#064E3B}.bc{background:#F0FDF4;color:#166534}.bpag{background:#D1FAE5;color:#064E3B}.bnp{background:#FEE2E2;color:#991B1B}
 .fpill{font-size:10px;padding:1px 7px;border-radius:20px;background:var(--tanl);color:var(--tanlt);white-space:nowrap}
@@ -511,6 +544,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
     </div>
     <div class="scr" id="scr-clientes"><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px" id="cGrid"></div></div>
     <div class="scr" id="scr-calendario">
+      <div class="cal-barra"><button class="btn btn-p" id="btnNuevoEvento" onclick="openMoEvento(null)">+ Evento</button>
+        <span class="cal-ayuda">Reuniones, grabaciones, feriados: lo que no es una tarea de un cliente.</span></div>
       <div class="filtros" id="calF"><button class="fbtn on" onclick="setCalF(&quot;todo&quot;,this)">Todo</button><button class="fbtn" onclick="setCalF('E',this)">Editor</button><button class="fbtn" onclick="setCalF('D',this)">Diseñadora</button><button class="fbtn" onclick="setCalF('C',this)">CM</button><button class="fbtn" onclick="setCalF('S',this)">SMM</button></div>
       <div class="cal-wrap"><div class="cal-head" id="calHead"></div><div class="cal-grid" id="calGrid"></div></div>
     </div>
@@ -574,6 +609,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
       <div class="f"><label>Contacto</label><input type="text" id="mcCont" placeholder="Nombre"></div>
     </div>
     <div class="f"><label>Teléfono</label><input type="text" id="mcTel" placeholder="+54 9 ..."></div>
+    <div class="sec-div"><span>Cobro</span></div>
+    <div class="f-row">
+      <div class="f"><label>A pagar</label>
+        <input type="number" id="mcPagar" placeholder="0.00" min="0" step="0.01" inputmode="decimal"></div>
+      <div class="f"><label>Estado</label>
+        <label class="chk-pago"><input type="checkbox" id="mcPagado"><span>Pagado</span></label></div>
+    </div>
     <div class="sec-div"><span>Links útiles</span></div>
     <div id="mcLinks"></div><button class="al-btn" onclick="addCliLink()">+ Agregar link</button>
     <div class="sec-div"><span>Notas</span></div>
@@ -616,6 +658,25 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
     <div class="mo-btns">
       <button class="btn" onclick="closeMo('moRoles')">Cancelar</button>
       <button class="btn btn-p" onclick="saveRoles()">Guardar</button>
+    </div>
+  </div>
+</div>
+<!-- MODAL EVENTO DEL CALENDARIO -->
+<div class="mo" id="moEvento">
+  <div class="mo-card" style="width:420px">
+    <h3 id="moEvTit">Nuevo evento</h3>
+    <div class="f"><label>Título</label><input type="text" id="mevTitulo" placeholder="Ej: Reunión con Boutique Lumá"></div>
+    <div class="f"><label>Fecha</label><input type="date" id="mevFecha"></div>
+    <div class="f-row">
+      <div class="f"><label>Hora de inicio</label><input type="time" id="mevIni"></div>
+      <div class="f"><label>Hora de fin</label><input type="time" id="mevFin"></div>
+    </div>
+    <div class="f-nota" style="margin:-6px 0 12px">Sin hora, el evento es de todo el día.</div>
+    <div class="f"><label>Descripción</label><textarea id="mevDesc" placeholder="Detalles, link de la videollamada..." style="min-height:70px"></textarea></div>
+    <div class="mo-btns">
+      <button class="btn" id="mevDelBtn" style="margin-right:auto;color:#B91C1C;border-color:transparent;display:none" onclick="delEvento()">Eliminar</button>
+      <button class="btn" onclick="closeMo('moEvento')">Cancelar</button>
+      <button class="btn btn-p" onclick="saveEvento()">Guardar</button>
     </div>
   </div>
 </div>
@@ -670,6 +731,8 @@ let ideas = {};
 let equipo = [];
 let estudio = {nombre:'',ig:'',email:'',tel:'',wa:'',links:[],notas:''};
 let fechasEspeciales = {};
+let eventos = [];          // los del calendario, todos: son pocos
+var editEvId = null;
 let YO = null;         // usuario logueado: {id, nombre, rol, permisos}
 let curScr = 'dashboard';   // es la primera del menú y la que abre por defecto
 let curCF = null;
@@ -709,6 +772,7 @@ async function cargarEstado() {
   equipo = data.equipo || [];
   estudio = data.estudio || estudio;
   fechasEspeciales = data.fechasEspeciales || {};
+  eventos = data.eventos || [];
   normalizarTareas();
   return true;
 }
@@ -752,6 +816,14 @@ function asigHtml(asig) {
   if(!asig || !asig.length) return '';
   var arr = Array.isArray(asig) ? asig : [asig];
   return arr.map(function(a){ return '<span class="tasig">'+esc(a)+'</span>'; }).join('');
+}
+// Monto para mostrar: separador de miles y dos decimales solo si los tiene.
+// Intl respeta la configuración del navegador, así que en es-AR sale 1.500,50.
+function fmtMonto(n) {
+  var x = Number(n);
+  if (!Number.isFinite(x)) return '';
+  return '$' + x.toLocaleString(undefined, {
+    minimumFractionDigits: Number.isInteger(x) ? 0 : 2, maximumFractionDigits: 2 });
 }
 function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 // Tolerantes a que el modal no exista: el de "Mi cuenta" lo dibuja /js/api.js
@@ -985,14 +1057,42 @@ function tareasDelMes(){
   return tareas.filter(function(t){ return t.fecha && t.fecha.startsWith(prefix); });
 }
 
+// Anillo de progreso: un círculo al que se le pinta la fracción correspondiente.
+// Se dibuja con stroke-dasharray sobre un solo <circle>, sin librerías.
+function aroHtml(pct) {
+  var R = 19, C = 2 * Math.PI * R;                 // radio y perímetro
+  var pintado = (Math.max(0, Math.min(100, pct)) / 100) * C;
+  return '<div class="sum-aro">'
+    + '<svg width="46" height="46" viewBox="0 0 46 46" aria-hidden="true">'
+    +   '<circle class="sum-aro-pista" cx="23" cy="23" r="'+R+'" fill="none" stroke-width="4"/>'
+    // Con 0% no se dibuja el arco: la punta redondeada de un trazo de largo cero
+    // se ve igual como un puntito, y un puntito parece "algo" cuando no hay nada.
+    +   (pintado > 0
+        ? '<circle class="sum-aro-arco" cx="23" cy="23" r="'+R+'" fill="none" stroke-width="4"'
+          + ' stroke-linecap="round" stroke-dasharray="'+pintado.toFixed(1)+' '+C.toFixed(1)+'"/>'
+        : '')
+    + '</svg>'
+    + '<span class="sum-aro-txt">'+pct+'%</span></div>';
+}
+
 function renderSum() {
   var ts = tareasDelMes();
+  var total = ts.length;
   document.getElementById('sumbar').innerHTML = TARJETAS.map(function(c){
     var n = ts.filter(c.filtra).length;
+    // "Tareas del mes" es el total: un 100% fijo al lado no dice nada, así que
+    // no lleva anillo. Las otras tres son partes de ese total.
+    // Sin tareas el porcentaje es 0 y no 0/0: el anillo queda vacío, que es
+    // exactamente lo que hay.
+    var pct = (c.clave === 'todas' || total === 0) ? null : Math.round((n / total) * 100);
     return '<button type="button" class="sum-c'+(sumAbierta===c.clave?' abierta':'')+'" '
       + 'onclick="abrirDetalle(&quot;'+c.clave+'&quot;)" '
       + 'aria-expanded="'+(sumAbierta===c.clave)+'">'
-      + '<div class="sum-l">'+c.titulo+'</div><div class="sum-v">'+n+'</div></button>';
+      + '<div class="sum-fila"><div>'
+      +   '<div class="sum-l">'+c.titulo+'</div><div class="sum-v">'+n+'</div>'
+      + '</div>'
+      + (c.clave === 'todas' ? '' : aroHtml(total === 0 ? 0 : pct))
+      + '</div></button>';
   }).join('');
   renderSumDetalle();
 }
@@ -1049,7 +1149,12 @@ function renderCli() {
       +'<div class="cc-head"><span class="cc-nom">'+esc(c.nombre)+'</span><span style="display:flex;gap:4px">'
       +(bp?'<span class="badge bp">'+bp+'</span>':'')+(bpr?'<span class="badge bpr">'+bpr+'</span>':'')+(br?'<span class="badge br">'+br+'</span>':'')+(bd?'<span class="badge bd">'+bd+'</span>':'')
       +'</span></div>'
-      +'<div class="cc-foot"><span>'+ts.length+' tarea'+(ts.length!==1?'s':'')+' este mes</span>'
+      // El cobro solo se muestra si hay un monto acordado: sin monto, una
+      // pastilla de "impago" sería una alarma sobre algo que nadie definió.
+      +'<div class="cc-foot"><span>'+ts.length+' tarea'+(ts.length!==1?'s':'')+' este mes'
+      +(c.aPagar!==null&&c.aPagar!==undefined
+        ? ' · <span class="badge '+(c.pagado?'bpag':'bnp')+'">'+(c.pagado?'pagado':'a pagar')+' '+fmtMonto(c.aPagar)+'</span>'
+        : '')+'</span>'
       +(puedo('clientes','full')?'<button class="btn-sm" onclick="event.stopPropagation();openMoClienteEdit('+c.id+')">Editar</button>':'')+'</div>'
       +'</div>';
   }).join('');
@@ -1093,6 +1198,10 @@ function pintarAgenda(datos){
     if(!porDia[fecha]) porDia[fecha]=[];
     porDia[fecha].push(html);
   }
+  (datos.eventos||[]).forEach(function(ev){
+    var hora = ev.horaInicio ? ev.horaInicio+' ' : '';
+    meter(ev.fecha, '<div class="ag-item"><span class="ag-evento">'+esc(hora)+esc(ev.titulo)+'</span></div>');
+  });
   (datos.especiales||[]).forEach(function(f){
     meter(f.fecha, '<div class="ag-item"><span class="ag-esp">★ '+esc(f.label||'Fecha especial')+'</span><span class="ag-cli">'+esc(f.cliente)+'</span></div>');
   });
@@ -1151,12 +1260,76 @@ function renderCal() {
     var eh=hoy.getDate()===d&&hoy.getMonth()===mes&&hoy.getFullYear()===ano;
     var evs=tareas.filter(function(t){return t.fecha===ds&&t.estado!=='cumplido'&&(calF==='todo'||getRolIdx(t.rol)===getRolIdx(calF));});
     h+='<div class="cal-cell'+(eh?' hoy':'')+'"><div class="cal-num">'+d+'</div>';
+    // Los eventos van primero y con su propio color: son otra cosa que las
+    // tareas, y conviene distinguirlos de un vistazo. No se filtran por rol
+    // porque no tienen rol: son del estudio, no de un cliente.
+    if(calF==='todo'){
+      eventos.filter(function(ev){return ev.fecha===ds;}).forEach(function(ev){
+        var hora = ev.horaInicio ? ev.horaInicio+' ' : '';
+        h+='<div class="cal-ev cal-evento'+(puedo('calendario','full')?' editable':'')+'" title="'+esc(ev.titulo)+'"'
+          +(puedo('calendario','full')?' onclick="openMoEvento('+ev.id+')"':'')+'>'
+          +esc(hora)+esc(ev.titulo.substring(0,14))+(ev.titulo.length>14?'…':'')+'</div>';
+      });
+    }
     evs.forEach(function(t){var cn=clientes.find(function(c){return c.id===t.cid;});h+='<div class="cal-ev '+getRolCalCls(t.rol)+'" title="'+esc(t.desc)+'">'+(cn?esc(cn.nombre.split(' ')[0])+': ':'')+esc(t.desc.substring(0,13))+(t.desc.length>13?'…':'')+'</div>';});
     h+='</div>';
   }
   document.getElementById('calGrid').innerHTML=h;
 }
 function setCalF(f,el){calF=f;document.querySelectorAll('#calF .fbtn').forEach(function(b){b.classList.remove('on');});el.classList.add('on');renderCal();}
+
+// ── EVENTOS DEL CALENDARIO ───────────────────────────────────────────────────
+// Lo que pasa en una fecha y no es una tarea de un cliente. Los ve cualquiera
+// con acceso a Calendario; tocarlos pide "full".
+function openMoEvento(id) {
+  editEvId = id;
+  var ev = id ? eventos.find(function(x){ return x.id === id; }) : null;
+  document.getElementById('moEvTit').textContent = ev ? 'Editar evento' : 'Nuevo evento';
+  document.getElementById('mevTitulo').value = ev ? ev.titulo : '';
+  // Sin evento se propone el mes que se está mirando, no el día de hoy: si
+  // estás parado en octubre, cargar un evento es casi siempre para octubre.
+  document.getElementById('mevFecha').value = ev ? ev.fecha : getPrefix() + '-01';
+  document.getElementById('mevIni').value = ev && ev.horaInicio ? ev.horaInicio : '';
+  document.getElementById('mevFin').value = ev && ev.horaFin ? ev.horaFin : '';
+  document.getElementById('mevDesc').value = ev ? ev.descripcion : '';
+  document.getElementById('mevDelBtn').style.display = ev ? '' : 'none';
+  openMo('moEvento');
+}
+
+async function saveEvento() {
+  var datos = {
+    titulo: document.getElementById('mevTitulo').value.trim(),
+    fecha: document.getElementById('mevFecha').value,
+    horaInicio: document.getElementById('mevIni').value,
+    horaFin: document.getElementById('mevFin').value,
+    descripcion: document.getElementById('mevDesc').value.trim(),
+  };
+  if(!datos.titulo){ avisar('Poné un título para el evento'); return; }
+  if(!datos.fecha){ avisar('Elegí la fecha del evento'); return; }
+
+  var guardado = editEvId
+    ? await ckJson('/api/eventos/'+editEvId, {method:'PUT', body: JSON.stringify(datos)})
+    : await ckJson('/api/eventos', {method:'POST', body: JSON.stringify(datos)});
+  if(!guardado) return;
+
+  if(editEvId){ var i = eventos.findIndex(function(x){ return x.id === editEvId; }); if(i>=0) eventos[i] = guardado; }
+  else { eventos.push(guardado); }
+  closeMo('moEvento');
+  renderCal();
+  renderDash();   // la agenda del dashboard también lo muestra
+}
+
+async function delEvento() {
+  if(!editEvId) return;
+  var ev = eventos.find(function(x){ return x.id === editEvId; });
+  if(!confirm('¿Eliminar el evento' + (ev ? ' "'+ev.titulo+'"' : '') + '?')) return;
+  var r = await ckJson('/api/eventos/'+editEvId, {method:'DELETE'});
+  if(!r) return;
+  eventos = eventos.filter(function(x){ return x.id !== editEvId; });
+  closeMo('moEvento');
+  renderCal();
+  renderDash();
+}
 
 // ── BRAINSTORM ────────────────────────────────────────────────────────────────
 function bsKey(cid){return cid+'-'+getPrefix();}
@@ -1422,7 +1595,8 @@ async function togglePago(tid) {
 // ── MODAL CLIENTE ─────────────────────────────────────────────────────────────
 function openMoCliente() {
   editCid = null; tmpCliLinks = [];
-  ['mcNom','mcIg','mcCont','mcTel','mcNotas'].forEach(function(id){ document.getElementById(id).value=''; });
+  ['mcNom','mcIg','mcCont','mcTel','mcNotas','mcPagar'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('mcPagado').checked = false;
   document.getElementById('moCliTit').textContent = 'Nuevo cliente';
   document.getElementById('mcDelBtn').style.display = 'none';
   renderCliLinks(); openMo('moCliente');
@@ -1436,6 +1610,10 @@ function openMoClienteEdit(id) {
   document.getElementById('mcCont').value = c.contacto||'';
   document.getElementById('mcTel').value = c.tel||'';
   document.getElementById('mcNotas').value = c.notas||'';
+  // aPagar puede ser 0 (acordado, sin cargo) o null (todavía sin acordar):
+  // el ?? distingue los dos, un || los aplastaría a vacío.
+  document.getElementById('mcPagar').value = (c.aPagar ?? '');
+  document.getElementById('mcPagado').checked = !!c.pagado;
   document.getElementById('moCliTit').textContent = 'Editar cliente';
   // Dar de baja un cliente es solo del admin: se lo saca de la vista de todo el equipo.
   document.getElementById('mcDelBtn').style.display = soyAdmin() ? '' : 'none';
@@ -1450,7 +1628,7 @@ function addCliLink() { tmpCliLinks.push({label:'',url:''}); renderCliLinks(); }
 async function saveCliente() {
   var nom = document.getElementById('mcNom').value.trim();
   if(!nom) { avisar('Poné un nombre para el cliente'); return; }
-  var data = {nombre:nom, ig:document.getElementById('mcIg').value.trim(), contacto:document.getElementById('mcCont').value.trim(), tel:document.getElementById('mcTel').value.trim(), links:tmpCliLinks.filter(function(l){return l.url;}), notas:document.getElementById('mcNotas').value.trim()};
+  var data = {nombre:nom, ig:document.getElementById('mcIg').value.trim(), contacto:document.getElementById('mcCont').value.trim(), tel:document.getElementById('mcTel').value.trim(), links:tmpCliLinks.filter(function(l){return l.url;}), notas:document.getElementById('mcNotas').value.trim(), aPagar:document.getElementById('mcPagar').value.trim(), pagado:document.getElementById('mcPagado').checked};
   var guardado = editCid
     ? await ckJson('/api/clientes/'+editCid, {method:'PUT', body: JSON.stringify(data)})
     : await ckJson('/api/clientes', {method:'POST', body: JSON.stringify(data)});
@@ -1695,7 +1873,7 @@ function renderAll() {
 
 document.addEventListener('keydown', function(e) {
   if(e.key==='Escape') {
-    ['moTarea','moCliente','moPersona','moRoles','moEstudio','cuentaModal'].forEach(function(id){closeMo(id);});
+    ['moTarea','moCliente','moPersona','moRoles','moEstudio','moEvento','cuentaModal'].forEach(function(id){closeMo(id);});
     cerrarMenu();
   }
 });
@@ -1718,6 +1896,7 @@ function aplicarPermisos() {
   }
   mostrar('btnNuevoCliente', puedo('clientes','full'));
   mostrar('btnNuevaTarea', puedo('tareas','full'));
+  mostrar('btnNuevoEvento', puedo('calendario','full'));
   // Toda la sección Equipo es admin-only: el botón del menú se esconde solo
   // (el servidor le devuelve 'sin_acceso' a cualquiera que no sea admin), y acá
   // se esconden los controles de adentro.

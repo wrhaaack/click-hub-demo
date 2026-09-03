@@ -26,7 +26,8 @@ router.get('/', async (req, res) => {
     pool.query('SELECT nombre FROM roles ORDER BY orden ASC, id ASC'),
     pool.query(
       `SELECT id, nombre, COALESCE(ig,'') AS ig, COALESCE(contacto,'') AS contacto,
-              COALESCE(tel,'') AS tel, links, COALESCE(notas,'') AS notas
+              COALESCE(tel,'') AS tel, links, COALESCE(notas,'') AS notas,
+              a_pagar::float8 AS "aPagar", pagado
        FROM clientes WHERE activo = true ORDER BY nombre ASC`
     ),
     pool.query('SELECT id, nombre, COALESCE(rol, \'\') AS rol FROM equipo WHERE activo = true ORDER BY id ASC'),
@@ -41,7 +42,7 @@ router.get('/', async (req, res) => {
     || puede('brainstorm');
   const clientesVisibles = puede('clientes')
     ? clientesRes.rows
-    : (veNombres ? clientesRes.rows.map((c) => ({ id: c.id, nombre: c.nombre, ig: '', contacto: '', tel: '', links: [], notas: '' })) : []);
+    : (veNombres ? clientesRes.rows.map((c) => ({ id: c.id, nombre: c.nombre, ig: '', contacto: '', tel: '', links: [], notas: '', aPagar: null, pagado: false })) : []);
 
   // Tareas: se necesitan en Clientes, Calendario y Delegación. Si no tiene
   // acceso a ninguna de esas, no se mandan.
@@ -75,6 +76,19 @@ router.get('/', async (req, res) => {
     });
   }
 
+  // ---------- Eventos del calendario ----------
+  // Viajan todos, como las fechas especiales: son pocos y así el hub puede
+  // cambiar de mes sin volver a pedirlos.
+  const eventos = puede('calendario')
+    ? (await pool.query(
+        `SELECT id, titulo, to_char(fecha, 'YYYY-MM-DD') AS fecha,
+                to_char(hora_inicio, 'HH24:MI') AS "horaInicio",
+                to_char(hora_fin, 'HH24:MI') AS "horaFin",
+                COALESCE(descripcion, '') AS descripcion, autor
+         FROM eventos ORDER BY fecha ASC, hora_inicio ASC NULLS FIRST`
+      )).rows
+    : [];
+
   const estudio = puede('estudio')
     ? (estudioRes.rows[0]?.valor || { nombre: 'Click', ig: '', email: '', tel: '', wa: '', links: [], notas: '' })
     : null;
@@ -95,6 +109,7 @@ router.get('/', async (req, res) => {
     equipo: (puede('equipo') || veTareas) ? equipoRes.rows : [],
     ideas,
     fechasEspeciales,
+    eventos,
     estudio,
   });
 });

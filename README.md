@@ -63,6 +63,7 @@ Todo cuelga de `/api` y todo pide sesión.
 | `/api/roles` | roles y los permisos que llevan | solo admin |
 | `/api/brainstorm` | ideas y links por cliente y mes | `brainstorm` |
 | `/api/fechas` | fechas especiales por cliente y mes | `clientes` |
+| `/api/eventos` | eventos del calendario (reuniones, feriados) | `calendario` (crear/editar, `full`) |
 | `/api/estudio` | datos del estudio | `estudio` |
 | `/api/notificaciones` | campanita | — |
 | `/api/usuarios` | alta y permisos | solo admin |

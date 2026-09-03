@@ -34,7 +34,11 @@ const ACCION_POR_TIPO = {
   tarea_borrada: ['baja', 'tarea'],
   tarea_estado: ['edicion', 'tarea'],
   tarea_pago: ['edicion', 'tarea'],
+  cliente_pago: ['edicion', 'cliente'],
   usuario_nuevo: ['alta', 'usuario'],
+  evento_nuevo: ['alta', 'evento'],
+  evento_editado: ['edicion', 'evento'],
+  evento_borrado: ['baja', 'evento'],
 };
 
 // Deja el hecho anotado en el registro de actividad, que es lo que muestra el

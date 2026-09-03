@@ -251,9 +251,12 @@ problema siga.
 
 Es la pantalla que abre por defecto. Tiene tres cosas:
 
-- **El resumen del mes** arriba: tareas totales, pendientes, en progreso y listas.
+- **El resumen del mes** arriba: tareas totales, pendientes, en progreso y
+  listas. Las tres últimas llevan un anillo con qué porcentaje del total son, así
+  se ve de un vistazo cómo viene el mes. El total no lleva anillo: sería 100%
+  siempre.
 - **Fechas del mes** a la izquierda: un renglón por cada día, con lo que cae ese
-  día — las tareas y las fechas especiales. El día de hoy
+  día — las tareas, las fechas especiales y los eventos del calendario. El día de hoy
   queda resaltado y la lista arranca ahí.
 - **Últimas actividades** a la derecha: qué se agregó, editó o eliminó, quién lo
   hizo y cuándo, y quién se sumó al equipo con qué rol. El puntito de la

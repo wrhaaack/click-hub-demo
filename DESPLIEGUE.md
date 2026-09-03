@@ -239,9 +239,10 @@ Los logs están en el servicio de la app, pestaña **Deployments** → el deploy
   `db/migracion-equipo-admin.sql` (Equipo pasa a ser admin-only y solo admite
   usuarios registrados) y `db/migracion-quitar-historial-comunicacion.sql` (se
   eliminan esas dos secciones; **ojo, esa borra el chat y las notas por
-  cliente**) y `db/migracion-quitar-google.sql` (se elimina la integración con
-  Google Calendar; el calendario en sí se conserva). En una base **nueva no hace
-  falta ninguna**: `db:init` ya aplica el `schema.sql`, que las trae
-  incorporadas.
+  cliente**), `db/migracion-quitar-google.sql` (se elimina la integración con
+  Google Calendar; el calendario en sí se conserva) y
+  `db/migracion-cobro-y-eventos.sql` (cobro por cliente y eventos del
+  calendario). En una base **nueva no hace falta ninguna**: la app aplica el
+  `schema.sql` al arrancar, y ya las trae incorporadas.
 - **Backups**: el servicio de Postgres en Railway tiene su propia pestaña de
   backups. Vale la pena dejarlos activados.

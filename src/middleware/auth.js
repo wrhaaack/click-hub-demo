@@ -18,7 +18,9 @@ const SECCIONES = {
   dashboard:     ['full', 'sin_acceso'],
   clientes:      ['full', 'limitado', 'sin_acceso'],
   tareas:        ['full', 'limitado', 'sin_acceso'],
-  calendario:    ['full', 'sin_acceso'],
+  // 'limitado' ve la grilla del mes; 'full' además crea, edita y borra los
+  // eventos del calendario (reuniones, grabaciones, feriados del estudio).
+  calendario:    ['full', 'limitado', 'sin_acceso'],
   brainstorm:    ['full', 'limitado', 'sin_acceso'],
   delegacion:    ['full', 'sin_acceso'],
   // Equipo y Usuarios son admin-only (ver SECCIONES_SOLO_ADMIN más abajo): se

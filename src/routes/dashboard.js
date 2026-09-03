@@ -49,7 +49,18 @@ router.get('/agenda', async (req, res) => {
     [periodoSql]
   );
 
-  res.json({ tareas: tareas.rows, especiales: fechas.rows });
+  // Los eventos del calendario también caen en la agenda: para el que la mira,
+  // una reunión del martes es tan parte del día como una tarea.
+  const eventos = await pool.query(
+    `SELECT to_char(fecha, 'YYYY-MM-DD') AS fecha, titulo,
+            to_char(hora_inicio, 'HH24:MI') AS "horaInicio"
+     FROM eventos
+     WHERE date_trunc('month', fecha) = date_trunc('month', $1::date)
+     ORDER BY fecha ASC, hora_inicio ASC NULLS FIRST`,
+    [periodoSql]
+  );
+
+  res.json({ tareas: tareas.rows, especiales: fechas.rows, eventos: eventos.rows });
 });
 
 module.exports = router;
