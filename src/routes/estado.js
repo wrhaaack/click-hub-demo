@@ -89,6 +89,19 @@ router.get('/', async (req, res) => {
       )).rows
     : [];
 
+  // ---------- Etapas: la planificación que se le muestra al cliente ----------
+  // Van con Calendario, que es donde vive la pantalla. Viajan todas por lo mismo
+  // que los eventos: son pocas y así se cambia de cliente y de mes sin pedir nada.
+  const etapas = puede('calendario')
+    ? (await pool.query(
+        `SELECT id, cliente_id AS "clienteId", titulo,
+                to_char(desde, 'YYYY-MM-DD') AS desde,
+                to_char(hasta, 'YYYY-MM-DD') AS hasta,
+                color, COALESCE(nota, '') AS nota
+         FROM etapas ORDER BY desde ASC, id ASC`
+      )).rows
+    : [];
+
   const estudio = puede('estudio')
     ? (estudioRes.rows[0]?.valor || { nombre: 'Click', ig: '', email: '', tel: '', wa: '', links: [], notas: '' })
     : null;
@@ -110,6 +123,7 @@ router.get('/', async (req, res) => {
     ideas,
     fechasEspeciales,
     eventos,
+    etapas,
     estudio,
   });
 });

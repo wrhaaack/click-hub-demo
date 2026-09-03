@@ -295,6 +295,36 @@ intenta escribir por su cuenta, el servidor responde 403.
 
 ---
 
+### El calendario del cliente
+
+La sección tiene dos pestañas. **Equipo** es el calendario de arriba. **Cliente**
+es otra cosa: es cómo se le muestra a un cliente su proyecto, y sirve para
+mandárselo.
+
+Ahí no hay tareas ni eventos: hay **etapas**, que son tramos de varios días con
+un nombre escrito para que lo lea el cliente ("Diseño de piezas", "Grabación",
+"Revisión"), un color y una nota opcional. Se dibujan como barras que cruzan los
+días, se parten solas cuando pasan de una semana a la otra y se acomodan en
+filas para no pisarse.
+
+No salen de las tareas a propósito: lo que el equipo escribe para organizarse
+casi nunca es lo que conviene mostrarle a quien paga.
+
+Se maneja igual que el otro: **tocás un día** y se abre el alta con esa fecha,
+**tocás una etapa** y se abre para editarla o eliminarla. Debajo de la grilla
+queda la lista con los nombres completos, porque en las barras los títulos
+largos se cortan.
+
+**Exportar imagen** baja un PNG de 4200px de ancho, con el logo, el nombre del
+cliente, el mes y la misma grilla que ves en pantalla. Está a 3x para que se
+pueda ampliar o imprimir sin que se vea pixelado; pesa alrededor de 600 KB.
+
+Con permiso **limitado** en Calendario se ve y se exporta, pero no se toca: sirve
+para que alguien pueda mostrarle la planificación a un cliente sin poder
+cambiarla.
+
+---
+
 ## Detalles de la pantalla
 
 **Anda en cualquier resolución.** En escritorio se ve igual que siempre. Por

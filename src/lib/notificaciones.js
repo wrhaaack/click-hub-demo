@@ -39,6 +39,9 @@ const ACCION_POR_TIPO = {
   evento_nuevo: ['alta', 'evento'],
   evento_editado: ['edicion', 'evento'],
   evento_borrado: ['baja', 'evento'],
+  etapa_nueva: ['alta', 'etapa'],
+  etapa_editada: ['edicion', 'etapa'],
+  etapa_borrada: ['baja', 'etapa'],
 };
 
 // Deja el hecho anotado en el registro de actividad, que es lo que muestra el

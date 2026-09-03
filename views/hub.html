@@ -206,6 +206,46 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
   display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1;
   color:#fff;background:var(--tan);opacity:0;transition:opacity .12s;pointer-events:none}
 .cal-cell.libre:hover .cal-mas{opacity:1}
+/* ── PLANIFICACIÓN DEL CLIENTE ──────────────────────────────────────────────
+   El segundo calendario de la sección. El del equipo mete cosas adentro de la
+   celda del día porque una tarea es de un día; acá una etapa dura varios, así
+   que se dibujan barras POR ENCIMA de la semana y las celdas quedan de fondo. */
+.plan-wrap{background:var(--sur);border:1px solid var(--bor);border-radius:var(--r);overflow:hidden}
+.plan-head{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--bor)}
+.plan-dn{padding:9px;font-size:10px;font-weight:500;color:var(--hin);text-align:center;text-transform:uppercase;letter-spacing:.05em}
+.plan-sem{position:relative;border-bottom:1px solid var(--bor)}
+.plan-sem:last-child{border-bottom:none}
+/* Las celdas van absolutas y primeras: son el fondo. Los números y las barras
+   vienen después en el HTML y por eso quedan encima, sin necesidad de z-index. */
+.plan-dias{display:grid;grid-template-columns:repeat(7,1fr);position:absolute;inset:0}
+.plan-dia{border-right:1px solid var(--bor)}
+.plan-dia:last-child{border-right:none}
+/* Los días del mes de al lado se rayan en vez de esconderse: ubican la semana
+   sin competir con lo que sí es del mes. */
+.plan-dia.fuera{background:repeating-linear-gradient(45deg,var(--sur3),var(--sur3) 5px,transparent 5px,transparent 10px)}
+.plan-dia.hoy{background:var(--tanl)}
+.plan-nums{display:grid;grid-template-columns:repeat(7,1fr);position:relative}
+.plan-num{padding:7px 9px 2px;font-size:11px;color:var(--hin);font-family:'DM Mono',monospace;text-align:right}
+.plan-num.fuera{opacity:.45}
+.plan-num.hoy{color:var(--tand);font-weight:600}
+.plan-barras{position:relative;min-height:46px}
+.plan-b{position:absolute;height:21px;border-radius:4px;padding:0 8px;font-size:11px;line-height:21px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:3px solid;font-weight:500}
+.plan-b.editable{cursor:pointer}
+.plan-b.editable:hover{filter:brightness(.94)}
+/* Una etapa que sigue en la semana de al lado se corta al ras de ese lado, así
+   se lee como una barra sola partida y no como dos etapas distintas. */
+.plan-b.sigue-izq{border-top-left-radius:0;border-bottom-left-radius:0;border-left-width:0;padding-left:8px}
+.plan-b.sigue-der{border-top-right-radius:0;border-bottom-right-radius:0}
+.plan-vacio{padding:44px 20px;text-align:center;color:var(--mut);font-size:13px;line-height:1.6}
+.plan-leyenda{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px}
+.plan-lg{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--mut)}
+.plan-lg-c{width:11px;height:11px;border-radius:3px;flex-shrink:0}
+/* El elegidor de color del modal. */
+.col-pick{display:flex;gap:9px;flex-wrap:wrap}
+.col-op{width:27px;height:27px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;outline:none}
+.col-op.on{border-color:var(--txt)}
+.col-op:focus-visible{box-shadow:0 0 0 3px var(--tanl)}
 .cal-ev{font-size:10px;padding:2px 5px;border-radius:3px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* Las tarjetas del resumen ahora son botones: se abren para mostrar de qué
    tareas hablan. Se les rehace el aspecto porque un <button> trae lo suyo. */
@@ -558,10 +598,25 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
     </div>
     <div class="scr" id="scr-clientes"><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px" id="cGrid"></div></div>
     <div class="scr" id="scr-calendario">
+      <div class="filtros" id="calVistas">
+        <button class="fbtn on" onclick="setCalVista('equipo',this)">Equipo</button>
+        <button class="fbtn" onclick="setCalVista('cliente',this)">Cliente</button>
+      </div>
+      <div id="calVistaEquipo">
       <div class="cal-barra"><button class="btn btn-p" id="btnNuevoEvento" onclick="openMoEvento(null)">+ Evento</button>
         <span class="cal-ayuda">Reuniones, grabaciones, feriados: lo que no es una tarea de un cliente.</span></div>
       <div class="filtros" id="calF"><button class="fbtn on" onclick="setCalF(&quot;todo&quot;,this)">Todo</button><button class="fbtn" onclick="setCalF('E',this)">Editor</button><button class="fbtn" onclick="setCalF('D',this)">Diseñadora</button><button class="fbtn" onclick="setCalF('C',this)">CM</button><button class="fbtn" onclick="setCalF('S',this)">SMM</button></div>
       <div class="cal-wrap"><div class="cal-head" id="calHead"></div><div class="cal-grid" id="calGrid"></div></div>
+      </div>
+      <div id="calVistaCliente" style="display:none">
+        <div class="cal-barra">
+          <select class="sel" id="planCli" onchange="renderPlan()" aria-label="Cliente"></select>
+          <button class="btn btn-p" id="btnNuevaEtapa" onclick="openMoEtapa(null)">+ Etapa</button>
+          <button class="btn" id="btnExportarPlan" onclick="exportarPlan()">↓ Exportar imagen</button>
+          <span class="cal-ayuda" id="planAyuda"></span>
+        </div>
+        <div id="planWrap"></div>
+      </div>
     </div>
     <div class="scr" id="scr-brainstorm"><div class="bs-grid" id="bsGrid"></div></div>
     <div class="scr" id="scr-delegacion">
@@ -694,6 +749,25 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-
     </div>
   </div>
 </div>
+<!-- MODAL ETAPA DE LA PLANIFICACIÓN DEL CLIENTE -->
+<div class="mo" id="moEtapa">
+  <div class="mo-card" style="width:420px">
+    <h3 id="moEtTit">Nueva etapa</h3>
+    <div class="f"><label>Título</label><input type="text" id="metTitulo" placeholder="Ej: Diseño de piezas"></div>
+    <div class="f-row">
+      <div class="f"><label>Desde</label><input type="date" id="metDesde"></div>
+      <div class="f"><label>Hasta</label><input type="date" id="metHasta"></div>
+    </div>
+    <div class="f-nota" style="margin:-6px 0 12px">Un solo día también vale: poné la misma fecha en las dos.</div>
+    <div class="f"><label>Color</label><div class="col-pick" id="metColores"></div></div>
+    <div class="f"><label>Nota (opcional)</label><textarea id="metNota" placeholder="Qué incluye esta etapa" style="min-height:60px"></textarea></div>
+    <div class="mo-btns">
+      <button class="btn" id="metDelBtn" style="margin-right:auto;color:#B91C1C;border-color:transparent;display:none" onclick="delEtapa()">Eliminar</button>
+      <button class="btn" onclick="closeMo('moEtapa')">Cancelar</button>
+      <button class="btn btn-p" onclick="saveEtapa()">Guardar</button>
+    </div>
+  </div>
+</div>
 <!-- MODAL ESTUDIO -->
 <div class="mo" id="moEstudio">
   <div class="mo-card" style="width:500px">
@@ -746,6 +820,7 @@ let equipo = [];
 let estudio = {nombre:'',ig:'',email:'',tel:'',wa:'',links:[],notas:''};
 let fechasEspeciales = {};
 let eventos = [];          // los del calendario, todos: son pocos
+let etapas = [];           // la planificación que se le muestra al cliente
 var editEvId = null;
 let YO = null;         // usuario logueado: {id, nombre, rol, permisos}
 let curScr = 'dashboard';   // es la primera del menú y la que abre por defecto
@@ -787,6 +862,7 @@ async function cargarEstado() {
   estudio = data.estudio || estudio;
   fechasEspeciales = data.fechasEspeciales || {};
   eventos = data.eventos || [];
+  etapas = data.etapas || [];
   normalizarTareas();
   return true;
 }
@@ -838,6 +914,12 @@ function fmtMonto(n) {
   if (!Number.isFinite(x)) return '';
   return '$' + x.toLocaleString(undefined, {
     minimumFractionDigits: Number.isInteger(x) ? 0 : 2, maximumFractionDigits: 2 });
+}
+// Esconder o mostrar un control por permisos. Vivía adentro de aplicarPermisos;
+// se sacó afuera cuando la planificación del cliente también tuvo que usarlo.
+function mostrar(id, visible) {
+  var el = document.getElementById(id);
+  if(el) el.style.display = visible ? '' : 'none';
 }
 function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 // Tolerantes a que el modal no exista: el de "Mi cuenta" lo dibuja /js/api.js
@@ -911,7 +993,7 @@ function goScr(name, el) {
   document.getElementById('ptitle').textContent = PAGE[name];
   pintarSelectorDeMes();
   if(name==='dashboard') renderDash();
-  else if(name==='calendario') renderCal();
+  else if(name==='calendario') renderCalendario();
   else if(name==='brainstorm') renderBS();
   else if(name==='delegacion') renderDel();
   else if(name==='equipo') renderEq();
@@ -1370,6 +1452,469 @@ async function delEvento() {
   closeMo('moEvento');
   renderCal();
   renderDash();
+}
+
+// ── PLANIFICACIÓN DEL CLIENTE ────────────────────────────────────────────────
+// El segundo calendario de la sección Calendario. El del equipo es para
+// trabajar; este es para mostrarle al cliente cómo está pensado su proyecto, y
+// por eso se exporta como imagen.
+//
+// Las etapas son tramos de varios días con nombre propio ("Diseño",
+// "Grabación") y no salen de las tareas: lo que el equipo escribe para
+// organizarse casi nunca es lo que conviene mostrarle a quien paga.
+
+// La paleta vive acá y en ningún otro lado. La pantalla y la exportación leen
+// de este mismo objeto, así que la imagen no puede salir con otros colores que
+// los que viste. Los tonos de texto están elegidos para tener buen contraste
+// sobre su propio fondo.
+var PLAN_COLORES = {
+  azul:     {f:'#DBEAFE', b:'#3B82F6', t:'#1E40AF', n:'Azul'},
+  rosa:     {f:'#FCE7F3', b:'#EC4899', t:'#9D174D', n:'Rosa'},
+  ambar:    {f:'#FEF3C7', b:'#F59E0B', t:'#92400E', n:'Ámbar'},
+  verde:    {f:'#D1FAE5', b:'#10B981', t:'#065F46', n:'Verde'},
+  violeta:  {f:'#EDE9FE', b:'#8B5CF6', t:'#5B21B6', n:'Violeta'},
+  turquesa: {f:'#CCFBF1', b:'#14B8A6', t:'#115E59', n:'Turquesa'}
+};
+var PLAN_COLOR_DEF = 'azul';
+
+var calVista = 'equipo';
+var editEtId = null;
+var metColor = PLAN_COLOR_DEF;
+
+function setCalVista(v, el) {
+  calVista = v;
+  document.querySelectorAll('#calVistas .fbtn').forEach(function(b){ b.classList.remove('on'); });
+  if(el) el.classList.add('on');
+  document.getElementById('calVistaEquipo').style.display = v === 'equipo' ? '' : 'none';
+  document.getElementById('calVistaCliente').style.display = v === 'cliente' ? '' : 'none';
+  renderCalendario();
+}
+
+// Calendario tiene dos vistas: siempre se dibuja la que está adelante.
+function renderCalendario() { if(calVista === 'cliente') renderPlan(); else renderCal(); }
+
+function planIso(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function planRango(et) {
+  var num = function(f){ return String(Number(f.slice(8,10))); };
+  var mes = function(f){ return MESES[Number(f.slice(5,7))-1].toLowerCase(); };
+  if(et.desde === et.hasta) return num(et.desde) + ' de ' + mes(et.desde);
+  if(et.desde.slice(0,7) === et.hasta.slice(0,7)) return num(et.desde) + ' al ' + num(et.hasta) + ' de ' + mes(et.desde);
+  return num(et.desde) + ' de ' + mes(et.desde) + ' al ' + num(et.hasta) + ' de ' + mes(et.hasta);
+}
+
+function pintarClientesPlan() {
+  var sel = document.getElementById('planCli');
+  var elegido = sel.value;
+  sel.innerHTML = clientes.map(function(c){
+    return '<option value="'+c.id+'">'+esc(c.nombre)+'</option>';
+  }).join('');
+  // Si el que estaba sigue existiendo se respeta; si no, el primero.
+  if(elegido && clientes.some(function(c){ return String(c.id) === elegido; })) sel.value = elegido;
+}
+function clientePlan() {
+  var v = document.getElementById('planCli').value;
+  return clientes.find(function(c){ return String(c.id) === v; }) || null;
+}
+
+// Arma las semanas del mes con las barras ya ubicadas: en qué columna arrancan,
+// cuántos días ocupan y en qué carril van para no pisarse.
+//
+// Es la única cuenta de posiciones que hay. La usan la pantalla y la
+// exportación, así que la imagen no puede quedar distinta de lo que ves.
+function planFilas(lista, mes, ano) {
+  var pd = new Date(ano, mes, 1).getDay();
+  var dm = new Date(ano, mes+1, 0).getDate();
+  var semanas = Math.ceil((pd + dm) / 7);
+  var hoy = planIso(new Date());
+  var filas = [];
+
+  for(var w = 0; w < semanas; w++) {
+    var dias = [];
+    for(var i = 0; i < 7; i++) {
+      // El día 1 menos los que sobran adelante: JS resuelve solo el mes anterior.
+      var f = new Date(ano, mes, 1 - pd + w*7 + i);
+      var ds = planIso(f);
+      dias.push({ ds: ds, d: f.getDate(), fuera: f.getMonth() !== mes, hoy: ds === hoy });
+    }
+    var desdeSem = dias[0].ds, hastaSem = dias[6].ds;
+    var barras = [];
+    lista.forEach(function(et){
+      if(et.hasta < desdeSem || et.desde > hastaSem) return;   // no toca esta semana
+      var ini = et.desde > desdeSem ? et.desde : desdeSem;
+      var fin = et.hasta < hastaSem ? et.hasta : hastaSem;
+      var col = dias.findIndex(function(x){ return x.ds === ini; });
+      var col2 = dias.findIndex(function(x){ return x.ds === fin; });
+      barras.push({ et: et, col: col, span: col2 - col + 1,
+                    sigueIzq: et.desde < desdeSem, sigueDer: et.hasta > hastaSem, carril: 0 });
+    });
+
+    // Carriles: se ordenan por día de inicio y cada una baja hasta el primer
+    // carril donde no pise a otra. Es lo que hace que dos etapas del mismo día
+    // se vean una debajo de la otra en vez de superpuestas.
+    barras.sort(function(a,b){ return a.col - b.col || b.span - a.span; });
+    var ocupadoHasta = [];
+    barras.forEach(function(b){
+      var c = 0;
+      while(ocupadoHasta[c] !== undefined && ocupadoHasta[c] > b.col) c++;
+      b.carril = c;
+      ocupadoHasta[c] = b.col + b.span;
+    });
+
+    filas.push({ dias: dias, barras: barras,
+                 carriles: barras.reduce(function(m,b){ return Math.max(m, b.carril+1); }, 0) });
+  }
+  return filas;
+}
+
+function etapasDe(cid) {
+  return etapas.filter(function(e){ return e.clienteId === cid; });
+}
+
+function renderPlan() {
+  pintarClientesPlan();
+  var puedeEditar = puedo('calendario','full');
+  mostrar('btnNuevaEtapa', puedeEditar);
+  document.getElementById('planAyuda').textContent = puedeEditar
+    ? 'Tocá un día para agregar una etapa, o una etapa para editarla.'
+    : 'Así se le muestra la planificación al cliente.';
+
+  var wrap = document.getElementById('planWrap');
+  var cli = clientePlan();
+  if(!cli) {
+    wrap.innerHTML = '<div class="plan-wrap"><div class="plan-vacio">No hay clientes para planificar.</div></div>';
+    mostrar('btnNuevaEtapa', false);
+    mostrar('btnExportarPlan', false);
+    return;
+  }
+  mostrar('btnExportarPlan', true);
+
+  var delMes = etapasDe(cli.id);
+  var filas = planFilas(delMes, getMes(), getAno());
+
+  var h = '<div class="plan-wrap"><div class="plan-head">'
+    + DIAS.map(function(d){ return '<div class="plan-dn">'+d+'</div>'; }).join('')
+    + '</div>';
+
+  filas.forEach(function(fila){
+    var altoBarras = Math.max(fila.carriles * 25 + 8, 46);
+    h += '<div class="plan-sem"'
+      + (puedeEditar ? ' onclick="planClickSemana(event,this,\''+fila.dias[0].ds+'\')"' +
+                       ' style="cursor:pointer"' : '') + '>';
+    h += '<div class="plan-dias">' + fila.dias.map(function(d){
+      return '<div class="plan-dia'+(d.fuera?' fuera':'')+(d.hoy?' hoy':'')+'"></div>';
+    }).join('') + '</div>';
+    h += '<div class="plan-nums">' + fila.dias.map(function(d){
+      return '<div class="plan-num'+(d.fuera?' fuera':'')+(d.hoy?' hoy':'')+'">'+d.d+'</div>';
+    }).join('') + '</div>';
+    h += '<div class="plan-barras" style="height:'+altoBarras+'px">';
+    fila.barras.forEach(function(b){
+      var c = PLAN_COLORES[b.et.color] || PLAN_COLORES[PLAN_COLOR_DEF];
+      var titulo = b.et.titulo + ' · ' + planRango(b.et) + (b.et.nota ? '\n' + b.et.nota : '');
+      h += '<div class="plan-b'+(puedeEditar?' editable':'')
+        + (b.sigueIzq?' sigue-izq':'') + (b.sigueDer?' sigue-der':'') + '"'
+        + ' style="left:calc('+b.col+'/7*100% + 4px);width:calc('+b.span+'/7*100% - 8px);'
+        + 'top:'+(b.carril*25+4)+'px;background:'+c.f+';border-left-color:'+c.b+';color:'+c.t+'"'
+        + ' title="'+esc(titulo)+'"'
+        + (puedeEditar?' onclick="event.stopPropagation();openMoEtapa('+b.et.id+')"':'') + '>'
+        + esc(b.et.titulo) + '</div>';
+    });
+    h += '</div></div>';
+  });
+  h += '</div>';
+
+  // La lista de abajo no es decorativa: en la grilla los títulos largos se
+  // cortan, y acá se leen enteros junto con las fechas y la nota.
+  var delMesVisible = delMes.filter(function(e){
+    return e.hasta >= filas[0].dias[0].ds && e.desde <= filas[filas.length-1].dias[6].ds;
+  });
+  if(delMesVisible.length) {
+    h += '<div class="plan-leyenda">' + delMesVisible.map(function(e){
+      var c = PLAN_COLORES[e.color] || PLAN_COLORES[PLAN_COLOR_DEF];
+      return '<div class="plan-lg"><div class="plan-lg-c" style="background:'+c.b+'"></div>'
+        + '<span><b>'+esc(e.titulo)+'</b> · '+esc(planRango(e))
+        + (e.nota ? ' · '+esc(e.nota) : '') + '</span></div>';
+    }).join('') + '</div>';
+  } else {
+    h += '<div class="plan-vacio" style="padding:22px">Este mes no tiene etapas cargadas'
+      + (puedeEditar ? '. Tocá un día para agregar la primera.' : '.') + '</div>';
+  }
+  wrap.innerHTML = h;
+}
+
+// Tocar la fila de una semana abre el alta con el día que tocaste. Se calcula
+// por posición y no con una celda por día porque las barras van por encima:
+// meter otra grilla clickeable arriba les robaría el click.
+function planClickSemana(e, fila, primerDia) {
+  if(!puedo('calendario','full')) return;
+  var r = fila.getBoundingClientRect();
+  var col = Math.floor((e.clientX - r.left) / (r.width / 7));
+  col = Math.max(0, Math.min(6, col));
+  var d = new Date(Number(primerDia.slice(0,4)), Number(primerDia.slice(5,7))-1, Number(primerDia.slice(8,10)) + col);
+  openMoEtapa(null, planIso(d));
+}
+
+function pintarColoresEtapa() {
+  document.getElementById('metColores').innerHTML = Object.keys(PLAN_COLORES).map(function(k){
+    var c = PLAN_COLORES[k];
+    return '<button type="button" class="col-op'+(k===metColor?' on':'')+'" data-color="'+k+'"'
+      + ' style="background:'+c.f+';box-shadow:inset 0 0 0 3px '+c.b+'"'
+      + ' title="'+esc(c.n)+'" aria-label="'+esc(c.n)+'" onclick="elegirColorEtapa(\''+k+'\')"></button>';
+  }).join('');
+}
+function elegirColorEtapa(k) { metColor = k; pintarColoresEtapa(); }
+
+// desde solo se usa al dar de alta: es el día que se tocó en la grilla.
+function openMoEtapa(id, desde) {
+  var cli = clientePlan();
+  if(!cli) { avisar('Elegí un cliente primero'); return; }
+  editEtId = id;
+  var et = id ? etapas.find(function(x){ return x.id === id; }) : null;
+  document.getElementById('moEtTit').textContent = et ? 'Editar etapa' : 'Nueva etapa';
+  document.getElementById('metTitulo').value = et ? et.titulo : '';
+  document.getElementById('metDesde').value = et ? et.desde : (desde || getPrefix() + '-01');
+  document.getElementById('metHasta').value = et ? et.hasta : (desde || getPrefix() + '-01');
+  document.getElementById('metNota').value = et ? et.nota : '';
+  metColor = et ? et.color : PLAN_COLOR_DEF;
+  pintarColoresEtapa();
+  document.getElementById('metDelBtn').style.display = et ? '' : 'none';
+  openMo('moEtapa');
+}
+
+async function saveEtapa() {
+  var cli = clientePlan();
+  if(!cli) return;
+  var datos = {
+    clienteId: cli.id,
+    titulo: document.getElementById('metTitulo').value.trim(),
+    desde: document.getElementById('metDesde').value,
+    hasta: document.getElementById('metHasta').value,
+    color: metColor,
+    nota: document.getElementById('metNota').value.trim()
+  };
+  if(!datos.titulo){ avisar('Poné un título para la etapa'); return; }
+  if(!datos.desde || !datos.hasta){ avisar('Elegí desde y hasta cuándo va la etapa'); return; }
+  // Se avisa acá además de en el servidor para poder decir qué está mal en vez
+  // de un error genérico.
+  if(datos.hasta < datos.desde){ avisar('La etapa no puede terminar antes de empezar'); return; }
+
+  var guardado = editEtId
+    ? await ckJson('/api/etapas/'+editEtId, {method:'PUT', body: JSON.stringify(datos)})
+    : await ckJson('/api/etapas', {method:'POST', body: JSON.stringify(datos)});
+  if(!guardado) return;
+
+  if(editEtId){ var i = etapas.findIndex(function(x){ return x.id === editEtId; }); if(i>=0) etapas[i] = guardado; }
+  else { etapas.push(guardado); }
+  closeMo('moEtapa');
+  renderPlan();
+  renderDash();   // el registro de actividad también lo muestra
+}
+
+async function delEtapa() {
+  if(!editEtId) return;
+  var et = etapas.find(function(x){ return x.id === editEtId; });
+  if(!confirm('¿Eliminar la etapa' + (et ? ' "'+et.titulo+'"' : '') + '?')) return;
+  var r = await ckJson('/api/etapas/'+editEtId, {method:'DELETE'});
+  if(!r) return;
+  etapas = etapas.filter(function(x){ return x.id !== editEtId; });
+  closeMo('moEtapa');
+  renderPlan();
+  renderDash();
+}
+
+// ── EXPORTAR LA PLANIFICACIÓN COMO IMAGEN ────────────────────────────────────
+// Se dibuja en un canvas y no se saca una foto del HTML: así se controla la
+// resolución (sale a 3x, se puede ampliar o imprimir sin que pixele) y no hace
+// falta ninguna librería. Usa las mismas cuentas de posición que la pantalla.
+
+function planRedondeado(ctx, x, y, w, h, r) {
+  if(ctx.roundRect){ ctx.beginPath(); ctx.roundRect(x, y, w, h, r); return; }
+  // Por si toca un navegador sin roundRect: mejor esquinas rectas que nada.
+  ctx.beginPath(); ctx.rect(x, y, w, h);
+}
+function planRayado(ctx, x, y, w, h, color) {
+  ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  ctx.strokeStyle = color; ctx.lineWidth = 1.2;
+  for(var i = -h; i < w; i += 8){
+    ctx.beginPath(); ctx.moveTo(x+i, y+h); ctx.lineTo(x+i+h, y); ctx.stroke();
+  }
+  ctx.restore();
+}
+function planCortar(ctx, texto, ancho) {
+  if(ctx.measureText(texto).width <= ancho) return texto;
+  var t = texto;
+  while(t.length > 1 && ctx.measureText(t + '…').width > ancho) t = t.slice(0, -1);
+  return t + '…';
+}
+// Lee el color del borde del logo para poder pintar la banda del mismo tono.
+function planColorDeFondo(im) {
+  var c = document.createElement("canvas");
+  c.width = im.naturalWidth || im.width; c.height = im.naturalHeight || im.height;
+  var x = c.getContext("2d");
+  x.drawImage(im, 0, 0);
+  var d = x.getImageData(1, 1, 1, 1).data;
+  return "rgb(" + d[0] + "," + d[1] + "," + d[2] + ")";
+}
+function planCargarImagen(src) {
+  return new Promise(function(res){
+    var im = new Image();
+    im.onload = function(){ res(im); };
+    im.onerror = function(){ res(null); };   // sin logo se exporta igual
+    im.src = src;
+  });
+}
+function planSinAcentos(s) {
+  return String(s).normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/[^A-Za-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+}
+
+// Dibuja la planificación y devuelve el canvas. Va aparte de la descarga para
+// poder mirar lo que sale sin tener que bajar el archivo.
+async function planCanvas() {
+  var cli = clientePlan();
+  if(!cli) { avisar('Elegí un cliente'); return; }
+  var mes = getMes(), ano = getAno(), mesLbl = MESES[mes] + ' ' + ano;
+  var filas = planFilas(etapasDe(cli.id), mes, ano);
+  var visibles = etapasDe(cli.id).filter(function(e){
+    return e.hasta >= filas[0].dias[0].ds && e.desde <= filas[filas.length-1].dias[6].ds;
+  });
+
+  // Las fuentes llegan por CSS y tardan. Si se dibuja antes, el canvas cae en
+  // una de sistema y la imagen sale con otra tipografía que la pantalla.
+  if(document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch(e) {} }
+  var logo = await planCargarImagen(document.getElementById('sbLogo').src);
+
+  var PAD = 44, W = 1400, CW = W - PAD*2;
+  var CAB = 104, GAP = 26, DN = 32, PIE = 54;
+  var altoDe = function(f){ return 30 + Math.max(f.carriles,1)*28 + 12; };
+  var altoSem = filas.reduce(function(a,f){ return a + altoDe(f); }, 0);
+  var altoLeyenda = visibles.length ? 22 + visibles.length*26 : 0;
+  var H = PAD + CAB + GAP + DN + altoSem + (altoLeyenda ? GAP + altoLeyenda : 0) + PIE + PAD;
+
+  var ESC = 3;   // 3x: se puede ampliar o imprimir sin que se vea pixelado
+  var cv = document.createElement('canvas');
+  cv.width = W*ESC; cv.height = H*ESC;
+  var ctx = cv.getContext('2d');
+  ctx.scale(ESC, ESC);
+  ctx.textBaseline = 'alphabetic';
+
+  // Fondo y encabezado, con los mismos colores que la exportación en HTML de la
+  // ficha del cliente, para que las dos se vean de la misma familia.
+  ctx.fillStyle = '#EDEAE5'; ctx.fillRect(0, 0, W, H);
+  // El archivo del logo trae fondo propio (es un JPG, no tiene transparencia).
+  // Si la banda se pinta de un marrón cualquiera, el logo queda como un
+  // rectángulo pegado encima. Pintándola del color que el logo ya tiene de
+  // fondo, se funde y no se ve el recorte. Si algún día cambian el logo, el
+  // color de la banda lo sigue solo.
+  ctx.fillStyle = logo ? planColorDeFondo(logo) : '#9C8163';
+  planRedondeado(ctx, PAD, PAD, CW, CAB, 16); ctx.fill();
+  if(logo) {
+    var alto = 44, ancho = logo.width * (alto / logo.height);
+    ctx.drawImage(logo, PAD + 26, PAD + (CAB - alto)/2, ancho, alto);
+  }
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = "700 25px Syne, sans-serif";
+  ctx.fillText(planCortar(ctx, cli.nombre, CW - 220), PAD + CW - 30, PAD + 48);
+  ctx.fillStyle = 'rgba(255,255,255,.78)';
+  ctx.font = "400 15px 'DM Sans', sans-serif";
+  ctx.fillText('Planificación · ' + mesLbl, PAD + CW - 30, PAD + 72);
+
+  // Nombres de los días.
+  var y = PAD + CAB + GAP;
+  var colW = CW / 7;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#9A9288';
+  ctx.font = "500 11px 'DM Sans', sans-serif";
+  DIAS.forEach(function(d, i){
+    ctx.fillText(d.toUpperCase(), PAD + colW*i + colW/2, y + 20);
+  });
+  y += DN;
+
+  // La grilla: primero el fondo de cada día, después el número, después la barra.
+  var topGrilla = y;
+  filas.forEach(function(fila){
+    var alto = altoDe(fila);
+    fila.dias.forEach(function(d, i){
+      var x = PAD + colW*i;
+      ctx.fillStyle = '#FFFFFF'; ctx.fillRect(x, y, colW, alto);
+      if(d.hoy){ ctx.fillStyle = '#E7DDCF'; ctx.fillRect(x, y, colW, alto); }
+      if(d.fuera) planRayado(ctx, x, y, colW, alto, '#E4E0D9');
+      ctx.strokeStyle = '#DDD8D0'; ctx.lineWidth = 1;
+      ctx.strokeRect(x + .5, y + .5, colW - 1, alto - 1);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = d.hoy ? '#7A6045' : '#9A9288';
+      ctx.font = (d.hoy ? '500 ' : '400 ') + "12px 'DM Mono', monospace";
+      ctx.globalAlpha = d.fuera ? .45 : 1;
+      ctx.fillText(String(d.d), x + colW - 9, y + 20);
+      ctx.globalAlpha = 1;
+    });
+    fila.barras.forEach(function(b){
+      var c = PLAN_COLORES[b.et.color] || PLAN_COLORES[PLAN_COLOR_DEF];
+      var x = PAD + colW*b.col + 4, w = colW*b.span - 8, alt = 22;
+      var by = y + 28 + b.carril*28;
+      ctx.fillStyle = c.f;
+      planRedondeado(ctx, x, by, w, alt, 4); ctx.fill();
+      ctx.fillStyle = c.b; ctx.fillRect(x, by, 3, alt);   // la barrita del borde
+      ctx.textAlign = 'left';
+      ctx.fillStyle = c.t;
+      ctx.font = "500 12px 'DM Sans', sans-serif";
+      ctx.fillText(planCortar(ctx, b.et.titulo, w - 18), x + 10, by + 15);
+    });
+    y += alto;
+  });
+  // Un marco alrededor de toda la grilla, que las celdas sueltas no dan.
+  ctx.strokeStyle = '#CEC7BD'; ctx.lineWidth = 1;
+  ctx.strokeRect(PAD + .5, topGrilla + .5, CW - 1, y - topGrilla - 1);
+
+  // La lista de etapas: en la grilla los títulos largos se cortan.
+  if(visibles.length) {
+    y += GAP;
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#9A9288';
+    ctx.font = "500 11px 'DM Sans', sans-serif";
+    ctx.fillText('ETAPAS DEL MES', PAD, y + 12);
+    y += 22;
+    visibles.forEach(function(e){
+      var c = PLAN_COLORES[e.color] || PLAN_COLORES[PLAN_COLOR_DEF];
+      ctx.fillStyle = c.b; planRedondeado(ctx, PAD, y + 6, 11, 11, 3); ctx.fill();
+      ctx.fillStyle = '#3F3A34';
+      ctx.font = "500 13px 'DM Sans', sans-serif";
+      ctx.fillText(e.titulo, PAD + 20, y + 16);
+      var an = ctx.measureText(e.titulo).width;
+      ctx.fillStyle = '#7B736A';
+      ctx.font = "400 13px 'DM Sans', sans-serif";
+      ctx.fillText(planCortar(ctx, '· ' + planRango(e) + (e.nota ? ' · ' + e.nota : ''), CW - an - 30),
+                   PAD + 28 + an, y + 16);
+      y += 26;
+    });
+  }
+
+  // Pie.
+  y = H - PAD - 24;
+  ctx.strokeStyle = '#DDD8D0'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PAD, y - 14); ctx.lineTo(PAD + CW, y - 14); ctx.stroke();
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#9A9288';
+  ctx.font = "400 12px 'DM Sans', sans-serif";
+  ctx.fillText('Generado por ' + ((estudio && estudio.nombre) || 'Click') + ' · ' + mesLbl, PAD + CW, y + 10);
+
+  return { cv: cv, nombre: 'Planificacion-' + planSinAcentos(cli.nombre) + '-' + planSinAcentos(mesLbl) + '.png' };
+}
+
+async function exportarPlan() {
+  var hecho = await planCanvas();
+  if(!hecho) return;
+  hecho.cv.toBlob(function(blob){
+    if(!blob){ avisar('No se pudo generar la imagen'); return; }
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = hecho.nombre; a.click();
+    // Se libera después: si se revoca en el mismo tick, la descarga a veces se
+    // cancela antes de arrancar.
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+  }, 'image/png');
 }
 
 // ── BRAINSTORM ────────────────────────────────────────────────────────────────
@@ -1904,7 +2449,7 @@ function renderAll() {
   renderSum();
   renderCli();
   if(curScr==='dashboard') renderDash();
-  else if(curScr==='calendario') renderCal();
+  else if(curScr==='calendario') renderCalendario();
   else if(curScr==='brainstorm') renderBS();
   else if(curScr==='delegacion') renderDel();
   else if(curScr==='equipo') renderEq();
@@ -1931,10 +2476,6 @@ function aplicarPermisos() {
     btn.style.display = visible ? '' : 'none';
     if(visible && !primeraVisible) primeraVisible = btn.dataset.scr;
   });
-  function mostrar(id, visible) {
-    var el = document.getElementById(id);
-    if(el) el.style.display = visible ? '' : 'none';
-  }
   mostrar('btnNuevoCliente', puedo('clientes','full'));
   mostrar('btnNuevaTarea', puedo('tareas','full'));
   mostrar('btnNuevoEvento', puedo('calendario','full'));

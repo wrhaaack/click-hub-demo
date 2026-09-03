@@ -141,7 +141,7 @@ CREATE TABLE IF NOT EXISTS actividad (
   id          BIGSERIAL PRIMARY KEY,
   tipo        TEXT NOT NULL,   -- cliente_nuevo | tarea_editada | usuario_nuevo | evento_borrado...
   accion      TEXT NOT NULL CHECK (accion IN ('alta', 'edicion', 'baja')),
-  entidad     TEXT,            -- cliente | tarea | usuario | evento
+  entidad     TEXT,            -- cliente | tarea | usuario | evento | etapa
   entidad_id  BIGINT,          -- NULL para usuarios, que usan UUID
   descripcion TEXT NOT NULL,   -- el texto tal como se muestra
   usuario_id  UUID REFERENCES usuarios(id) ON DELETE SET NULL,
@@ -167,6 +167,33 @@ CREATE TABLE IF NOT EXISTS eventos (
   usuario_id   UUID REFERENCES usuarios(id) ON DELETE SET NULL,
   autor        TEXT NOT NULL,
   creado_en    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ---------- ETAPAS (la planificación que se le muestra al cliente) ----------
+-- El calendario del equipo y el del cliente son dos cosas distintas a propósito.
+-- El del equipo tiene tareas y eventos, con nombres internos. Este tiene tramos
+-- que duran varios días ("Diseño", "Grabación", "Revisión") escritos para que
+-- los lea el cliente, y es lo que se exporta como imagen para mostrárselo.
+--
+-- Por eso no salen de las tareas: lo que el equipo escribe para trabajar no es
+-- lo que se le muestra a un cliente.
+CREATE TABLE IF NOT EXISTS etapas (
+  id          BIGSERIAL PRIMARY KEY,
+  cliente_id  BIGINT NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+  titulo      TEXT NOT NULL,
+  desde       DATE NOT NULL,
+  hasta       DATE NOT NULL,
+  -- Una clave de la paleta y no un color libre: así el que arma la planificación
+  -- no puede elegir un color ilegible, y la exportación puede dibujar los mismos
+  -- colores que la pantalla sin que viaje ningún hex.
+  color       TEXT NOT NULL DEFAULT 'azul'
+              CHECK (color IN ('azul','rosa','ambar','verde','violeta','turquesa')),
+  nota        TEXT,
+  creado_por  UUID REFERENCES usuarios(id) ON DELETE SET NULL,
+  creado_en   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  -- Una etapa que termina antes de empezar no se puede dibujar. Se corta acá y
+  -- no solo en el navegador: la base es la que tiene que quedar consistente.
+  CHECK (hasta >= desde)
 );
 
 -- ---------- CONFIGURACION (clave/valor: los datos del estudio) ----------
@@ -270,6 +297,12 @@ ALTER TABLE eventos ADD COLUMN IF NOT EXISTS descripcion TEXT;
 ALTER TABLE eventos ADD COLUMN IF NOT EXISTS usuario_id  UUID REFERENCES usuarios(id) ON DELETE SET NULL;
 ALTER TABLE eventos ADD COLUMN IF NOT EXISTS creado_en   TIMESTAMPTZ NOT NULL DEFAULT now();
 
+ALTER TABLE etapas ADD COLUMN IF NOT EXISTS color      TEXT NOT NULL DEFAULT 'azul'
+       CHECK (color IN ('azul','rosa','ambar','verde','violeta','turquesa'));
+ALTER TABLE etapas ADD COLUMN IF NOT EXISTS nota       TEXT;
+ALTER TABLE etapas ADD COLUMN IF NOT EXISTS creado_por UUID REFERENCES usuarios(id) ON DELETE SET NULL;
+ALTER TABLE etapas ADD COLUMN IF NOT EXISTS creado_en  TIMESTAMPTZ NOT NULL DEFAULT now();
+
 ALTER TABLE configuracion ADD COLUMN IF NOT EXISTS valor           JSONB;
 ALTER TABLE configuracion ADD COLUMN IF NOT EXISTS actualizado_por UUID REFERENCES usuarios(id) ON DELETE SET NULL;
 ALTER TABLE configuracion ADD COLUMN IF NOT EXISTS actualizado_en  TIMESTAMPTZ NOT NULL DEFAULT now();
@@ -297,6 +330,10 @@ CREATE INDEX IF NOT EXISTS idx_fechas_cliente ON fechas_especiales(cliente_id, p
 CREATE INDEX IF NOT EXISTS idx_actividad_fecha ON actividad(creado_en DESC);
 
 CREATE INDEX IF NOT EXISTS idx_eventos_fecha ON eventos(fecha);
+
+-- Se consulta siempre por cliente y ordenado por fecha de inicio: es como se
+-- dibuja la tira de la planificación.
+CREATE INDEX IF NOT EXISTS idx_etapas_cliente ON etapas(cliente_id, desde);
 
 CREATE INDEX IF NOT EXISTS idx_notificaciones_usuario ON notificaciones(usuario_id, leida, creado_en DESC);
 
