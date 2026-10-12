@@ -9,6 +9,7 @@
     "build": "vite build",
     "dev": "vite",
     "db:local": "node db/postgres-local.js",
+    "db:init": "node db/init.js",
     "seed:admin": "node db/seed-admin.js"
   },
   "dependencies": {

@@ -1,5 +1,9 @@
 # Poner Click Hub en Railway
 
+> También se puede subir a Vercel: ver [DESPLIEGUE-VERCEL.md](DESPLIEGUE-VERCEL.md).
+> Las dos opciones conviven en el mismo repo; elegí una (o usá las dos, cada una
+> con su propia base).
+
 De la carpeta en tu compu a la app andando con dominio propio. Son unos 20
 minutos la primera vez.
 
@@ -162,13 +166,30 @@ nuevo en cada arranque no toca lo que ya está — solo agrega lo que falte.
 Si hay más de una réplica levantando a la vez, un lock de Postgres hace que solo
 una aplique el esquema y la otra espere.
 
-### Si nadie puede entrar
+### Si preferís hacerlo a mano
 
-`npm run seed:admin` crea un admin o le pone contraseña nueva a uno existente
-(ver el encabezado de `db/seed-admin.js`). Ojo que desde tu compu **no llegás a
-la base**: vive en la red privada de Railway. Corrélo dentro del servicio con
-`railway run --service TU-APP npm run seed:admin`, con `ADMIN_EMAIL` y
-`ADMIN_PASSWORD` puestas solo para ese comando.
+Los scripts están: `npm run db:init` (aplica el esquema y, si están
+`ADMIN_EMAIL`/`ADMIN_PASSWORD` y no hay usuarios, crea el primer admin) y
+`npm run seed:admin` (crea un admin o le pone contraseña nueva a uno que ya
+existe; sirve también si nadie puede entrar). Ojo que desde tu compu **no
+llegás a la base**: vive en la red privada de Railway. Hay dos caminos:
+
+- Correrlos dentro del servicio: `railway run --service TU-APP npm run db:init`
+- O abrir un proxy TCP temporal:
+
+  ```bash
+  railway tcp-proxy add --service Postgres --port 5432
+  ```
+
+  Eso te da un `host:puerto` público. Con eso:
+
+  ```bash
+  $env:DATABASE_URL="postgresql://postgres:LA-CLAVE@EL-HOST:EL-PUERTO/railway"; $env:DATABASE_SSL="on"; npm run db:init
+  ```
+
+  La clave sale de `railway variables --service Postgres --kv`. **Cerrá el proxy
+  al terminar** (`railway tcp-proxy delete --service Postgres <ID>`): mientras esté
+  abierto, tu base es accesible desde internet.
 
 ---
 

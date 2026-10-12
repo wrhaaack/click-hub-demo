@@ -60,6 +60,10 @@ guardar. Vite le pasa `/api` al servidor de Express, así la sesión es la misma
    punto del cotizador.
 4. **Clientes** → cargá los clientes (o los prospectos, en su pestaña).
 
+## Otros comandos
+
+- `npm run db:init`: aplica el esquema a mano (normalmente lo hace el servidor solo).
+
 ## Si nadie puede entrar
 
 ```bash

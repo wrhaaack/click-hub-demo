@@ -8,7 +8,7 @@ pedido. El repo ya viene preparado para eso:
 |---|---|
 | `vercel.json` | compila con `npm run build`, sirve `web/dist` en `/app`, manda `/api/*` a la función y programa el cron diario |
 | `api/index.js` | la función: es la misma app de Express de `src/app.js` |
-| `server.js` | **no se usa en Vercel** (es para tu compu y para Railway) |
+| `server.js` | no lo usa Vercel; es el de tu compu y el de Railway, que sigue funcionando igual ([DESPLIEGUE.md](DESPLIEGUE.md)) |
 
 Vercel **no trae base de datos propia**: se conecta una de Neon (Postgres) desde
 el mismo panel. Es gratis para este tamaño.
