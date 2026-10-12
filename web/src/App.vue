@@ -21,7 +21,7 @@ const menu = ref(false);
   <RouterView v-if="route.meta.publica" />
   <template v-else>
     <div v-if="st.listo" class="layout">
-      <Sidebar :abierto="menu" @cerrar="menu = false" />
+      <Sidebar :menu-abierto="menu" @cerrar="menu = false" />
       <div class="contenido">
         <header class="barra-movil">
           <button class="icono-btn" aria-label="Abrir menú" :aria-expanded="menu" @click="menu = true"><Icono n="menu" :t="22" /></button>

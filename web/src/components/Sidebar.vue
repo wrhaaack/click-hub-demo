@@ -9,11 +9,11 @@ import { api } from '../lib/api';
 
 // En pantallas chicas el menú es un cajón que se abre desde la barra de arriba
 // (App.vue). Se cierra solo al cambiar de pantalla.
-const props = defineProps({ abierto: Boolean });
+const props = defineProps({ menuAbierto: Boolean });
 const emit = defineEmits(['cerrar']);
 const router = useRouter();
 const route = useRoute();
-watch(() => route.fullPath, () => { if (props.abierto) emit('cerrar'); });
+watch(() => route.fullPath, () => { if (props.menuAbierto) emit('cerrar'); });
 
 // Cada ítem dice qué permiso necesita para aparecer. Están agrupados por para
 // qué se usan: el trabajo del día, la plata, y la configuración del estudio.
@@ -84,8 +84,8 @@ async function salir() {
 </script>
 
 <template>
-  <div v-if="abierto" class="sb-fondo" @click="emit('cerrar')" />
-  <aside class="sb" :class="{ abierto }" aria-label="Menú principal">
+  <div v-if="menuAbierto" class="sb-fondo" @click="emit('cerrar')" />
+  <aside class="sb" :class="{ abierto: menuAbierto }" aria-label="Menú principal">
     <div class="sb-top">
       <img :src="logo" alt="" class="sb-logo">
       <span class="sb-titulo">Click Hub</span>
