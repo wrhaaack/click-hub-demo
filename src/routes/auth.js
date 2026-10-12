@@ -104,7 +104,7 @@ router.put('/perfil', async (req, res) => {
   if (result.rows.length === 0) return res.status(404).json({ error: 'Usuario no encontrado.' });
 
   const ok = await bcrypt.compare(password_actual, result.rows[0].password_hash);
-  // 400 y no 401: un 401 hace que ckFetch() interprete "sesión vencida" y redirija al login.
+  // 400 y no 401: un 401 hace que la app interprete "sesión vencida" y mande al login.
   if (!ok) return res.status(400).json({ error: 'La contraseña actual no es correcta.' });
 
   const nuevoEmail = email ? String(email).toLowerCase().trim() : null;

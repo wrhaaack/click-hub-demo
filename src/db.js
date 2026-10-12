@@ -4,10 +4,9 @@ const { Pool, types } = require('pg');
 
 // Por defecto el driver devuelve los BIGINT como texto, porque un bigint puede
 // ser más grande de lo que un número de JavaScript representa sin perder
-// precisión. Acá eso hace más mal que bien: los ids del hub son BIGSERIAL, y si
-// llegan como "1" en vez de 1, las comparaciones de la pantalla (x.id === cid,
-// donde cid viene de un onclick con un número) fallan en silencio y, por
-// ejemplo, no abre la ficha del cliente.
+// precisión. Acá eso hace más mal que bien: los ids son BIGSERIAL, y si llegan
+// como "1" en vez de 1, las comparaciones de la pantalla (x.id === cid) fallan
+// en silencio y, por ejemplo, no abre la ficha del cliente.
 //
 // El límite seguro de JavaScript son 9.007.199.254.740.991 filas. No es un
 // número al que este proyecto se vaya a acercar, así que se los pide como

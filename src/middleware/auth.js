@@ -49,8 +49,7 @@ const SECCIONES_SOLO_ADMIN = ['usuarios', 'equipo'];
 // Ojo con "roles": como los roles llevan los permisos, dejar que los edite
 // alguien que no sea admin sería darle la llave para subirse los permisos a sí
 // mismo. Por eso es admin-only y no un permiso más de la sección Equipo.
-// La lista para mostrar vive en views/usuarios.html (listaSoloAdmin); acá no se
-// duplica, porque una copia que nadie lee solo puede quedar desincronizada.
+// La lista para mostrar vive en web/src/views/Usuarios.vue (SOLO_ADMIN).
 
 function requireAdmin(req, res, next) {
   if (!req.session || req.session.rol !== 'admin') {

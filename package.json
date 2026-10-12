@@ -1,25 +1,28 @@
 {
   "name": "click-hub",
-  "version": "3.0.0",
-  "description": "Click Hub: planificacion de contenido por cliente (tareas, calendario, brainstorming, delegacion, equipo) con login y base de datos.",
+  "version": "4.0.0",
+  "description": "Click Hub: clientes, tareas, calendario, planificación, liquidaciones, pauta y cotizador del estudio. Vue + Vite sobre Express y Postgres.",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
     "start": "node server.js",
+    "build": "vite build",
+    "dev": "vite",
     "db:local": "node db/postgres-local.js",
-    "db:init": "node db/init.js",
-    "seed:admin": "node db/seed-admin.js",
-    "importar": "node db/importar-localstorage.js"
+    "seed:admin": "node db/seed-admin.js"
   },
   "dependencies": {
+    "@vitejs/plugin-vue": "^5.2.4",
     "bcryptjs": "^2.4.3",
     "connect-pg-simple": "^9.0.1",
-    "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "express-rate-limit": "^7.2.0",
     "express-session": "^1.18.0",
-    "pg": "^8.11.5"
+    "pg": "^8.11.5",
+    "vite": "^6.4.4",
+    "vue": "^3.5.43",
+    "vue-router": "^4.6.4"
   },
   "engines": {
     "node": ">=18.0.0"

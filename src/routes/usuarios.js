@@ -96,7 +96,7 @@ router.post('/', async (req, res) => {
     await avisarAlEquipo(
       req.session, 'usuario_nuevo',
       `${req.session.nombre} sumó a ${nombre.trim()} como ${rolNombre}`,
-      '/hub.html',
+      '/app/',
       [result.rows[0].id]
     );
     await devolverUno(res, result.rows[0].id, 201);
@@ -106,17 +106,8 @@ router.post('/', async (req, res) => {
   }
 });
 
-// El enlace usuario <-> persona del equipo NO se edita desde acá. Se define en
-// un solo lugar, la sección Equipo, donde a alguien se lo suma eligiéndolo de
-// entre los usuarios registrados (ver src/routes/equipo.js).
-//
-// Antes esta pantalla tenía un desplegable para enlazar a mano. Se sacó porque
-// con la regla nueva podía romper justamente lo que la regla garantiza: enlazar
-// al usuario B con una persona que ya era del usuario A dejaba una fila con el
-// nombre de uno y el usuario_id del otro.
-//
-// El campo "miembro" que devuelve SELECT_USUARIOS sigue viajando, pero es solo
-// para mostrar: dice si la persona está en el equipo y con qué rol.
+// A quién se suma al equipo se decide en la sección Equipo, no acá. El campo
+// "miembro" que devuelve SELECT_USUARIOS es solo para mostrarlo.
 
 router.put('/:id', async (req, res) => {
   const { nombre, email, rol, permisos, rol_id } = req.body || {};

@@ -1,123 +1,77 @@
 require('dotenv').config();
+const fs = require('fs');
 const path = require('path');
 const express = require('express');
-const cors = require('cors');
 const session = require('express-session');
 const pgSession = require('connect-pg-simple')(session);
 const { pool } = require('./src/db');
-
-const authRoutes = require('./src/routes/auth');
-const estadoRoutes = require('./src/routes/estado');
-const dashboardRoutes = require('./src/routes/dashboard');
-const clientesRoutes = require('./src/routes/clientes');
-const tareasRoutes = require('./src/routes/tareas');
-const equipoRoutes = require('./src/routes/equipo');
-const rolesRoutes = require('./src/routes/roles');
-const brainstormRoutes = require('./src/routes/brainstorm');
-const fechasRoutes = require('./src/routes/fechas');
-const eventosRoutes = require('./src/routes/eventos');
-const etapasRoutes = require('./src/routes/etapas');
-const estudioRoutes = require('./src/routes/estudio');
-const notificacionesRoutes = require('./src/routes/notificaciones');
-const usuariosRoutes = require('./src/routes/usuarios');
-
-const { tieneAcceso } = require('./src/middleware/auth');
 const { revisarAlertas } = require('./src/lib/alertas');
 const { prepararBase } = require('./src/lib/arranque');
 
-// Sin estas dos la app no puede funcionar, así que no arranca. Antes levantaba
-// igual, servía el login, y recién explotaba en el primer intento de entrar con
-// un 500 genérico — el error real quedaba enterrado en el log. Fallar acá pone
-// el motivo en el primer renglón, que es donde uno mira.
+// Sin estas dos la app no puede funcionar, así que no arranca: fallar acá pone
+// el motivo en el primer renglón del log, que es donde uno mira.
 const FALTAN = ['DATABASE_URL', 'SESSION_SECRET'].filter((v) => !process.env[v]);
 if (FALTAN.length) {
-  console.error('');
-  console.error('No puedo arrancar: falta ' + FALTAN.join(' y ') + '.');
-  console.error('');
+  console.error(`\nNo puedo arrancar: falta ${FALTAN.join(' y ')}.`);
   if (FALTAN.includes('DATABASE_URL')) {
-    console.error('  DATABASE_URL    en Railway se arma pieza por pieza (las referencias');
-    console.error('                  a Postgres.DATABASE_URL no resuelven, llegan vacías):');
-    console.error('                  postgresql://${{Postgres.PGUSER}}:${{Postgres.PGPASSWORD}}' +
-                  '@${{Postgres.RAILWAY_PRIVATE_DOMAIN}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}');
-    console.error('                  En tu compu, copiá .env.example a .env.');
+    console.error('  DATABASE_URL    en tu compu, copiá .env.example a .env. En Railway, ver DESPLIEGUE.md.');
   }
   if (FALTAN.includes('SESSION_SECRET')) {
-    console.error('  SESSION_SECRET  un valor largo y aleatorio. Generá uno con:');
-    console.error(`                  node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`);
+    console.error(`  SESSION_SECRET  generá uno con: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`);
   }
-  console.error('');
-  console.error('El detalle está en DESPLIEGUE.md, paso 3.');
+  process.exit(1);
+}
+
+// La app compilada (npm run build). Sin ella no hay pantalla que servir.
+const DIST = path.join(__dirname, 'web', 'dist');
+const INDEX = path.join(DIST, 'index.html');
+if (!fs.existsSync(INDEX)) {
+  console.error('\nNo encuentro la app compilada (web/dist). Corré "npm run build" antes de "npm start".');
   process.exit(1);
 }
 
 const app = express();
 app.set('trust proxy', 1); // Railway está detrás de un proxy; necesario para cookies "secure"
-
-app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '1mb' }));
+app.use(session({
+  store: new pgSession({ pool, tableName: 'session', createTableIfMissing: true }),
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production', // solo por HTTPS en producción
+    sameSite: 'lax',
+    maxAge: 1000 * 60 * 60 * 8, // 8 horas
+  },
+}));
 
-app.use(
-  session({
-    store: new pgSession({ pool, tableName: 'session', createTableIfMissing: true }),
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // cookies solo por HTTPS en producción
-      sameSite: 'lax',
-      maxAge: 1000 * 60 * 60 * 8, // 8 horas de sesión
-    },
-  })
-);
+// ---------- API ----------
+// Cada archivo de src/routes es un tema, y cada uno pide sesión y el permiso de
+// su sección. La protección real de los datos vive acá, no en la pantalla.
+const RUTAS = ['auth', 'estado', 'dashboard', 'clientes', 'tareas', 'equipo', 'roles', 'brainstorm',
+  'fechas', 'eventos', 'etapas', 'estudio', 'notificaciones', 'usuarios', 'pautas', 'tarifas'];
+RUTAS.forEach((r) => app.use(`/api/${r}`, require(`./src/routes/${r}`)));
+app.use('/api', (req, res) => res.status(404).json({ error: 'Esa ruta no existe.' }));
 
-// ---------- Rutas de la API ----------
-app.use('/api/auth', authRoutes);
-app.use('/api/estado', estadoRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/clientes', clientesRoutes);
-app.use('/api/tareas', tareasRoutes);
-app.use('/api/equipo', equipoRoutes);
-app.use('/api/roles', rolesRoutes);
-app.use('/api/brainstorm', brainstormRoutes);
-app.use('/api/fechas', fechasRoutes);
-app.use('/api/eventos', eventosRoutes);
-app.use('/api/etapas', etapasRoutes);
-app.use('/api/estudio', estudioRoutes);
-app.use('/api/notificaciones', notificacionesRoutes);
-app.use('/api/usuarios', usuariosRoutes);
-
-// ---------- Páginas públicas (sin login) ----------
-// Solo el login, el CSS y las imágenes. Nada de datos.
-app.use(express.static(path.join(__dirname, 'public')));
-
-// ---------- Páginas protegidas (requieren sesión iniciada) ----------
-// La protección real de los DATOS vive en la API (arriba); esto es solo la
-// pantalla, para que alguien sin sesión ni siquiera vea la interfaz.
-function servePrivate(file, seccion, nivelMinimo = 'limitado') {
-  return (req, res) => {
-    if (!req.session || !req.session.userId) {
-      return res.redirect('/login.html');
-    }
-    if (seccion && !tieneAcceso(req.session, seccion, nivelMinimo)) {
-      return res.redirect('/hub.html');
-    }
-    res.sendFile(path.join(__dirname, 'views', file));
-  };
-}
-
-// El hub no tiene sección propia: lo abre cualquiera con sesión y adentro cada
-// vista aparece o no según los permisos (ver el menú lateral en hub.html).
-app.get('/hub.html', servePrivate('hub.html'));
-app.get('/usuarios.html', servePrivate('usuarios.html', 'usuarios', 'full'));
-
-app.get('/', (req, res) => {
-  if (req.session && req.session.userId) return res.redirect('/hub.html');
-  res.redirect('/login.html');
+// ---------- La app ----------
+// Los archivos compilados llevan un hash en el nombre, así que se pueden
+// cachear para siempre. El index no: es el que dice qué archivos pedir.
+app.use('/app/assets', express.static(path.join(DIST, 'assets'), { immutable: true, maxAge: '1y' }));
+// Cualquier otra ruta de /app es una pantalla: decide el router de Vue. Sin
+// sesión, todo lleva al login (la única pantalla pública).
+app.get(['/app', '/app/*'], (req, res) => {
+  const conSesion = !!(req.session && req.session.userId);
+  const esLogin = req.path === '/app/login';
+  if (!conSesion && !esLogin) return res.redirect('/app/login');
+  if (conSesion && esLogin) return res.redirect('/app/');
+  res.set('Cache-Control', 'no-cache');
+  res.sendFile(INDEX);
 });
+app.get('/', (req, res) => res.redirect('/app/'));
 
 // Cualquier error que se escape de una ruta async termina acá y no tira el
-// proceso abajo. El detalle va al log del servidor, al navegador solo un aviso.
+// proceso abajo. El detalle va al log, al navegador solo un aviso.
 app.use((err, req, res, next) => {
   console.error('Error no controlado:', err);
   if (res.headersSent) return next(err);
@@ -125,34 +79,18 @@ app.use((err, req, res, next) => {
 });
 
 // Primero se deja la base lista (esquema y, si hace falta, el primer admin) y
-// recién después se abre el puerto. Al revés, un despliegue nuevo aceptaría
-// pedidos contra una base vacía y devolvería errores hasta que alguien corriera
-// los scripts a mano.
+// recién después se abre el puerto.
 const PORT = process.env.PORT || 3000;
 prepararBase()
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`Click Hub corriendo en el puerto ${PORT}`);
-    });
-  })
+  .then(() => app.listen(PORT, () => console.log(`Click Hub corriendo en http://localhost:${PORT}`)))
   .catch((err) => {
-    console.error('');
-    console.error('No pude preparar la base, así que no arranco:');
-    console.error('  ' + err.message);
-    console.error('');
-    console.error('Casi siempre es DATABASE_URL: apunta a una base que no existe,');
-    console.error('o la referencia ${{...}} de Railway no resolvió y llegó vacía.');
-    console.error('Ver DESPLIEGUE.md, paso 3.');
+    console.error('\nNo pude preparar la base, así que no arranco:\n  ' + err.message);
+    console.error('Casi siempre es DATABASE_URL: apunta a una base que no existe. Ver DESPLIEGUE.md.');
     process.exit(1);
   });
 
-// Alertas automáticas (tareas vencidas + clientes sin planificar): se revisan
-// una vez al arrancar, con un margen para que la base esté lista, y después una
-// vez por día.
+// Alertas automáticas (tareas vencidas, clientes sin planificar): una vez al
+// arrancar, con margen para que la base esté lista, y después una vez por día.
 const UN_DIA_MS = 24 * 60 * 60 * 1000;
-setTimeout(() => {
-  revisarAlertas().catch((err) => console.error('Error revisando alertas:', err));
-  setInterval(() => {
-    revisarAlertas().catch((err) => console.error('Error revisando alertas:', err));
-  }, UN_DIA_MS);
-}, 30 * 1000);
+const revisar = () => revisarAlertas().catch((err) => console.error('Error revisando alertas:', err));
+setTimeout(() => { revisar(); setInterval(revisar, UN_DIA_MS); }, 30 * 1000);

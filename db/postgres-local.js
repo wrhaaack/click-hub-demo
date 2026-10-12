@@ -119,7 +119,7 @@ async function main() {
     console.log('producción. Para rehacerla en UTF-8 (se pierden los datos de prueba):');
     console.log('  1. Cerrá esta ventana y la del server.');
     console.log('  2. Borrá la carpeta .postgres-local');
-    console.log('  3. Volvé a correr: npm run db:local && npm run db:init && npm run seed:admin');
+    console.log('  3. Volvé a correr: npm run db:local (las tablas y tu usuario se crean al hacer npm start)');
     console.log('');
   }
   await admin.end();
@@ -131,10 +131,8 @@ async function main() {
   console.log('  DATABASE_URL=' + url);
   console.log('');
   if (primeraVez) {
-    console.log('  Es la primera vez, así que en OTRA terminal corré:');
-    console.log('    npm run db:init      (crea las tablas)');
-    console.log('    npm run seed:admin   (crea tu usuario, ver EMPEZAR-ACA.md)');
-    console.log('    npm start');
+    console.log('  Es la primera vez. En OTRA terminal corré npm start: crea las tablas');
+    console.log('  y tu usuario (ADMIN_EMAIL y ADMIN_PASSWORD del .env).');
   } else {
     console.log('  En otra terminal:  npm start');
   }

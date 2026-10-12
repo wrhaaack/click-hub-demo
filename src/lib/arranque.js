@@ -1,16 +1,7 @@
-// Deja la base lista antes de que el servidor acepte pedidos.
-//
-// POR QUÉ EXISTE ESTO
-// Antes había que aplicar el esquema y crear el primer usuario a mano, desde
-// afuera. En Railway eso es más difícil de lo que parece: la base vive en la red
-// privada, así que desde tu compu no se llega sin abrir un proxy, y hacerlo
-// desde adentro depende de que la imagen traiga shell. Un despliegue nuevo se
-// quedaba a mitad de camino con la base vacía y un "relation does not exist"
-// que no dice qué hacer.
-//
-// Ahora el arranque se ocupa solo: aplica el esquema y, si todavía no hay
-// ningún usuario, crea el primer admin. Los scripts db/init.js y db/seed-admin.js
-// siguen existiendo para hacerlo a mano cuando convenga.
+// Deja la base lista antes de que el servidor acepte pedidos: aplica el
+// esquema y, si todavía no hay ningún usuario, crea el primer admin. Así un
+// despliegue nuevo queda andando sin correr nada a mano (en Railway la base vive
+// en la red privada y llegar desde afuera es engorroso).
 
 const fs = require('fs');
 const path = require('path');
@@ -27,16 +18,8 @@ async function aplicarEsquema(client) {
   const antes = await client.query("SELECT to_regclass('public.usuarios') IS NOT NULL AS existe");
   const eraNueva = !antes.rows[0].existe;
 
-  // Se aplica siempre, no solo cuando la base está vacía: schema.sql se puede
-  // repetir sin efecto, así que correrlo de nuevo no toca nada de lo que ya
-  // está y de paso pone al día una base vieja.
-  //
-  // OJO con esto último, que ya falló una vez en producción: CREATE TABLE IF
-  // NOT EXISTS sobre una tabla que ya existe NO agrega las columnas nuevas. La
-  // app se cayó entera con "column a_pagar does not exist" después de un
-  // despliegue que parecía limpio. Lo que hace que esto funcione de verdad es
-  // el bloque PUESTA AL DÍA del final de schema.sql; si agregás una columna,
-  // tiene que estar ahí también.
+  // Se aplica siempre: schema.sql se puede repetir sin efecto. Ojo que no
+  // agrega columnas a tablas que ya existen (ver el encabezado de schema.sql).
   const sql = fs.readFileSync(path.join(__dirname, '..', '..', 'db', 'schema.sql'), 'utf8');
   await client.query(sql);
 

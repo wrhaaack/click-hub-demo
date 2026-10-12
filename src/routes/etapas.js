@@ -106,7 +106,7 @@ router.post('/', requireSectionAccess('calendario', 'full'), async (req, res) =>
   const et = result.rows[0];
   await avisarAlEquipo(req.session, 'etapa_nueva',
     `${req.session.nombre} agregó la etapa ${comoSeLee(et, await nombreDelCliente(et.clienteId))}`,
-    '/hub.html#calendario', null, et.id);
+    '/app/calendario', null, et.id);
   res.status(201).json(et);
 });
 
@@ -131,7 +131,7 @@ router.put('/:id', requireSectionAccess('calendario', 'full'), async (req, res) 
   const et = result.rows[0];
   await avisarAlEquipo(req.session, 'etapa_editada',
     `${req.session.nombre} editó la etapa ${comoSeLee(et, await nombreDelCliente(et.clienteId))}`,
-    '/hub.html#calendario', null, et.id);
+    '/app/calendario', null, et.id);
   res.json(et);
 });
 
@@ -145,7 +145,7 @@ router.delete('/:id', requireSectionAccess('calendario', 'full'), async (req, re
   const cliente = await nombreDelCliente(et.clienteId);
   await pool.query('DELETE FROM etapas WHERE id = $1', [req.params.id]);
   await avisarAlEquipo(req.session, 'etapa_borrada',
-    `${req.session.nombre} eliminó la etapa ${comoSeLee(et, cliente)}`, '/hub.html#calendario');
+    `${req.session.nombre} eliminó la etapa ${comoSeLee(et, cliente)}`, '/app/calendario');
   res.json({ ok: true });
 });
 

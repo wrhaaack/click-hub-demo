@@ -1,0 +1,210 @@
+/* Click Hub · app nueva.
+   La disposición copia la referencia (menú lateral, título, tabs con contador,
+   tabla limpia, modal centrado) y los colores son los de siempre del hub: la
+   misma paleta que public/css/click.css. Todo sale de estas variables, así que
+   cambiar el aspecto entero es tocar este bloque. */
+
+:root {
+  --bg: #EDEAE5;
+  --sur: #FFFFFF;
+  --sur2: #F1EDE7;
+  --sur3: #F8F7F4;
+  --bor: #DDD8D0;
+  --bor2: #CEC7BD;
+  --txt: #3F3A34;
+  --mut: #7B736A;
+  --hin: #9A9288;
+  --tan: #8E7053;
+  --tand: #7A6045;
+  --tanl: #E7DDCF;
+  --tanlt: #6E5742;
+  --red: #B91C1C;
+  --redbg: #FEE2E2;
+  --green: #166534;
+  --greenbg: #DCFCE7;
+  --amber: #92400E;
+  --amberbg: #FEF3C7;
+  --sombra: 0 24px 60px rgba(63, 58, 52, .22);
+  --velo: rgba(63, 58, 52, .45);
+  --r: 12px;
+  --rs: 8px;
+}
+
+/* Variante oscura, la de la referencia, con el acento de Click. */
+:root[data-tema="oscuro"] {
+  --bg: #0E0D0C;
+  --sur: #1A1817;
+  --sur2: #242120;
+  --sur3: #151413;
+  --bor: #2C2927;
+  --bor2: #3A3633;
+  --txt: #EDE9E3;
+  --mut: #A39B91;
+  --hin: #7A736B;
+  --tan: #B08D6A;
+  --tand: #C49F7A;
+  --tanl: #3A2F25;
+  --tanlt: #E2C9AC;
+  --red: #F87171;
+  --redbg: #3B1515;
+  --green: #4ADE80;
+  --greenbg: #12301E;
+  --amber: #FBBF24;
+  --amberbg: #3A2A0B;
+  --sombra: 0 24px 60px rgba(0, 0, 0, .6);
+  --velo: rgba(0, 0, 0, .65);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #app { height: 100%; }
+body {
+  background: var(--bg); color: var(--txt);
+  font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; text-decoration: none; }
+button, input, select, textarea { font: inherit; color: inherit; }
+h1, h2, h3 { font-family: 'Syne', sans-serif; font-weight: 600; }
+
+/* ---------- Estructura ---------- */
+.layout { display: flex; height: 100%; }
+.main { flex: 1; overflow-y: auto; }
+.pagina { padding: 36px 44px 60px; max-width: 1400px; }
+
+/* ---------- Encabezado de página ---------- */
+.pag-head { display: flex; align-items: center; gap: 10px; margin-bottom: 26px; }
+.pag-head h1 { font-size: 28px; letter-spacing: -.01em; }
+.pag-head .info { color: var(--hin); display: inline-flex; cursor: help; }
+.pag-head .der { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+
+/* ---------- Tabs con contador ---------- */
+.barra { display: flex; align-items: flex-end; gap: 12px; border-bottom: 1px solid var(--bor); margin-bottom: 26px; }
+.tabs { display: flex; gap: 6px; }
+.tab {
+  background: none; border: none; cursor: pointer; padding: 10px 12px 12px;
+  color: var(--mut); font-size: 15px; display: flex; align-items: center; gap: 8px;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.tab:hover { color: var(--txt); }
+.tab.on { color: var(--txt); border-bottom-color: var(--tan); font-weight: 500; }
+.cuenta {
+  font-size: 12px; background: var(--sur2); color: var(--mut);
+  border-radius: 5px; padding: 1px 7px; min-width: 22px; text-align: center;
+}
+.tab.on .cuenta { background: var(--tanl); color: var(--tanlt); }
+.barra .acciones { margin-left: auto; display: flex; gap: 10px; padding-bottom: 8px; align-items: center; }
+
+/* ---------- Botones y campos ---------- */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--bor2); background: var(--sur); color: var(--txt);
+  border-radius: var(--rs); padding: 8px 14px; cursor: pointer; font-size: 14px;
+  transition: background .15s, border-color .15s;
+}
+.btn:hover { background: var(--sur2); }
+.btn.p { background: var(--tan); border-color: var(--tan); color: #fff; font-weight: 500; }
+.btn.p:hover { background: var(--tand); border-color: var(--tand); }
+.btn.peligro { color: var(--red); border-color: transparent; background: none; }
+.btn.peligro:hover { background: var(--redbg); }
+.btn.chico { padding: 5px 10px; font-size: 13px; }
+.btn:disabled { opacity: .5; cursor: default; }
+.icono-btn {
+  width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center;
+  border: none; background: none; border-radius: var(--rs); cursor: pointer; color: var(--mut);
+}
+.icono-btn:hover { background: var(--sur2); color: var(--txt); }
+
+.buscar { position: relative; }
+.buscar svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--hin); }
+.buscar input {
+  width: 260px; padding: 8px 12px 8px 34px; border-radius: var(--rs);
+  border: 1px solid var(--bor); background: var(--sur); outline: none;
+}
+.buscar input:focus { border-color: var(--tan); }
+
+.campo { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+.campo label { font-size: 12px; color: var(--mut); }
+.campo input, .campo select, .campo textarea, .sel {
+  background: var(--sur3); border: 1px solid var(--bor2); border-radius: var(--rs);
+  padding: 8px 10px; outline: none; font-size: 14px;
+}
+.campo input:focus, .campo select:focus, .campo textarea:focus { border-color: var(--tan); background: var(--sur); }
+.campo textarea { resize: vertical; min-height: 70px; }
+.campo .nota { font-size: 12px; color: var(--hin); }
+.fila { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.fila3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.chk { display: flex; align-items: center; gap: 8px; font-size: 14px; margin-bottom: 14px; cursor: pointer; }
+.sep {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--hin);
+  margin: 6px 0 12px; display: flex; align-items: center; gap: 10px;
+}
+.sep::after { content: ''; flex: 1; height: 1px; background: var(--bor); }
+
+/* ---------- Tabla ---------- */
+.tabla { width: 100%; border-collapse: collapse; }
+.tabla th {
+  text-align: left; font-weight: 400; color: var(--mut); font-size: 14px;
+  padding: 10px 14px; white-space: nowrap;
+}
+.tabla td { padding: 12px 14px; border-top: 1px solid var(--bor); vertical-align: middle; }
+.tabla tbody tr { cursor: pointer; transition: background .12s; }
+.tabla tbody tr:hover td { background: var(--sur3); }
+.tabla .num { text-align: right; font-variant-numeric: tabular-nums; }
+.tabla .muted { color: var(--mut); }
+.tabla .acc { width: 40px; text-align: right; }
+.tabla tfoot td { font-weight: 600; border-top: 2px solid var(--bor2); }
+
+.nombre { display: flex; align-items: center; gap: 10px; font-weight: 500; }
+.avatar {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--tanl); color: var(--tanlt); font-size: 12px; font-weight: 600;
+}
+.avatar.grande { width: 84px; height: 84px; font-size: 32px; font-family: 'Syne', sans-serif; }
+
+.metrica { display: inline-flex; align-items: center; gap: 6px; color: var(--mut); font-variant-numeric: tabular-nums; }
+.metrica b { color: var(--txt); font-weight: 500; }
+
+/* ---------- Pastillas ---------- */
+.pill { font-size: 12px; padding: 2px 9px; border-radius: 20px; white-space: nowrap; display: inline-block; }
+.pill.ok { background: var(--greenbg); color: var(--green); }
+.pill.warn { background: var(--amberbg); color: var(--amber); }
+.pill.mal { background: var(--redbg); color: var(--red); }
+.pill.neutro { background: var(--sur2); color: var(--mut); }
+.pill.tan { background: var(--tanl); color: var(--tanlt); }
+
+/* ---------- Modal ---------- */
+/* El velo es bastante opaco a propósito: en la referencia la tabla de atrás se
+   ve a través y parece un error de dibujo. */
+.velo {
+  position: fixed; inset: 0; background: var(--velo); backdrop-filter: blur(2px);
+  display: flex; align-items: center; justify-content: center; z-index: 100; padding: 24px;
+}
+.modal {
+  background: var(--sur); border: 1px solid var(--bor); border-radius: 16px;
+  width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto;
+  box-shadow: var(--sombra); position: relative;
+}
+.modal.ancho { max-width: 1000px; }
+.modal-cerrar { position: absolute; top: 16px; right: 16px; }
+.modal-cuerpo { padding: 26px 28px; }
+.modal h3 { font-size: 18px; margin-bottom: 18px; }
+.modal-pie { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+.modal-pie .izq { margin-right: auto; }
+
+/* ---------- Tarjetas y vacíos ---------- */
+.tarjeta { background: var(--sur); border: 1px solid var(--bor); border-radius: var(--r); padding: 20px; }
+.vacio { text-align: center; color: var(--hin); padding: 48px 20px; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 26px; }
+.kpi { background: var(--sur); border: 1px solid var(--bor); border-radius: var(--r); padding: 18px 20px; }
+.kpi .et { font-size: 13px; color: var(--mut); display: flex; align-items: center; gap: 7px; }
+.kpi .val { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 600; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.kpi .sub { font-size: 12px; color: var(--hin); margin-top: 2px; }
+
+.mes-sel { display: inline-flex; align-items: center; gap: 4px; }
+.mes-sel span { min-width: 130px; text-align: center; font-weight: 500; }
+
+/* ---------- Avisos ---------- */
+.avisos { position: fixed; top: 16px; right: 16px; z-index: 300; display: flex; flex-direction: column; gap: 8px; max-width: 340px; }
+.aviso { padding: 10px 14px; border-radius: var(--rs); font-size: 13px; box-shadow: var(--sombra); background: var(--redbg); color: var(--red); }
+.aviso.ok { background: var(--greenbg); color: var(--green); }

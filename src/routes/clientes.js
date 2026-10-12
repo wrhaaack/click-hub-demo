@@ -10,7 +10,9 @@ router.use(requireSectionAccess('clientes', 'limitado'));
 const CAMPOS = `id, nombre, COALESCE(ig,'') AS ig, COALESCE(contacto,'') AS contacto,
                 COALESCE(tel,'') AS tel, links, COALESCE(notas,'') AS notas,
                 a_pagar::float8 AS "aPagar", estado_pago AS "estadoPago",
-                abonado::float8 AS abonado`;
+                abonado::float8 AS abonado, tipo,
+                to_char(proxima_actualizacion, 'YYYY-MM-DD') AS "proximaActualizacion",
+                puntajes`;
 
 const ESTADOS_PAGO = ['pendiente', 'parcial', 'pagado'];
 
@@ -63,8 +65,24 @@ function frasePago(nombre, c) {
     : `marcó como pendiente de pago a ${nombre}${monto}`;
 }
 
+// Lo que agregó la unión con las planillas: si es cliente o prospecto, cuándo
+// le toca el aumento y los puntajes del cotizador.
+const CRITERIOS = ['estrategia', 'contenido', 'produccion', 'edicion', 'creatividad', 'equipo', 'atencion', 'urgencia'];
+function leerExtras(body) {
+  const tipo = body && body.tipo === 'prospecto' ? 'prospecto' : 'cliente';
+  const prox = /^\d{4}-\d{2}-\d{2}$/.test(String((body && body.proximaActualizacion) || ''))
+    ? body.proximaActualizacion : null;
+  const puntajes = {};
+  const crudo = (body && body.puntajes) || {};
+  CRITERIOS.forEach((k) => {
+    const n = parseInt(crudo[k], 10);
+    if (n >= 1 && n <= 3) puntajes[k] = n;
+  });
+  return { tipo, prox, puntajes: JSON.stringify(puntajes) };
+}
+
 // Los links vienen del formulario como [{label,url}]. Se limpia lo que no
-// tenga url (igual que hacía la pantalla antes de guardar en localStorage).
+// tenga url.
 function sanitizarLinks(links) {
   if (!Array.isArray(links)) return [];
   return links
@@ -88,13 +106,15 @@ router.post('/', requireSectionAccess('clientes', 'full'), async (req, res) => {
   const { error, datos } = revisarCobro(req.body);
   if (error) return res.status(400).json({ error });
 
+  const ex = leerExtras(req.body);
   const result = await pool.query(
-    `INSERT INTO clientes (nombre, ig, contacto, tel, links, notas, a_pagar, estado_pago, abonado, creado_por)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING ${CAMPOS}`,
+    `INSERT INTO clientes (nombre, ig, contacto, tel, links, notas, a_pagar, estado_pago, abonado,
+                           tipo, proxima_actualizacion, puntajes, creado_por)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING ${CAMPOS}`,
     [
       String(nombre).trim(), ig || null, contacto || null, tel || null,
       JSON.stringify(sanitizarLinks(links)), notas || null,
-      datos.aPagar, datos.estado, datos.abonado, req.session.userId,
+      datos.aPagar, datos.estado, datos.abonado, ex.tipo, ex.prox, ex.puntajes, req.session.userId,
     ]
   );
   const cliente = result.rows[0];
@@ -102,7 +122,7 @@ router.post('/', requireSectionAccess('clientes', 'full'), async (req, res) => {
   await avisarAlEquipo(
     req.session, 'cliente_nuevo',
     `${req.session.nombre} agregó un cliente nuevo: "${cliente.nombre}"`,
-    '/hub.html', null, cliente.id
+    '/app/clientes', null, cliente.id
   );
 
   res.status(201).json(cliente);
@@ -121,14 +141,16 @@ router.put('/:id', requireSectionAccess('clientes', 'full'), async (req, res) =>
        FROM clientes WHERE id = $1 AND activo = true`, [req.params.id]);
   if (previo.rows.length === 0) return res.status(404).json({ error: 'Cliente no encontrado.' });
 
+  const ex = leerExtras(req.body);
   const result = await pool.query(
     `UPDATE clientes SET nombre = $1, ig = $2, contacto = $3, tel = $4, links = $5, notas = $6,
-                         a_pagar = $7, estado_pago = $8, abonado = $9
-     WHERE id = $10 AND activo = true RETURNING ${CAMPOS}`,
+                         a_pagar = $7, estado_pago = $8, abonado = $9,
+                         tipo = $10, proxima_actualizacion = $11, puntajes = $12
+     WHERE id = $13 AND activo = true RETURNING ${CAMPOS}`,
     [
       String(nombre).trim(), ig || null, contacto || null, tel || null,
       JSON.stringify(sanitizarLinks(links)), notas || null,
-      datos.aPagar, datos.estado, datos.abonado, req.params.id,
+      datos.aPagar, datos.estado, datos.abonado, ex.tipo, ex.prox, ex.puntajes, req.params.id,
     ]
   );
   if (result.rows.length === 0) return res.status(404).json({ error: 'Cliente no encontrado.' });
@@ -148,7 +170,7 @@ router.put('/:id', requireSectionAccess('clientes', 'full'), async (req, res) =>
     await avisarAlEquipo(
       req.session, 'cliente_pago',
       `${req.session.nombre} ${frasePago(actual, result.rows[0])}`,
-      '/hub.html', null, req.params.id
+      '/app/clientes', null, req.params.id
     );
   } else {
     await avisarAlEquipo(
@@ -156,7 +178,7 @@ router.put('/:id', requireSectionAccess('clientes', 'full'), async (req, res) =>
       anterior === actual
         ? `${req.session.nombre} editó los datos de ${actual}`
         : `${req.session.nombre} renombró "${anterior}" a "${actual}"`,
-      '/hub.html', null, req.params.id
+      '/app/clientes', null, req.params.id
     );
   }
   res.json(result.rows[0]);
@@ -173,7 +195,7 @@ router.delete('/:id', requireAdmin, async (req, res) => {
   await avisarAlEquipo(
     req.session, 'cliente_baja',
     `${req.session.nombre} dio de baja al cliente ${result.rows[0].nombre}`,
-    '/hub.html', null, req.params.id
+    '/app/clientes', null, req.params.id
   );
   res.json({ ok: true });
 });

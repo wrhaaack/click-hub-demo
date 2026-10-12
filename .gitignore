@@ -5,3 +5,6 @@ node_modules/
 
 # Base de PostgreSQL para desarrollo local (npm run db:local)
 .postgres-local/
+
+# La app de Vue compilada (npm run build la genera)
+web/dist/

@@ -12,7 +12,17 @@ router.use(requireAuth);
 router.use(requireSectionAccess('tareas', 'sin_acceso'));
 
 const ESTADOS = ['pendiente', 'en progreso', 'revisión', 'listo', 'cumplido'];
-const LINK = '/hub.html#delegacion';
+const LINK = '/app/tareas';
+
+const NIVELES = ['N1', 'N2', 'N3'];
+
+// Lo que se le paga a quien hizo la pieza. Vacío o inválido queda NULL: una
+// tarea sin monto simplemente no entra en las liquidaciones.
+function montoONull(v) {
+  if (v === null || v === undefined || String(v).trim() === '') return null;
+  const n = Number(String(v).replace(',', '.'));
+  return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : null;
+}
 
 function fechaONull(v) {
   return /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? v : null;
@@ -29,6 +39,8 @@ function leerCuerpo(body) {
     fechaLimite: fechaONull(body.fechaLimite),
     notas: body.notas ? String(body.notas).trim() : null,
     pagado: !!body.pagado,
+    nivel: NIVELES.includes(body.nivel) ? body.nivel : null,
+    monto: montoONull(body.monto),
     asignados: Array.isArray(body.asignados) ? body.asignados : [],
   };
 }
@@ -64,9 +76,9 @@ router.post('/', requireSectionAccess('tareas', 'full'), async (req, res) => {
   try {
     await client.query('BEGIN');
     const insert = await client.query(
-      `INSERT INTO tareas (cliente_id, descripcion, rol, formato, fecha, fecha_limite, notas, pagado, creado_por)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
-      [d.cid, d.desc, d.rol, d.formato, d.fecha, d.fechaLimite, d.notas, d.pagado, req.session.userId]
+      `INSERT INTO tareas (cliente_id, descripcion, rol, formato, fecha, fecha_limite, notas, pagado, nivel, monto, creado_por)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
+      [d.cid, d.desc, d.rol, d.formato, d.fecha, d.fechaLimite, d.notas, d.pagado, d.nivel, d.monto, req.session.userId]
     );
     tareaId = insert.rows[0].id;
     await guardarAsignados(client, tareaId, d.asignados);
@@ -112,9 +124,10 @@ router.put('/:id', requireSectionAccess('tareas', 'full'), async (req, res) => {
     await client.query('BEGIN');
     await client.query(
       `UPDATE tareas SET cliente_id = $1, descripcion = $2, rol = $3, formato = $4,
-              fecha = $5, fecha_limite = $6, notas = $7, pagado = $8, actualizado_en = now()
-       WHERE id = $9`,
-      [d.cid, d.desc, d.rol, d.formato, d.fecha, d.fechaLimite, d.notas, d.pagado, req.params.id]
+              fecha = $5, fecha_limite = $6, notas = $7, pagado = $8, nivel = $9, monto = $10,
+              actualizado_en = now()
+       WHERE id = $11`,
+      [d.cid, d.desc, d.rol, d.formato, d.fecha, d.fechaLimite, d.notas, d.pagado, d.nivel, d.monto, req.params.id]
     );
     await guardarAsignados(client, req.params.id, d.asignados);
     await client.query('COMMIT');
@@ -193,6 +206,30 @@ router.patch('/:id/pago', requireSectionAccess('tareas', 'limitado'), async (req
     );
   }
   res.json(await tareaPorId(req.params.id));
+});
+
+// Liquidar: marca varias tareas como pagadas de una vez (lo que era cerrar un
+// bloque con "Total" en la planilla de diseños). Va en una sola
+// transacción para que no quede la mitad liquidada si algo falla.
+router.post('/liquidar', requireSectionAccess('tareas', 'limitado'), async (req, res) => {
+  const ids = [...new Set(((req.body || {}).ids || []).map((n) => parseInt(n, 10)).filter((n) => !Number.isNaN(n)))];
+  if (ids.length === 0) return res.status(400).json({ error: 'No hay tareas para liquidar.' });
+
+  const result = await pool.query(
+    `UPDATE tareas SET pagado = true, actualizado_en = now()
+     WHERE id = ANY($1::bigint[]) AND pagado = false
+     RETURNING monto::float8 AS monto`,
+    [ids]
+  );
+  const total = result.rows.reduce((s, r) => s + (r.monto || 0), 0);
+  if (result.rows.length > 0) {
+    await avisarAlEquipo(
+      req.session, 'tarea_pago',
+      `${req.session.nombre} liquidó ${result.rows.length} pieza(s) por $${total.toLocaleString('es-AR')}`,
+      LINK, null, null
+    );
+  }
+  res.json({ liquidadas: result.rows.length, total });
 });
 
 // Eliminar es solo del admin: es la única acción de tareas que no tiene vuelta

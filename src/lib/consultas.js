@@ -9,7 +9,7 @@ const { pool } = require('../db');
 
 // Devuelve las tareas con la forma exacta que usa la interfaz del hub:
 // { id, cid, desc, rol, asig:[nombres], asigIds:[ids], formato, fecha,
-//   fechaLimite, notas, estado, pagado }
+//   fechaLimite, notas, estado, pagado, nivel, monto }
 const SELECT_TAREAS = `
   SELECT t.id,
          t.cliente_id                          AS cid,
@@ -21,6 +21,8 @@ const SELECT_TAREAS = `
          COALESCE(t.notas, '')                 AS notas,
          t.estado,
          t.pagado,
+         t.nivel,
+         t.monto::float8                       AS monto,
          COALESCE(
            (SELECT json_agg(e.nombre ORDER BY e.nombre)
             FROM tarea_asignados ta JOIN equipo e ON e.id = ta.miembro_id
@@ -48,6 +50,25 @@ async function todasLasTareas() {
   return result.rows;
 }
 
+// La pauta con el número de mes del cliente ("Mes 3"), contado desde su primera
+// fila: se calcula acá para que nadie lo tenga que actualizar a mano.
+const SELECT_PAUTAS = `
+  SELECT p.id, p.cliente_id AS "clienteId", c.nombre AS cliente,
+         to_char(p.periodo, 'YYYY-MM') AS periodo,
+         p.pauta::float8 AS pauta, p.capacitacion::float8 AS capacitacion,
+         p.fee_click::float8 AS "feeClick",
+         (p.pauta + p.capacitacion + p.fee_click)::float8 AS total,
+         COALESCE(p.nota, '') AS nota, p.pagado,
+         (SELECT count(*)::int FROM pautas q
+           WHERE q.cliente_id = p.cliente_id AND q.periodo <= p.periodo) AS mes
+  FROM pautas p JOIN clientes c ON c.id = p.cliente_id
+  WHERE c.activo = true`;
+
+async function todasLasPautas() {
+  const result = await pool.query(`${SELECT_PAUTAS} ORDER BY p.periodo DESC, c.nombre ASC`);
+  return result.rows;
+}
+
 // 'YYYY-MM' (lo que manda el front) -> 'YYYY-MM-01' (lo que guarda la base).
 function periodoADate(periodo) {
   if (!/^\d{4}-\d{2}$/.test(String(periodo || ''))) return null;
@@ -67,4 +88,4 @@ async function guardarAsignados(client, tareaId, miembroIds) {
   );
 }
 
-module.exports = { tareaPorId, todasLasTareas, periodoADate, guardarAsignados };
+module.exports = { tareaPorId, todasLasTareas, periodoADate, guardarAsignados, SELECT_PAUTAS, todasLasPautas };

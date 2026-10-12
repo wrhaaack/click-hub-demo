@@ -35,7 +35,7 @@ async function revisarTareasVencidas() {
   const todos = activos.rows.map((u) => u.id);
 
   for (const tarea of vencidas.rows) {
-    const link = '/hub.html#delegacion';
+    const link = '/app/tareas';
     // Destinatarios: los asignados con login; si nadie tiene login, todos.
     const asignados = (tarea.usuarios_asignados || []).filter(Boolean);
     const destinatarios = asignados.length > 0 ? asignados : todos;
@@ -100,7 +100,7 @@ async function revisarClientesSinPlanificar() {
       faltan,
       'cliente_sin_planificar',
       `${cliente.nombre} todavía no tiene tareas cargadas para este mes ${marca}`,
-      '/hub.html'
+      '/app/clientes'
     );
   }
 }

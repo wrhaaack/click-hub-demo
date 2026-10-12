@@ -7,9 +7,7 @@
 // se lo suma acá eligiéndolo de la lista. Por eso no hay campo de nombre libre:
 // el nombre es el del usuario, y esta tabla no lo puede contradecir.
 //
-// Consecuencia buena: como toda persona del equipo tiene usuario detrás, los
-// avisos de "te asignaron una tarea" siempre encuentran a quién avisarle. Antes
-// una persona suelta sin usuario enlazado se quedaba sin recibirlos.
+// Así los avisos de "te asignaron una tarea" siempre encuentran a quién avisarle.
 
 const { crearRouter } = require('../lib/router');
 const { pool } = require('../db');
@@ -91,53 +89,15 @@ router.post('/', requireAdmin, async (req, res) => {
   }
 });
 
-// Se edita el rol de producción y, en un solo caso, se enlaza un usuario.
-//
-// El nombre no se toca acá: es el del usuario, y se actualiza solo cuando el
-// admin lo renombra en Usuarios.
-//
-// Lo de enlazar es para las filas viejas sin usuario: las que dejó el importador
-// de localStorage (db/importar-localstorage.js), que venía de una época en la
-// que el equipo eran nombres sueltos. Se las adopta en vez de crearlas de nuevo
-// para no perder el historial: las tareas ya asignadas apuntan a ESE id, así que
-// dar de baja la fila y crear otra dejaría las asignaciones viejas colgando de
-// alguien dado de baja.
-//
-// Una fila que ya tiene usuario no se puede reasignar a otro: sería quedarse con
-// el nombre de uno y el usuario de otro, justo lo que la regla evita. Para eso
-// está la baja, que libera al usuario y permite volver a sumarlo.
+// Solo se edita el rol de producción. El nombre es el del usuario y se
+// actualiza solo cuando el admin lo renombra en Usuarios.
 router.put('/:id', requireAdmin, async (req, res) => {
-  const { rol, usuario_id } = req.body || {};
-  const actual = await pool.query(
-    'SELECT id, usuario_id FROM equipo WHERE id = $1 AND activo = true', [req.params.id]
-  );
-  if (actual.rows.length === 0) return res.status(404).json({ error: 'Persona no encontrada.' });
-
-  if (usuario_id && actual.rows[0].usuario_id) {
-    return res.status(409).json({ error: 'Esta persona ya tiene un usuario enlazado.' });
-  }
-
-  if (usuario_id) {
-    const chequeo = await usuarioSumable(usuario_id);
-    if (chequeo.error) return res.status(chequeo.status).json({ error: chequeo.error });
-    try {
-      const result = await pool.query(
-        `UPDATE equipo SET rol = $1, usuario_id = $2, nombre = $3 WHERE id = $4 AND activo = true
-         RETURNING id, nombre, COALESCE(rol,'') AS rol, usuario_id`,
-        [rol || null, usuario_id, chequeo.usuario.nombre, req.params.id]
-      );
-      return res.json(result.rows[0]);
-    } catch (err) {
-      if (err.code === '23505') return res.status(409).json({ error: 'Esa persona ya está en el equipo.' });
-      throw err;
-    }
-  }
-
   const result = await pool.query(
     `UPDATE equipo SET rol = $1 WHERE id = $2 AND activo = true
      RETURNING id, nombre, COALESCE(rol,'') AS rol, usuario_id`,
-    [rol || null, req.params.id]
+    [(req.body || {}).rol || null, req.params.id]
   );
+  if (result.rows.length === 0) return res.status(404).json({ error: 'Persona no encontrada.' });
   res.json(result.rows[0]);
 });
 

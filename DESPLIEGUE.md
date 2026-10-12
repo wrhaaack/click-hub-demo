@@ -37,7 +37,10 @@ CLI: `npm i -g @railway/cli`, después `railway login`, `railway init` y
 ## 2. Crear el proyecto y la base
 
 1. En Railway: **New Project → Deploy from GitHub repo** y elegí el repo.
-   Railway detecta que es Node y lo despliega solo. El primer intento va a
+   Railway detecta que es Node y lo despliega solo: instala, corre
+   `npm run build` (compila la app de Vue a `web/dist`) y después `npm start`.
+   Vite está en `dependencies` y no en `devDependencies` a propósito: con
+   `NODE_ENV=production` las de desarrollo no se instalan y el build fallaría. El primer intento va a
    fallar o quedar reiniciándose: todavía no tiene base ni variables. Es normal.
 2. Dentro del **mismo proyecto**: **New → Database → Add PostgreSQL**.
 
@@ -103,7 +106,7 @@ railway run --service TU-APP -- node -e "console.log(process.env.DATABASE_URL ? 
 | No la agregues | Por qué |
 |---|---|
 | `PORT` | La asigna Railway. Si la fijás, el healthcheck no encuentra la app. |
-| `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NOMBRE`, `ADMIN_ROL` | Solo las lee `db/seed-admin.js`, que corrés una vez (paso 5). Como variables fijas te dejan la contraseña del admin guardada para siempre. |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NOMBRE` | Se cargan recién en el paso 4 y se borran apenas entrás. Fijas te dejan la contraseña del admin guardada para siempre. |
 | `PGLOCAL_PORT` | Solo sirve para el Postgres embebido de tu compu. |
 | `DATABASE_SSL` | Una escotilla de escape. Con la URL privada el código decide solo. |
 
@@ -140,7 +143,7 @@ Cargá **dos variables más** en el servicio de la app:
 Guardá, esperá el redeploy, y en los logs vas a ver:
 
 ```
-Base vacía: esquema aplicado (11 tablas).
+Base vacía: esquema aplicado (14 tablas).
 
 Primer usuario creado: vos@tuestudio.com (administrador).
 ```
@@ -159,25 +162,13 @@ nuevo en cada arranque no toca lo que ya está — solo agrega lo que falte.
 Si hay más de una réplica levantando a la vez, un lock de Postgres hace que solo
 una aplique el esquema y la otra espere.
 
-### Si preferís hacerlo a mano
+### Si nadie puede entrar
 
-Los scripts siguen ahí: `npm run db:init` y `npm run seed:admin`. Ojo que desde
-tu compu **no llegás a la base**: vive en la red privada de Railway. Para llegar
-hay que abrir un proxy TCP temporal:
-
-```bash
-railway tcp-proxy add --service Postgres --port 5432
-```
-
-Eso te da un `host:puerto` público. Con eso:
-
-```bash
-$env:DATABASE_URL="postgresql://postgres:LA-CLAVE@EL-HOST:EL-PUERTO/railway"; $env:DATABASE_SSL="on"; npm run db:init
-```
-
-La clave sale de `railway variables --service Postgres --kv`. **Cerrá el proxy
-al terminar** (`railway tcp-proxy delete --service Postgres <ID>`): mientras esté
-abierto, tu base es accesible desde internet.
+`npm run seed:admin` crea un admin o le pone contraseña nueva a uno existente
+(ver el encabezado de `db/seed-admin.js`). Ojo que desde tu compu **no llegás a
+la base**: vive en la red privada de Railway. Corrélo dentro del servicio con
+`railway run --service TU-APP npm run seed:admin`, con `ADMIN_EMAIL` y
+`ADMIN_PASSWORD` puestas solo para ese comando.
 
 ---
 
@@ -203,11 +194,11 @@ una dirección tipo `tu-app.up.railway.app`. Entrás ahí y tenés el login.
 
 Entrá al dominio y fijate:
 
-- [ ] `/` te lleva al login (no muestra el hub sin sesión).
-- [ ] Entrás con el usuario del paso 4 y ves el hub con el mes actual.
+- [ ] `/` te lleva a `/app/login` (sin sesión no se ve nada más).
+- [ ] Entrás con el usuario del paso 4 y ves el Dashboard con el mes actual.
 - [ ] Creás un cliente y sigue estando después de recargar.
 - [ ] En **Usuarios** aparecen las dos pestañas: Usuarios y Permisos por rol.
-- [ ] Abrís el hub en otro navegador (o de incógnito) sin sesión y te rebota.
+- [ ] Abrís `/app/clientes` de incógnito, sin sesión, y te manda al login.
 
 ---
 
@@ -230,22 +221,11 @@ Los logs están en el servicio de la app, pestaña **Deployments** → el deploy
 ## Después del primer despliegue
 
 - **Actualizar la app**: `git push` y Railway redespliega solo.
-- **Si ya tenías datos** de la versión anterior del hub (la que guardaba todo en
-  el navegador), mirá `db/importar-localstorage.js`.
-- **Si venías de una versión anterior de esta app**, corré una vez las
-  migraciones. **Casi nunca hace falta**: la app aplica `db/schema.sql` en cada
-  arranque, y ese archivo crea las tablas que falten y agrega las columnas que
-  falten (bloque PUESTA AL DÍA), tanto en una base nueva como en una vieja.
-
-  Esto último se agregó después de que un despliegue saliera sin un solo error y
-  la app se cayera igual con `column "a_pagar" does not exist`: hasta entonces el
-  arranque solo creaba tablas nuevas, y una columna agregada a una tabla que ya
-  existía no llegaba nunca.
-
-  Las únicas que todavía hacen algo que el arranque no hace son las que **borran**
-  cosas, porque `schema.sql` no borra nada: `db/migracion-quitar-historial-comunicacion.sql`
-  (**ojo, borra el chat y las notas por cliente**) y `db/migracion-quitar-google.sql`
-  (saca la tabla de la integración con Google; el calendario en sí se conserva).
-  Correrlas es opcional: sin ellas quedan un par de tablas sin uso, nada más.
+- **Si ya había una base de la versión anterior**: esta versión arranca de cero.
+  Borrá el servicio de Postgres y creá uno nuevo (paso 2), o vaciá la base.
+  `schema.sql` no modifica tablas que ya existen, así que sobre una base vieja
+  faltarían columnas.
+- **Si cambiás el esquema más adelante** con datos reales cargados, el
+  `ALTER TABLE` va a mano (ver el encabezado de `db/schema.sql`).
 - **Backups**: el servicio de Postgres en Railway tiene su propia pestaña de
   backups. Vale la pena dejarlos activados.

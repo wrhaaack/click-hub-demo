@@ -1,8 +1,7 @@
 // GET /api/estado — todo lo que el hub necesita para dibujarse, de una sola vez.
 //
-// Devuelve exactamente las mismas estructuras que antes vivían en localStorage
-// (clientes, tareas, ideas, equipo, estudio, fechas), así que
-// la pantalla no tuvo que cambiar de forma: solo cambió de dónde salen los datos.
+// La app pide todo de una al arrancar y después cada acción manda su propio
+// pedido chico.
 //
 // Lo que el usuario no puede ver por permisos no se manda: si alguien tiene
 // "sin acceso" a Clientes, sus datos no llegan ni siquiera al navegador.
@@ -10,7 +9,7 @@
 const { crearRouter } = require('../lib/router');
 const { pool } = require('../db');
 const { requireAuth, tieneAcceso, nivelDe, SECCIONES } = require('../middleware/auth');
-const { todasLasTareas } = require('../lib/consultas');
+const { todasLasTareas, todasLasPautas } = require('../lib/consultas');
 
 const router = crearRouter();
 router.use(requireAuth);
@@ -28,12 +27,15 @@ router.get('/', async (req, res) => {
       `SELECT id, nombre, COALESCE(ig,'') AS ig, COALESCE(contacto,'') AS contacto,
               COALESCE(tel,'') AS tel, links, COALESCE(notas,'') AS notas,
               a_pagar::float8 AS "aPagar", estado_pago AS "estadoPago",
-              abonado::float8 AS abonado
+              abonado::float8 AS abonado, tipo,
+              to_char(proxima_actualizacion, 'YYYY-MM-DD') AS "proximaActualizacion",
+              puntajes
        FROM clientes WHERE activo = true ORDER BY nombre ASC`
     ),
     pool.query('SELECT id, nombre, COALESCE(rol, \'\') AS rol FROM equipo WHERE activo = true ORDER BY id ASC'),
-    pool.query(`SELECT valor FROM configuracion WHERE clave = 'estudio'`),
+    pool.query(`SELECT clave, valor FROM configuracion WHERE clave IN ('estudio', 'tarifas')`),
   ]);
+  const config = Object.fromEntries(estudioRes.rows.map((r) => [r.clave, r.valor]));
 
   // Casi todas las vistas nombran clientes (el calendario, la delegación, el
   // brainstorming). Sin acceso a Clientes igual se manda la lista reducida — id y nombre,
@@ -47,6 +49,7 @@ router.get('/', async (req, res) => {
       id: c.id, nombre: c.nombre, ig: '', contacto: '', tel: '', links: [], notas: '',
       // El cobro no viaja en la lista reducida: es plata, no un nombre.
       aPagar: null, estadoPago: 'pendiente', abonado: null,
+      tipo: c.tipo, proximaActualizacion: null, puntajes: {},
     })) : []);
 
   // Tareas: se necesitan en Clientes, Calendario y Delegación. Si no tiene
@@ -109,7 +112,7 @@ router.get('/', async (req, res) => {
     : [];
 
   const estudio = puede('estudio')
-    ? (estudioRes.rows[0]?.valor || { nombre: 'Click', ig: '', email: '', tel: '', wa: '', links: [], notas: '' })
+    ? (config.estudio || { nombre: 'Click', ig: '', email: '', tel: '', wa: '', links: [], notas: '' })
     : null;
 
   res.json({
@@ -131,6 +134,10 @@ router.get('/', async (req, res) => {
     eventos,
     etapas,
     estudio,
+    // Las tarifas las necesita cualquiera que cargue una tarea (sugieren el
+    // monto según el nivel). La pauta es plata de clientes: va con Clientes.
+    tarifas: config.tarifas || null,
+    pautas: puede('clientes') ? await todasLasPautas() : [],
   });
 });
 

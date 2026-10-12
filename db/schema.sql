@@ -1,27 +1,25 @@
 -- ============================================================
 -- CLICK HUB · Esquema de base de datos
--- Lo corre src/lib/arranque.js en CADA arranque del servidor, no una sola vez.
--- Por eso todo acá adentro tiene que poder repetirse sin efecto: CREATE ... IF
--- NOT EXISTS, ADD COLUMN IF NOT EXISTS y ON CONFLICT DO NOTHING de punta a punta.
+-- Lo corre src/lib/arranque.js en CADA arranque del servidor, así que todo
+-- tiene que poder repetirse sin efecto: CREATE ... IF NOT EXISTS y
+-- ON CONFLICT DO NOTHING de punta a punta.
+--
+-- Ojo: CREATE TABLE IF NOT EXISTS no toca una tabla que ya existe. Si cambiás
+-- una columna, en una base que ya tiene datos hay que agregar el ALTER a mano.
 --
 -- Convención de IDs:
---   usuarios  -> UUID (igual que en el proyecto base: es lo que viaja en la sesión)
---   el resto  -> BIGSERIAL, porque la interfaz del hub trabaja con ids numéricos
---                (clientes, tareas, equipo, eventos...) y así no hay que
---                traducir nada entre el front y la base.
+--   usuarios  -> UUID (es lo que viaja en la sesión)
+--   el resto  -> BIGSERIAL (src/db.js los convierte a número para la pantalla)
+--
+-- La plata va siempre en NUMERIC y no en float: con dinero, 0.1 + 0.2 no puede
+-- dar 0.30000000000000004.
 -- ============================================================
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto; -- para gen_random_uuid()
+CREATE EXTENSION IF NOT EXISTS pgcrypto; -- gen_random_uuid()
 
 -- ---------- ROLES (Editor, Diseñadora, CM, SMM...) ----------
--- Cumplen dos funciones a la vez:
---   1. Etiquetan las tareas y las personas del equipo (el "orden" define el
---      color que les toca en el calendario).
---   2. Llevan los permisos. Cada usuario tiene un rol asignado y hereda de ahí
---      lo que puede ver y tocar, sin configurarle nada a mano.
--- Formato de permisos: {"clientes":"full|limitado|sin_acceso", "tareas":"...", ...}
---
--- Van antes que usuarios porque usuarios los referencia.
+-- Etiquetan tareas y personas, y llevan los permisos: cada usuario hereda los
+-- de su rol. Formato: {"clientes":"full|limitado|sin_acceso", ...}
 CREATE TABLE IF NOT EXISTS roles (
   id        BIGSERIAL PRIMARY KEY,
   nombre    TEXT NOT NULL UNIQUE,
@@ -30,8 +28,8 @@ CREATE TABLE IF NOT EXISTS roles (
 );
 
 -- ---------- USUARIOS ----------
--- No hay registro público: el primero se crea con db/seed-admin.js y desde ahí
--- se administran el resto en la pantalla de Usuarios.
+-- No hay registro público: el primero lo crea el arranque con ADMIN_EMAIL y
+-- ADMIN_PASSWORD, y el resto se da de alta en la pantalla Usuarios.
 CREATE TABLE IF NOT EXISTS usuarios (
   id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email          TEXT UNIQUE NOT NULL,
@@ -39,61 +37,56 @@ CREATE TABLE IF NOT EXISTS usuarios (
   nombre         TEXT NOT NULL,
   rol            TEXT NOT NULL CHECK (rol IN ('admin', 'empleado')),
   activo         BOOLEAN NOT NULL DEFAULT true,
-  -- De qué rol hereda los permisos. NULL = sin rol = sin acceso a nada
-  -- (salvo que sea admin, que siempre tiene todo).
+  -- De qué rol hereda los permisos. NULL = sin acceso a nada (salvo admin).
   rol_id         BIGINT REFERENCES roles(id) ON DELETE SET NULL,
-  -- Excepciones a lo que dice el rol, solo para esta persona. Las secciones que
-  -- NO estén acá se heredan del rol; las que estén, lo pisan. Un {} vacío
-  -- significa "exactamente lo que dice mi rol".
+  -- Excepciones a lo que dice el rol, solo para esta persona.
   permisos       JSONB NOT NULL DEFAULT '{}',
   creado_en      TIMESTAMPTZ NOT NULL DEFAULT now(),
   ultimo_login   TIMESTAMPTZ
 );
 
--- ---------- EQUIPO (las personas a las que se les asignan tareas) ----------
--- usuario_id es opcional: podés tener a alguien en el equipo que todavía no
--- tenga login. Si lo tiene, se le pueden mandar notificaciones.
+-- ---------- EQUIPO (a quiénes se les asignan tareas) ----------
+-- Solo entra gente con usuario. El nombre es una copia del del usuario (se
+-- actualiza al renombrarlo) para que las tareas lo lean sin otro JOIN. La baja
+-- es lógica y libera el usuario_id, así las tareas viejas siguen mostrando el
+-- nombre y la persona se puede volver a sumar.
 CREATE TABLE IF NOT EXISTS equipo (
   id          BIGSERIAL PRIMARY KEY,
   nombre      TEXT NOT NULL,
   rol         TEXT,
   usuario_id  UUID REFERENCES usuarios(id) ON DELETE SET NULL,
   activo      BOOLEAN NOT NULL DEFAULT true,
-  creado_en   TIMESTAMPTZ NOT NULL DEFAULT now()
+  creado_en   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (activo = false OR usuario_id IS NOT NULL)
 );
 
--- ---------- CLIENTES ----------
--- links guarda [{"label":"Drive","url":"https://..."}] tal cual lo edita la ficha.
+-- ---------- CLIENTES (y prospectos) ----------
+-- Un prospecto es un presupuesto que todavía no arrancó. Vive en la misma
+-- tabla para que pasarlo a cliente sea cambiar "tipo" y no copiar datos.
 CREATE TABLE IF NOT EXISTS clientes (
-  id          BIGSERIAL PRIMARY KEY,
-  nombre      TEXT NOT NULL,
-  ig          TEXT,
-  contacto    TEXT,
-  tel         TEXT,
-  links       JSONB NOT NULL DEFAULT '[]',
-  notas       TEXT,
-  -- Cobro del cliente. a_pagar es NUMERIC y no float: con dinero, 0.1 + 0.2 no
-  -- puede dar 0.30000000000000004. NULL = todavía no se acordó un monto, que es
-  -- distinto de 0 (acordado y sin cargo).
-  a_pagar     NUMERIC(12,2),
-  -- Antes esto era un booleano "pagado". Se volvió un estado porque la realidad
-  -- tiene tres casos, no dos: todavía no pagó, pagó una parte, pagó todo.
-  estado_pago TEXT NOT NULL DEFAULT 'pendiente'
-              CHECK (estado_pago IN ('pendiente','parcial','pagado')),
-  -- Cuánto abonó, y solo tiene sentido cuando el estado es 'parcial': si pagó
-  -- todo, el monto es a_pagar, y si no pagó nada, es cero. Guardarlo en los
-  -- otros dos casos abriría la puerta a que diga una cosa y el estado otra.
-  abonado     NUMERIC(12,2),
-  activo      BOOLEAN NOT NULL DEFAULT true,
-  creado_por  UUID REFERENCES usuarios(id) ON DELETE SET NULL,
-  creado_en   TIMESTAMPTZ NOT NULL DEFAULT now(),
-  -- Con nombre para que la puesta al día pueda preguntar si ya está.
-  CONSTRAINT clientes_abonado_ok CHECK (estado_pago = 'parcial' OR abonado IS NULL)
+  id                    BIGSERIAL PRIMARY KEY,
+  nombre                TEXT NOT NULL,
+  tipo                  TEXT NOT NULL DEFAULT 'cliente' CHECK (tipo IN ('cliente','prospecto')),
+  ig                    TEXT,
+  contacto              TEXT,
+  tel                   TEXT,
+  links                 JSONB NOT NULL DEFAULT '[]',   -- [{"label":"Drive","url":"https://..."}]
+  notas                 TEXT,
+  -- Abono mensual. NULL = todavía no se acordó, que no es lo mismo que 0.
+  a_pagar               NUMERIC(12,2),
+  estado_pago           TEXT NOT NULL DEFAULT 'pendiente' CHECK (estado_pago IN ('pendiente','parcial','pagado')),
+  -- Cuánto abonó: solo tiene sentido en 'parcial' (en los otros dos lo dice el estado).
+  abonado               NUMERIC(12,2),
+  proxima_actualizacion DATE,                          -- cuándo toca el próximo aumento
+  puntajes              JSONB NOT NULL DEFAULT '{}',   -- los del cotizador: {"estrategia":3,...}
+  activo                BOOLEAN NOT NULL DEFAULT true,
+  creado_por            UUID REFERENCES usuarios(id) ON DELETE SET NULL,
+  creado_en             TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (estado_pago = 'parcial' OR abonado IS NULL)
 );
 
 -- ---------- TAREAS ----------
--- fecha = fecha de publicación (es la que agrupa el mes que se está viendo).
--- fecha_limite = deadline interno del equipo.
+-- fecha = publicación (agrupa el mes), fecha_limite = deadline interno.
 CREATE TABLE IF NOT EXISTS tareas (
   id             BIGSERIAL PRIMARY KEY,
   cliente_id     BIGINT NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
@@ -105,22 +98,40 @@ CREATE TABLE IF NOT EXISTS tareas (
   notas          TEXT,
   estado         TEXT NOT NULL DEFAULT 'pendiente'
                  CHECK (estado IN ('pendiente','en progreso','revisión','listo','cumplido')),
+  -- Lo que se le paga a quien la hace: nivel de la pieza (N1/N2/N3) y monto.
+  -- El monto se guarda y no se calcula: si sube la tarifa, lo ya hecho sigue
+  -- valiendo lo que valía.
+  nivel          TEXT CHECK (nivel IN ('N1','N2','N3')),
+  monto          NUMERIC(12,2),
   pagado         BOOLEAN NOT NULL DEFAULT false,
   creado_por     UUID REFERENCES usuarios(id) ON DELETE SET NULL,
   creado_en      TIMESTAMPTZ NOT NULL DEFAULT now(),
   actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Una tarea puede estar asignada a varias personas del equipo.
 CREATE TABLE IF NOT EXISTS tarea_asignados (
   tarea_id   BIGINT NOT NULL REFERENCES tareas(id) ON DELETE CASCADE,
   miembro_id BIGINT NOT NULL REFERENCES equipo(id) ON DELETE CASCADE,
   PRIMARY KEY (tarea_id, miembro_id)
 );
 
+-- ---------- PAUTA PUBLICITARIA (una fila por cliente y mes) ----------
+-- El "Mes N" del cliente no se guarda: sale de contar sus filas.
+CREATE TABLE IF NOT EXISTS pautas (
+  id            BIGSERIAL PRIMARY KEY,
+  cliente_id    BIGINT NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+  periodo       DATE NOT NULL,   -- día 1 del mes
+  pauta         NUMERIC(12,2) NOT NULL DEFAULT 0,   -- inversión en anuncios
+  capacitacion  NUMERIC(12,2) NOT NULL DEFAULT 0,
+  fee_click     NUMERIC(12,2) NOT NULL DEFAULT 0,   -- lo que cobra Click por gestionarla
+  nota          TEXT,
+  pagado        BOOLEAN NOT NULL DEFAULT false,
+  creado_en     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (cliente_id, periodo)
+);
+
 -- ---------- BRAINSTORM (ideas + links de inspiración, por mes) ----------
--- cliente_id NULL = el bloque de "ideas generales del mes".
--- periodo es siempre el día 1 del mes al que pertenecen.
+-- cliente_id NULL = las ideas generales del mes. periodo = día 1 del mes.
 CREATE TABLE IF NOT EXISTS brainstorm (
   id             BIGSERIAL PRIMARY KEY,
   cliente_id     BIGINT REFERENCES clientes(id) ON DELETE CASCADE,
@@ -140,35 +151,10 @@ CREATE TABLE IF NOT EXISTS fechas_especiales (
   orden       INT NOT NULL DEFAULT 0
 );
 
-
--- ---------- ACTIVIDAD (el registro de todo lo que pasa) ----------
--- Es lo que alimenta "Últimas actividades" del dashboard. Va aparte de
--- notificaciones porque son cosas distintas: una notificación es una copia por
--- persona que se marca leída y se puede ocultar; esto es el registro del hecho,
--- uno solo, que no se toca.
-CREATE TABLE IF NOT EXISTS actividad (
-  id          BIGSERIAL PRIMARY KEY,
-  tipo        TEXT NOT NULL,   -- cliente_nuevo | tarea_editada | usuario_nuevo | evento_borrado...
-  accion      TEXT NOT NULL CHECK (accion IN ('alta', 'edicion', 'baja')),
-  entidad     TEXT,            -- cliente | tarea | usuario | evento | etapa
-  entidad_id  BIGINT,          -- NULL para usuarios, que usan UUID
-  descripcion TEXT NOT NULL,   -- el texto tal como se muestra
-  usuario_id  UUID REFERENCES usuarios(id) ON DELETE SET NULL,
-  autor       TEXT NOT NULL,   -- copia del nombre, para que sobreviva al usuario
-  creado_en   TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
 -- ---------- EVENTOS DEL CALENDARIO ----------
--- Cosas que pasan y no son tareas de un cliente: una reunión, una grabación, un
--- feriado del estudio, un viaje de tres días. Van en el calendario junto a las
--- tareas pero dibujados como barras, con el color que se les eligió.
---
--- Todo lo opcional acá significa algo:
---   hasta NULL        -> el evento dura un solo día (el de "desde");
---   hora_inicio NULL  -> es de todo el día, sin horario.
---
--- El autor se copia como texto además del usuario_id para que el evento siga
--- diciendo quién lo creó aunque después se dé de baja a esa persona.
+-- Lo que pasa y no es tarea de un cliente: reuniones, grabaciones, feriados.
+-- hasta NULL = un solo día; hora_inicio NULL = todo el día. El color es una
+-- clave de la paleta (web/src/lib/colores.js) y no un hex libre.
 CREATE TABLE IF NOT EXISTS eventos (
   id           BIGSERIAL PRIMARY KEY,
   titulo       TEXT NOT NULL,
@@ -177,47 +163,63 @@ CREATE TABLE IF NOT EXISTS eventos (
   hora_inicio  TIME,
   hora_fin     TIME,
   descripcion  TEXT,
-  -- Una clave de la paleta, igual que en etapas: el que carga no puede elegir un
-  -- color ilegible y la exportación dibuja lo mismo que la pantalla. 'violeta'
-  -- es el que tenían todos los eventos antes de que se pudiera elegir, así que
-  -- los que ya estaban no cambian de aspecto.
   color        TEXT NOT NULL DEFAULT 'violeta'
                CHECK (color IN ('azul','rosa','ambar','verde','violeta','turquesa')),
   usuario_id   UUID REFERENCES usuarios(id) ON DELETE SET NULL,
-  autor        TEXT NOT NULL,
+  autor        TEXT NOT NULL,   -- copia del nombre, para que sobreviva al usuario
   creado_en    TIMESTAMPTZ NOT NULL DEFAULT now(),
-  -- Con nombre para que la puesta al día pueda preguntar si ya está.
-  CONSTRAINT eventos_hasta_ok CHECK (hasta IS NULL OR hasta >= desde)
+  CHECK (hasta IS NULL OR hasta >= desde)
 );
 
 -- ---------- ETAPAS (la planificación que se le muestra al cliente) ----------
--- El calendario del equipo y el del cliente son dos cosas distintas a propósito.
--- El del equipo tiene tareas y eventos, con nombres internos. Este tiene tramos
--- que duran varios días ("Diseño", "Grabación", "Revisión") escritos para que
--- los lea el cliente, y es lo que se exporta como imagen para mostrárselo.
---
--- Por eso no salen de las tareas: lo que el equipo escribe para trabajar no es
--- lo que se le muestra a un cliente.
+-- Tramos de varios días escritos para el cliente ("Diseño", "Grabación"), que
+-- se exportan como imagen. No salen de las tareas a propósito: lo que el
+-- equipo escribe para trabajar no es lo que se le muestra a un cliente.
 CREATE TABLE IF NOT EXISTS etapas (
   id          BIGSERIAL PRIMARY KEY,
   cliente_id  BIGINT NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
   titulo      TEXT NOT NULL,
   desde       DATE NOT NULL,
   hasta       DATE NOT NULL,
-  -- Una clave de la paleta y no un color libre: así el que arma la planificación
-  -- no puede elegir un color ilegible, y la exportación puede dibujar los mismos
-  -- colores que la pantalla sin que viaje ningún hex.
   color       TEXT NOT NULL DEFAULT 'azul'
               CHECK (color IN ('azul','rosa','ambar','verde','violeta','turquesa')),
   nota        TEXT,
   creado_por  UUID REFERENCES usuarios(id) ON DELETE SET NULL,
   creado_en   TIMESTAMPTZ NOT NULL DEFAULT now(),
-  -- Una etapa que termina antes de empezar no se puede dibujar. Se corta acá y
-  -- no solo en el navegador: la base es la que tiene que quedar consistente.
   CHECK (hasta >= desde)
 );
 
--- ---------- CONFIGURACION (clave/valor: los datos del estudio) ----------
+-- ---------- ACTIVIDAD (el registro de lo que pasa, para el dashboard) ----------
+-- Una fila por hecho, que no se toca. Las notificaciones son otra cosa: una
+-- copia por persona que se marca leída.
+CREATE TABLE IF NOT EXISTS actividad (
+  id          BIGSERIAL PRIMARY KEY,
+  tipo        TEXT NOT NULL,   -- cliente_nuevo | tarea_editada | evento_borrado...
+  accion      TEXT NOT NULL CHECK (accion IN ('alta', 'edicion', 'baja')),
+  entidad     TEXT,            -- cliente | tarea | usuario | evento | etapa
+  entidad_id  BIGINT,
+  descripcion TEXT NOT NULL,
+  usuario_id  UUID REFERENCES usuarios(id) ON DELETE SET NULL,
+  autor       TEXT NOT NULL,
+  creado_en   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ---------- NOTIFICACIONES ----------
+-- 'oculta' es el borrado blando: las alertas automáticas (src/lib/alertas.js)
+-- miran esta tabla para no avisar dos veces lo mismo, así que borrar la fila de
+-- verdad haría que el aviso vuelva.
+CREATE TABLE IF NOT EXISTS notificaciones (
+  id          BIGSERIAL PRIMARY KEY,
+  usuario_id  UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  tipo        TEXT NOT NULL,
+  mensaje     TEXT NOT NULL,
+  link        TEXT,            -- la pantalla a la que lleva: '/app/tareas'...
+  leida       BOOLEAN NOT NULL DEFAULT false,
+  oculta      BOOLEAN NOT NULL DEFAULT false,
+  creado_en   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ---------- CONFIGURACION (clave/valor) ----------
 CREATE TABLE IF NOT EXISTS configuracion (
   clave           TEXT PRIMARY KEY,
   valor           JSONB,
@@ -225,224 +227,41 @@ CREATE TABLE IF NOT EXISTS configuracion (
   actualizado_en  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- ---------- NOTIFICACIONES ----------
--- 'oculta' es el borrado blando: la fila se queda pero no se muestra más.
--- Hace falta porque revisarTareasVencidas() (src/lib/alertas.js) le pregunta a
--- esta misma tabla si ya avisó de una tarea; borrar la fila de verdad hace que
--- el aviso vuelva a generarse. Ocultarla lo silencia sin perder ese rastro.
-CREATE TABLE IF NOT EXISTS notificaciones (
-  id          BIGSERIAL PRIMARY KEY,
-  usuario_id  UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
-  tipo        TEXT NOT NULL, -- cliente_nuevo | tarea_asignada | tarea_vencida | cliente_sin_planificar
-  mensaje     TEXT NOT NULL,
-  link        TEXT,
-  leida       BOOLEAN NOT NULL DEFAULT false,
-  oculta      BOOLEAN NOT NULL DEFAULT false,
-  creado_en   TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-
--- ---------- PUESTA AL DÍA DE TABLAS QUE YA EXISTEN ----------
--- Todo lo de arriba es CREATE TABLE IF NOT EXISTS, y eso tiene un límite que
--- costó caro: sobre una tabla que YA existe no hace absolutamente nada. En una
--- base nueva el esquema queda completo, pero en una que ya estaba andando las
--- columnas nuevas nunca aparecen, y la app se cae con "column X does not exist".
---
--- Por eso este bloque repite cada columna como ALTER ... ADD COLUMN IF NOT
--- EXISTS. Sobre una base al día no hace nada; sobre una vieja, la completa. Es
--- lo que le permite a src/lib/arranque.js dejar la base usable en cada
--- despliegue sin que nadie corra nada a mano.
---
--- REGLA: si agregás una columna a una tabla de acá arriba, agregala también
--- acá abajo. La prueba probar-esquema.js falla si te la olvidás.
---
--- Solo van las columnas que se pueden agregar a una tabla con datos: o admiten
--- NULL, o son NOT NULL con DEFAULT. Una NOT NULL sin default no se puede sumar
--- después (no hay qué poner en las filas que ya están), así que esas viven
--- únicamente en el CREATE TABLE.
-
--- Renombres. Van primero porque lo de abajo ya habla del nombre nuevo.
---
--- eventos.fecha pasó a llamarse eventos.desde cuando los eventos dejaron de ser
--- de un solo día. Se renombró en vez de dejarlo así: un evento con rango y una
--- columna llamada "fecha" es una trampa para la próxima consulta que alguien
--- escriba, y ya había una tabla al lado (etapas) usando desde/hasta.
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM information_schema.columns
-              WHERE table_schema = 'public' AND table_name = 'eventos' AND column_name = 'fecha')
-     AND NOT EXISTS (SELECT 1 FROM information_schema.columns
-              WHERE table_schema = 'public' AND table_name = 'eventos' AND column_name = 'desde')
-  THEN
-    ALTER TABLE eventos RENAME COLUMN fecha TO desde;
-  END IF;
-END $$;
--- El índice viejo sigue funcionando tras el renombre, pero con un nombre que
--- miente. Se lo saca y más abajo se crea el que corresponde.
-DROP INDEX IF EXISTS idx_eventos_fecha;
-
-ALTER TABLE roles ADD COLUMN IF NOT EXISTS orden    INT   NOT NULL DEFAULT 0;
-ALTER TABLE roles ADD COLUMN IF NOT EXISTS permisos JSONB NOT NULL DEFAULT '{}';
-
-ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS activo       BOOLEAN NOT NULL DEFAULT true;
-ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS rol_id       BIGINT REFERENCES roles(id) ON DELETE SET NULL;
-ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS permisos     JSONB NOT NULL DEFAULT '{}';
-ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS creado_en    TIMESTAMPTZ NOT NULL DEFAULT now();
-ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ultimo_login TIMESTAMPTZ;
-
-ALTER TABLE equipo ADD COLUMN IF NOT EXISTS rol        TEXT;
-ALTER TABLE equipo ADD COLUMN IF NOT EXISTS usuario_id UUID REFERENCES usuarios(id) ON DELETE SET NULL;
-ALTER TABLE equipo ADD COLUMN IF NOT EXISTS activo     BOOLEAN NOT NULL DEFAULT true;
-ALTER TABLE equipo ADD COLUMN IF NOT EXISTS creado_en  TIMESTAMPTZ NOT NULL DEFAULT now();
-
-ALTER TABLE clientes ADD COLUMN IF NOT EXISTS ig         TEXT;
-ALTER TABLE clientes ADD COLUMN IF NOT EXISTS contacto   TEXT;
-ALTER TABLE clientes ADD COLUMN IF NOT EXISTS tel        TEXT;
-ALTER TABLE clientes ADD COLUMN IF NOT EXISTS links      JSONB NOT NULL DEFAULT '[]';
-ALTER TABLE clientes ADD COLUMN IF NOT EXISTS notas      TEXT;
-ALTER TABLE clientes ADD COLUMN IF NOT EXISTS a_pagar    NUMERIC(12,2);
-ALTER TABLE clientes ADD COLUMN IF NOT EXISTS estado_pago TEXT NOT NULL DEFAULT 'pendiente'
-       CHECK (estado_pago IN ('pendiente','parcial','pagado'));
-ALTER TABLE clientes ADD COLUMN IF NOT EXISTS abonado    NUMERIC(12,2);
-ALTER TABLE clientes ADD COLUMN IF NOT EXISTS activo     BOOLEAN NOT NULL DEFAULT true;
-ALTER TABLE clientes ADD COLUMN IF NOT EXISTS creado_por UUID REFERENCES usuarios(id) ON DELETE SET NULL;
-ALTER TABLE clientes ADD COLUMN IF NOT EXISTS creado_en  TIMESTAMPTZ NOT NULL DEFAULT now();
--- El booleano "pagado" se convierte en el estado nuevo y se va. Se hace en un
--- solo paso y preguntando primero, así se puede correr de nuevo sin problema:
--- después de la primera vez la columna ya no está y el bloque no hace nada.
---
--- Se BORRA a propósito en vez de dejarla al lado: dos columnas diciendo lo
--- mismo terminan diciendo cosas distintas. El dato no se pierde, se traduce.
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM information_schema.columns
-              WHERE table_schema = 'public' AND table_name = 'clientes' AND column_name = 'pagado')
-  THEN
-    UPDATE clientes SET estado_pago = 'pagado' WHERE pagado = true;
-    ALTER TABLE clientes DROP COLUMN pagado;
-  END IF;
-END $$;
--- "abonado" solo puede tener valor cuando el estado es 'parcial'. ADD CONSTRAINT
--- no tiene IF NOT EXISTS, así que se pregunta a mano.
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'clientes_abonado_ok') THEN
-    ALTER TABLE clientes ADD CONSTRAINT clientes_abonado_ok
-      CHECK (estado_pago = 'parcial' OR abonado IS NULL);
-  END IF;
-END $$;
-
-ALTER TABLE tareas ADD COLUMN IF NOT EXISTS rol            TEXT;
-ALTER TABLE tareas ADD COLUMN IF NOT EXISTS formato        TEXT;
-ALTER TABLE tareas ADD COLUMN IF NOT EXISTS fecha          DATE;
-ALTER TABLE tareas ADD COLUMN IF NOT EXISTS fecha_limite   DATE;
-ALTER TABLE tareas ADD COLUMN IF NOT EXISTS notas          TEXT;
-ALTER TABLE tareas ADD COLUMN IF NOT EXISTS estado         TEXT NOT NULL DEFAULT 'pendiente'
-       CHECK (estado IN ('pendiente','en progreso','revisión','listo','cumplido'));
-ALTER TABLE tareas ADD COLUMN IF NOT EXISTS pagado         BOOLEAN NOT NULL DEFAULT false;
-ALTER TABLE tareas ADD COLUMN IF NOT EXISTS creado_por     UUID REFERENCES usuarios(id) ON DELETE SET NULL;
-ALTER TABLE tareas ADD COLUMN IF NOT EXISTS creado_en      TIMESTAMPTZ NOT NULL DEFAULT now();
-ALTER TABLE tareas ADD COLUMN IF NOT EXISTS actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now();
-
-ALTER TABLE brainstorm ADD COLUMN IF NOT EXISTS cliente_id     BIGINT REFERENCES clientes(id) ON DELETE CASCADE;
-ALTER TABLE brainstorm ADD COLUMN IF NOT EXISTS ideas          JSONB NOT NULL DEFAULT '[]';
-ALTER TABLE brainstorm ADD COLUMN IF NOT EXISTS inspo          JSONB NOT NULL DEFAULT '[]';
-ALTER TABLE brainstorm ADD COLUMN IF NOT EXISTS actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now();
-
-ALTER TABLE fechas_especiales ADD COLUMN IF NOT EXISTS fecha DATE;
-ALTER TABLE fechas_especiales ADD COLUMN IF NOT EXISTS label TEXT;
-ALTER TABLE fechas_especiales ADD COLUMN IF NOT EXISTS orden INT NOT NULL DEFAULT 0;
-
-ALTER TABLE actividad ADD COLUMN IF NOT EXISTS entidad    TEXT;
-ALTER TABLE actividad ADD COLUMN IF NOT EXISTS entidad_id BIGINT;
-ALTER TABLE actividad ADD COLUMN IF NOT EXISTS usuario_id UUID REFERENCES usuarios(id) ON DELETE SET NULL;
-ALTER TABLE actividad ADD COLUMN IF NOT EXISTS creado_en  TIMESTAMPTZ NOT NULL DEFAULT now();
-
-ALTER TABLE eventos ADD COLUMN IF NOT EXISTS hasta       DATE;
-ALTER TABLE eventos ADD COLUMN IF NOT EXISTS hora_inicio TIME;
-ALTER TABLE eventos ADD COLUMN IF NOT EXISTS hora_fin    TIME;
-ALTER TABLE eventos ADD COLUMN IF NOT EXISTS descripcion TEXT;
-ALTER TABLE eventos ADD COLUMN IF NOT EXISTS color       TEXT NOT NULL DEFAULT 'violeta'
-       CHECK (color IN ('azul','rosa','ambar','verde','violeta','turquesa'));
-ALTER TABLE eventos ADD COLUMN IF NOT EXISTS usuario_id  UUID REFERENCES usuarios(id) ON DELETE SET NULL;
-ALTER TABLE eventos ADD COLUMN IF NOT EXISTS creado_en   TIMESTAMPTZ NOT NULL DEFAULT now();
--- ADD COLUMN IF NOT EXISTS no sirve para una restricción que mira dos columnas,
--- y ALTER TABLE ADD CONSTRAINT no tiene IF NOT EXISTS. Se pregunta a mano para
--- que se pueda correr de nuevo sin explotar.
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'eventos_hasta_ok') THEN
-    ALTER TABLE eventos ADD CONSTRAINT eventos_hasta_ok CHECK (hasta IS NULL OR hasta >= desde);
-  END IF;
-END $$;
-
-ALTER TABLE etapas ADD COLUMN IF NOT EXISTS color      TEXT NOT NULL DEFAULT 'azul'
-       CHECK (color IN ('azul','rosa','ambar','verde','violeta','turquesa'));
-ALTER TABLE etapas ADD COLUMN IF NOT EXISTS nota       TEXT;
-ALTER TABLE etapas ADD COLUMN IF NOT EXISTS creado_por UUID REFERENCES usuarios(id) ON DELETE SET NULL;
-ALTER TABLE etapas ADD COLUMN IF NOT EXISTS creado_en  TIMESTAMPTZ NOT NULL DEFAULT now();
-
-ALTER TABLE configuracion ADD COLUMN IF NOT EXISTS valor           JSONB;
-ALTER TABLE configuracion ADD COLUMN IF NOT EXISTS actualizado_por UUID REFERENCES usuarios(id) ON DELETE SET NULL;
-ALTER TABLE configuracion ADD COLUMN IF NOT EXISTS actualizado_en  TIMESTAMPTZ NOT NULL DEFAULT now();
-
-ALTER TABLE notificaciones ADD COLUMN IF NOT EXISTS link      TEXT;
-ALTER TABLE notificaciones ADD COLUMN IF NOT EXISTS leida     BOOLEAN NOT NULL DEFAULT false;
-ALTER TABLE notificaciones ADD COLUMN IF NOT EXISTS oculta    BOOLEAN NOT NULL DEFAULT false;
-ALTER TABLE notificaciones ADD COLUMN IF NOT EXISTS creado_en TIMESTAMPTZ NOT NULL DEFAULT now();
-
 -- ---------- ÍNDICES ----------
--- Van todos juntos y después de la puesta al día a propósito: un índice sobre
--- una columna que la base vieja todavía no tiene falla, así que primero se
--- completan las columnas y recién ahí se indexan.
-
 -- Dos índices en vez de un UNIQUE compuesto: en Postgres dos filas con
 -- cliente_id NULL no chocan entre sí, así que el bloque general necesita el suyo.
-CREATE UNIQUE INDEX IF NOT EXISTS idx_brainstorm_cliente
-  ON brainstorm(cliente_id, periodo) WHERE cliente_id IS NOT NULL;
-
-CREATE UNIQUE INDEX IF NOT EXISTS idx_brainstorm_general
-  ON brainstorm(periodo) WHERE cliente_id IS NULL;
-
+CREATE UNIQUE INDEX IF NOT EXISTS idx_brainstorm_cliente ON brainstorm(cliente_id, periodo) WHERE cliente_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_brainstorm_general ON brainstorm(periodo) WHERE cliente_id IS NULL;
+-- Un usuario no puede estar dos veces en el equipo. Parcial (solo activos)
+-- porque las bajas conservan la fila.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_equipo_usuario_activo ON equipo(usuario_id) WHERE activo = true;
+CREATE INDEX IF NOT EXISTS idx_tareas_cliente_fecha ON tareas(cliente_id, fecha);
+CREATE INDEX IF NOT EXISTS idx_tareas_fecha ON tareas(fecha);
+CREATE INDEX IF NOT EXISTS idx_tarea_asignados_miembro ON tarea_asignados(miembro_id);
 CREATE INDEX IF NOT EXISTS idx_fechas_cliente ON fechas_especiales(cliente_id, periodo);
-
-CREATE INDEX IF NOT EXISTS idx_actividad_fecha ON actividad(creado_en DESC);
-
 CREATE INDEX IF NOT EXISTS idx_eventos_desde ON eventos(desde);
-
--- Se consulta siempre por cliente y ordenado por fecha de inicio: es como se
--- dibuja la tira de la planificación.
 CREATE INDEX IF NOT EXISTS idx_etapas_cliente ON etapas(cliente_id, desde);
-
+CREATE INDEX IF NOT EXISTS idx_actividad_fecha ON actividad(creado_en DESC);
 CREATE INDEX IF NOT EXISTS idx_notificaciones_usuario ON notificaciones(usuario_id, leida, creado_en DESC);
 
-CREATE INDEX IF NOT EXISTS idx_tareas_cliente_fecha ON tareas(cliente_id, fecha);
-
-CREATE INDEX IF NOT EXISTS idx_tareas_fecha ON tareas(fecha);
-
-CREATE INDEX IF NOT EXISTS idx_tarea_asignados_miembro ON tarea_asignados(miembro_id);
-
--- Un mismo usuario no puede figurar dos veces en el equipo. Es un índice PARCIAL
--- (solo sobre los activos) porque las bajas conservan la fila para el historial:
--- si mirara todas, no se podría volver a sumar a alguien que ya salió una vez.
-CREATE UNIQUE INDEX IF NOT EXISTS idx_equipo_usuario_activo
-  ON equipo(usuario_id) WHERE activo = true AND usuario_id IS NOT NULL;
-
 -- ---------- DATOS INICIALES ----------
--- Los 4 roles con los que arranca el hub, con un permiso de arranque pensado
--- para gente de producción: ve todo lo que necesita para trabajar, mueve el
--- estado de sus tareas, aporta ideas y escribe en el chat, pero no crea ni
--- borra clientes ni tareas. El admin los ajusta desde la pantalla de Usuarios.
+-- Los 4 roles de arranque, pensados para gente de producción: ven lo que
+-- necesitan, mueven el estado de sus tareas y aportan ideas, pero no crean ni
+-- borran clientes ni tareas. El admin los ajusta en Usuarios → Permisos por rol.
 INSERT INTO roles (nombre, orden, permisos) VALUES
-  ('Editor',     0, '{"dashboard":"full","clientes":"limitado","tareas":"limitado","calendario":"full","brainstorm":"full","delegacion":"full","equipo":"sin_acceso","estudio":"limitado","usuarios":"sin_acceso"}'),
-  ('Diseñadora', 1, '{"dashboard":"full","clientes":"limitado","tareas":"limitado","calendario":"full","brainstorm":"full","delegacion":"full","equipo":"sin_acceso","estudio":"limitado","usuarios":"sin_acceso"}'),
-  ('CM',         2, '{"dashboard":"full","clientes":"limitado","tareas":"limitado","calendario":"full","brainstorm":"full","delegacion":"full","equipo":"sin_acceso","estudio":"limitado","usuarios":"sin_acceso"}'),
-  ('SMM',        3, '{"dashboard":"full","clientes":"limitado","tareas":"limitado","calendario":"full","brainstorm":"full","delegacion":"full","equipo":"sin_acceso","estudio":"limitado","usuarios":"sin_acceso"}')
+  ('Editor',     0, '{"dashboard":"full","clientes":"limitado","tareas":"limitado","calendario":"full","brainstorm":"full","delegacion":"full","estudio":"limitado"}'),
+  ('Diseñadora', 1, '{"dashboard":"full","clientes":"limitado","tareas":"limitado","calendario":"full","brainstorm":"full","delegacion":"full","estudio":"limitado"}'),
+  ('CM',         2, '{"dashboard":"full","clientes":"limitado","tareas":"limitado","calendario":"full","brainstorm":"full","delegacion":"full","estudio":"limitado"}'),
+  ('SMM',        3, '{"dashboard":"full","clientes":"limitado","tareas":"limitado","calendario":"full","brainstorm":"full","delegacion":"full","estudio":"limitado"}')
 ON CONFLICT (nombre) DO NOTHING;
 
 INSERT INTO configuracion (clave, valor) VALUES
-  ('estudio', '{"nombre":"Click","ig":"@click","email":"","tel":"","wa":"","links":[],"notas":""}')
+  ('estudio', '{"nombre":"Click","ig":"@click","email":"","tel":"","wa":"","links":[],"notas":""}'),
+  -- Tarifas y parámetros que vivían sueltos en las planillas:
+  --   diseno / video  -> lo que se paga por pieza, según nivel
+  --   puntoCotizador  -> cuánto vale cada punto del "Total Nivel"
+  --   topeEdicion     -> lo de edición no puede superar esta parte del abono
+  ('tarifas', '{"diseno":{"N1":10000,"N2":15000,"N3":20000},"video":{"N1":27700,"N2":41500,"N3":60000},"puntoCotizador":30000,"topeEdicion":0.3}')
 ON CONFLICT (clave) DO NOTHING;
 
--- La tabla de sesiones (express-session + connect-pg-simple) se crea sola en el
--- primer arranque del server (createTableIfMissing: true).
+-- La tabla de sesiones la crea connect-pg-simple en el primer arranque.

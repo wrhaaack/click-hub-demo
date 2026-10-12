@@ -123,7 +123,7 @@ router.post('/', requireSectionAccess('calendario', 'full'), async (req, res) =>
   );
   const ev = result.rows[0];
   await avisarAlEquipo(req.session, 'evento_nuevo',
-    `${req.session.nombre} agregó el evento ${comoSeLee(ev)}`, '/hub.html#calendario', null, ev.id);
+    `${req.session.nombre} agregó el evento ${comoSeLee(ev)}`, '/app/calendario', null, ev.id);
   res.status(201).json(ev);
 });
 
@@ -141,7 +141,7 @@ router.put('/:id', requireSectionAccess('calendario', 'full'), async (req, res) 
   if (result.rows.length === 0) return res.status(404).json({ error: 'Evento no encontrado.' });
   const ev = result.rows[0];
   await avisarAlEquipo(req.session, 'evento_editado',
-    `${req.session.nombre} editó el evento ${comoSeLee(ev)}`, '/hub.html#calendario', null, ev.id);
+    `${req.session.nombre} editó el evento ${comoSeLee(ev)}`, '/app/calendario', null, ev.id);
   res.json(ev);
 });
 
@@ -154,7 +154,7 @@ router.delete('/:id', requireSectionAccess('calendario', 'full'), async (req, re
 
   await pool.query('DELETE FROM eventos WHERE id = $1', [req.params.id]);
   await avisarAlEquipo(req.session, 'evento_borrado',
-    `${req.session.nombre} eliminó el evento ${comoSeLee(previo.rows[0])}`, '/hub.html#calendario');
+    `${req.session.nombre} eliminó el evento ${comoSeLee(previo.rows[0])}`, '/app/calendario');
   res.json({ ok: true });
 });
 
