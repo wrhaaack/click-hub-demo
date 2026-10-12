@@ -79,7 +79,7 @@ app.get('/api/cron/diario', async (req, res, next) => {
 // Cada archivo de src/routes es un tema, y cada uno pide sesión y el permiso de
 // su sección. La protección real de los datos vive acá, no en la pantalla.
 const RUTAS = ['auth', 'estado', 'dashboard', 'clientes', 'tareas', 'equipo', 'roles', 'brainstorm',
-  'fechas', 'eventos', 'etapas', 'estudio', 'notificaciones', 'usuarios', 'pautas', 'tarifas'];
+  'fechas', 'eventos', 'etapas', 'estudio', 'notificaciones', 'usuarios', 'pautas', 'tarifas', 'importar'];
 RUTAS.forEach((r) => app.use(`/api/${r}`, require(`./routes/${r}`)));
 app.use('/api', (req, res) => res.status(404).json({ error: 'Esa ruta no existe.' }));
 

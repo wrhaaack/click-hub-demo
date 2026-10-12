@@ -83,6 +83,7 @@ permisos; después cada acción manda su propio pedido chico.
 | `/api/estudio` | datos del estudio | `estudio` |
 | `/api/equipo`, `/api/roles`, `/api/usuarios` | personas, roles y cuentas | solo admin (el `GET` de equipo, quien ve tareas) |
 | `/api/notificaciones` | campanita | — |
+| `POST /api/importar` | carga en bloque clientes, pauta y tareas (una transacción, sin duplicar) | solo admin |
 
 ## Permisos
 
