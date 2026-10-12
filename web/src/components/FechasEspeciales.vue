@@ -44,4 +44,9 @@ function quitar(i) { st.fechasEspeciales[clave.value].splice(i, 1); guardar(); }
 <style scoped>
 .fe { display: grid; grid-template-columns: 170px 1fr 34px; gap: 8px; margin-bottom: 8px; }
 .nota { font-size: 13px; color: var(--hin); }
+
+@media (max-width: 600px) {
+  .fe { grid-template-columns: 1fr 34px; }
+  .fe input[type="date"] { grid-column: 1 / -1; }
+}
 </style>

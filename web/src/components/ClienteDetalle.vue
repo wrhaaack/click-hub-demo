@@ -247,4 +247,17 @@ async function borrarTarea(t) {
 .cc-esp { font-size: 11px; color: var(--amber); background: var(--amberbg); border-radius: 4px; padding: 1px 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 3px; }
 .cc-t { border: none; text-align: left; font-size: 11px; background: var(--sur2); color: var(--txt); border-radius: 4px; padding: 2px 5px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cc-t.hecha { opacity: .5; text-decoration: line-through; }
+
+@media (max-width: 900px) {
+  .cabeza { padding: 28px 16px 16px; }
+  .interna { padding: 0 16px; }
+  .cuerpo { padding: 14px 16px 24px; }
+  .cc { grid-template-columns: repeat(7, minmax(84px, 1fr)); overflow-x: auto; }
+}
+@media (max-width: 600px) {
+  .avatar.grande { width: 64px; height: 64px; font-size: 26px; }
+  .cabeza h2 { font-size: 19px; }
+  .datos { grid-template-columns: 1fr; gap: 14px; }
+  .botones .btn { flex: 1 1 auto; justify-content: center; }
+}
 </style>

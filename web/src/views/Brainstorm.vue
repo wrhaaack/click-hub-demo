@@ -105,4 +105,6 @@ const nombre = (cid) => st.clientes.find((c) => c.id === cid)?.nombre ?? '';
 .fila-in .sel { flex: 1; min-width: 0; padding: 6px 9px; font-size: 13px; }
 .fila-in.link .sel:first-child { flex: 0 0 34%; }
 @media (max-width: 700px) { .bs-grid { grid-template-columns: 1fr; } .bs-cols { grid-template-columns: 1fr; } }
+
+@media (max-width: 1100px) { .bs-grid { grid-template-columns: 1fr; } }
 </style>

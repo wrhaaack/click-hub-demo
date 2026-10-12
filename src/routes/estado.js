@@ -1,10 +1,14 @@
-// GET /api/estado — todo lo que el hub necesita para dibujarse, de una sola vez.
+// GET /api/estado — todo lo que la app necesita para dibujarse, de una sola vez.
 //
 // La app pide todo de una al arrancar y después cada acción manda su propio
 // pedido chico.
 //
 // Lo que el usuario no puede ver por permisos no se manda: si alguien tiene
 // "sin acceso" a Clientes, sus datos no llegan ni siquiera al navegador.
+//
+// Todas las consultas salen EN PARALELO: con la base lejos (Neon, Railway por
+// la red), cada una cuesta un viaje de ida y vuelta, y en fila se sumaban
+// segundos de "Cargando…".
 
 const { crearRouter } = require('../lib/router');
 const { pool } = require('../db');
@@ -14,6 +18,9 @@ const { todasLasTareas, todasLasPautas } = require('../lib/consultas');
 const router = crearRouter();
 router.use(requireAuth);
 
+const filas = (sql) => pool.query(sql).then((r) => r.rows);
+const nada = (valor) => Promise.resolve(valor);
+
 router.get('/', async (req, res) => {
   const ses = req.session;
   const puede = (seccion, nivel = 'limitado') => tieneAcceso(ses, seccion, nivel);
@@ -21,9 +28,16 @@ router.get('/', async (req, res) => {
   const permisos = {};
   Object.keys(SECCIONES).forEach((s) => { permisos[s] = nivelDe(ses, s); });
 
-  const [rolesRes, clientesRes, equipoRes, estudioRes] = await Promise.all([
-    pool.query('SELECT nombre FROM roles ORDER BY orden ASC, id ASC'),
-    pool.query(
+  // Casi todas las vistas nombran clientes (calendario, tareas, brainstorming).
+  // Sin acceso a Clientes igual se manda la lista reducida — id, nombre y tipo —
+  // para que esas pantallas no muestren filas anónimas.
+  const veClientes = puede('clientes');
+  const veNombres = veClientes || puede('calendario') || puede('delegacion') || puede('brainstorm');
+  const veTareas = veClientes || puede('calendario') || puede('delegacion');
+
+  const [roles, clientes, equipo, config, tareas, brainstorm, fechas, eventos, etapas, pautas] = await Promise.all([
+    filas('SELECT nombre FROM roles ORDER BY orden ASC, id ASC'),
+    veNombres ? filas(
       `SELECT id, nombre, COALESCE(ig,'') AS ig, COALESCE(contacto,'') AS contacto,
               COALESCE(tel,'') AS tel, links, COALESCE(notas,'') AS notas,
               a_pagar::float8 AS "aPagar", estado_pago AS "estadoPago",
@@ -31,89 +45,59 @@ router.get('/', async (req, res) => {
               to_char(proxima_actualizacion, 'YYYY-MM-DD') AS "proximaActualizacion",
               puntajes
        FROM clientes WHERE activo = true ORDER BY nombre ASC`
-    ),
-    pool.query('SELECT id, nombre, COALESCE(rol, \'\') AS rol FROM equipo WHERE activo = true ORDER BY id ASC'),
-    pool.query(`SELECT clave, valor FROM configuracion WHERE clave IN ('estudio', 'tarifas')`),
-  ]);
-  const config = Object.fromEntries(estudioRes.rows.map((r) => [r.clave, r.valor]));
-
-  // Casi todas las vistas nombran clientes (el calendario, la delegación, el
-  // brainstorming). Sin acceso a Clientes igual se manda la lista reducida — id y nombre,
-  // nada más — para que esas pantallas no queden mostrando filas anónimas. Los
-  // datos de contacto, los links y las notas del cliente solo viajan con acceso.
-  const veNombres = puede('clientes') || puede('calendario') || puede('delegacion')
-    || puede('brainstorm');
-  const clientesVisibles = puede('clientes')
-    ? clientesRes.rows
-    : (veNombres ? clientesRes.rows.map((c) => ({
-      id: c.id, nombre: c.nombre, ig: '', contacto: '', tel: '', links: [], notas: '',
-      // El cobro no viaja en la lista reducida: es plata, no un nombre.
-      aPagar: null, estadoPago: 'pendiente', abonado: null,
-      tipo: c.tipo, proximaActualizacion: null, puntajes: {},
-    })) : []);
-
-  // Tareas: se necesitan en Clientes, Calendario y Delegación. Si no tiene
-  // acceso a ninguna de esas, no se mandan.
-  const veTareas = puede('clientes') || puede('calendario') || puede('delegacion');
-  const tareas = veTareas ? await todasLasTareas() : [];
-
-  // ---------- Brainstorm: { '<cid>-YYYY-MM' | 'gen-YYYY-MM': {ideas, inspo} } ----------
-  const ideas = {};
-  if (puede('brainstorm')) {
-    const bs = await pool.query(
-      `SELECT cliente_id, to_char(periodo, 'YYYY-MM') AS periodo, ideas, inspo FROM brainstorm`
-    );
-    bs.rows.forEach((r) => {
-      const clave = (r.cliente_id === null ? 'gen' : r.cliente_id) + '-' + r.periodo;
-      ideas[clave] = { ideas: r.ideas || [], inspo: r.inspo || [] };
-    });
-  }
-
-  // ---------- Fechas especiales: { 'fe-<cid>-YYYY-MM': [{fecha,label}] } ----------
-  const fechasEspeciales = {};
-  if (puede('clientes')) {
-    const fe = await pool.query(
+    ) : nada([]),
+    (puede('equipo') || veTareas)
+      ? filas(`SELECT id, nombre, COALESCE(rol, '') AS rol FROM equipo WHERE activo = true ORDER BY id ASC`)
+      : nada([]),
+    filas(`SELECT clave, valor FROM configuracion WHERE clave IN ('estudio', 'tarifas')`),
+    veTareas ? todasLasTareas() : nada([]),
+    puede('brainstorm')
+      ? filas(`SELECT cliente_id, to_char(periodo, 'YYYY-MM') AS periodo, ideas, inspo FROM brainstorm`)
+      : nada([]),
+    veClientes ? filas(
       `SELECT id, cliente_id, to_char(periodo, 'YYYY-MM') AS periodo,
               to_char(fecha, 'YYYY-MM-DD') AS fecha, COALESCE(label,'') AS label
        FROM fechas_especiales ORDER BY orden ASC, id ASC`
-    );
-    fe.rows.forEach((r) => {
-      const clave = 'fe-' + r.cliente_id + '-' + r.periodo;
-      if (!fechasEspeciales[clave]) fechasEspeciales[clave] = [];
-      fechasEspeciales[clave].push({ id: r.id, fecha: r.fecha || '', label: r.label });
-    });
-  }
+    ) : nada([]),
+    // Eventos y etapas viajan todos: son pocos y así se cambia de mes sin pedir nada.
+    puede('calendario') ? filas(
+      `SELECT id, titulo, to_char(desde, 'YYYY-MM-DD') AS desde,
+              to_char(COALESCE(hasta, desde), 'YYYY-MM-DD') AS hasta,
+              to_char(hora_inicio, 'HH24:MI') AS "horaInicio",
+              to_char(hora_fin, 'HH24:MI') AS "horaFin",
+              COALESCE(descripcion, '') AS descripcion, color, autor
+       FROM eventos ORDER BY desde ASC, hora_inicio ASC NULLS FIRST`
+    ) : nada([]),
+    puede('calendario') ? filas(
+      `SELECT id, cliente_id AS "clienteId", titulo,
+              to_char(desde, 'YYYY-MM-DD') AS desde, to_char(hasta, 'YYYY-MM-DD') AS hasta,
+              color, COALESCE(nota, '') AS nota
+       FROM etapas ORDER BY desde ASC, id ASC`
+    ) : nada([]),
+    // La pauta es plata de clientes: va con Clientes.
+    veClientes ? todasLasPautas() : nada([]),
+  ]);
 
-  // ---------- Eventos del calendario ----------
-  // Viajan todos, como las fechas especiales: son pocos y así el hub puede
-  // cambiar de mes sin volver a pedirlos.
-  const eventos = puede('calendario')
-    ? (await pool.query(
-        `SELECT id, titulo, to_char(desde, 'YYYY-MM-DD') AS desde,
-                to_char(COALESCE(hasta, desde), 'YYYY-MM-DD') AS hasta,
-                to_char(hora_inicio, 'HH24:MI') AS "horaInicio",
-                to_char(hora_fin, 'HH24:MI') AS "horaFin",
-                COALESCE(descripcion, '') AS descripcion, color, autor
-         FROM eventos ORDER BY desde ASC, hora_inicio ASC NULLS FIRST`
-      )).rows
-    : [];
+  // Sin acceso a Clientes, ni el contacto ni el cobro llegan al navegador.
+  const clientesVisibles = veClientes ? clientes : clientes.map((c) => ({
+    id: c.id, nombre: c.nombre, tipo: c.tipo, ig: '', contacto: '', tel: '', links: [], notas: '',
+    aPagar: null, estadoPago: 'pendiente', abonado: null, proximaActualizacion: null, puntajes: {},
+  }));
 
-  // ---------- Etapas: la planificación que se le muestra al cliente ----------
-  // Van con Calendario, que es donde vive la pantalla. Viajan todas por lo mismo
-  // que los eventos: son pocas y así se cambia de cliente y de mes sin pedir nada.
-  const etapas = puede('calendario')
-    ? (await pool.query(
-        `SELECT id, cliente_id AS "clienteId", titulo,
-                to_char(desde, 'YYYY-MM-DD') AS desde,
-                to_char(hasta, 'YYYY-MM-DD') AS hasta,
-                color, COALESCE(nota, '') AS nota
-         FROM etapas ORDER BY desde ASC, id ASC`
-      )).rows
-    : [];
+  // { '<cid>-YYYY-MM' | 'gen-YYYY-MM': {ideas, inspo} }
+  const ideas = {};
+  brainstorm.forEach((r) => {
+    ideas[(r.cliente_id === null ? 'gen' : r.cliente_id) + '-' + r.periodo] = { ideas: r.ideas || [], inspo: r.inspo || [] };
+  });
 
-  const estudio = puede('estudio')
-    ? (config.estudio || { nombre: 'Click', ig: '', email: '', tel: '', wa: '', links: [], notas: '' })
-    : null;
+  // { 'fe-<cid>-YYYY-MM': [{id, fecha, label}] }
+  const fechasEspeciales = {};
+  fechas.forEach((r) => {
+    const clave = 'fe-' + r.cliente_id + '-' + r.periodo;
+    (fechasEspeciales[clave] ||= []).push({ id: r.id, fecha: r.fecha || '', label: r.label });
+  });
+
+  const conf = Object.fromEntries(config.map((r) => [r.clave, r.valor]));
 
   res.json({
     yo: {
@@ -123,21 +107,21 @@ router.get('/', async (req, res) => {
       rolNombre: ses.rolNombre,  // 'Editor', 'Diseñadora'... (de dónde hereda los permisos)
       permisos,
     },
-    roles: rolesRes.rows.map((r) => r.nombre),
+    roles: roles.map((r) => r.nombre),
     clientes: clientesVisibles,
     tareas,
-    // El equipo también viaja para quien ve tareas: sin la lista, las pastillas
-    // de "asignado a" quedarían vacías y no se podría asignar a nadie.
-    equipo: (puede('equipo') || veTareas) ? equipoRes.rows : [],
+    equipo,
     ideas,
     fechasEspeciales,
     eventos,
     etapas,
-    estudio,
+    estudio: puede('estudio')
+      ? (conf.estudio || { nombre: 'Click', ig: '', email: '', tel: '', wa: '', links: [], notas: '' })
+      : null,
     // Las tarifas las necesita cualquiera que cargue una tarea (sugieren el
-    // monto según el nivel). La pauta es plata de clientes: va con Clientes.
-    tarifas: config.tarifas || null,
-    pautas: puede('clientes') ? await todasLasPautas() : [],
+    // monto según el nivel).
+    tarifas: conf.tarifas || null,
+    pautas,
   });
 });
 

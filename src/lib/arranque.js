@@ -5,6 +5,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const { pool } = require('../db');
 
@@ -14,14 +15,23 @@ const { pool } = require('../db');
 // espera y encuentra el trabajo hecho.
 const LLAVE_LOCK = 528491;
 
+const SQL = fs.readFileSync(path.join(__dirname, '..', '..', 'db', 'schema.sql'), 'utf8');
+// La "versión" del esquema es el hash del archivo: si cambia una coma, se
+// vuelve a aplicar. Se guarda en configuracion después de aplicarlo.
+const HASH = crypto.createHash('sha1').update(SQL).digest('hex');
+
 async function aplicarEsquema(client) {
   const antes = await client.query("SELECT to_regclass('public.usuarios') IS NOT NULL AS existe");
   const eraNueva = !antes.rows[0].existe;
 
   // Se aplica siempre: schema.sql se puede repetir sin efecto. Ojo que no
   // agrega columnas a tablas que ya existen (ver el encabezado de schema.sql).
-  const sql = fs.readFileSync(path.join(__dirname, '..', '..', 'db', 'schema.sql'), 'utf8');
-  await client.query(sql);
+  await client.query(SQL);
+  await client.query(
+    `INSERT INTO configuracion (clave, valor) VALUES ('esquema', $1)
+     ON CONFLICT (clave) DO UPDATE SET valor = EXCLUDED.valor, actualizado_en = now()`,
+    [JSON.stringify({ hash: HASH })]
+  );
 
   if (eraNueva) {
     const t = await client.query(
@@ -79,6 +89,21 @@ async function crearPrimerAdmin(client) {
 // puede ir por otra conexión y un unlock de sesión nunca llegaría a la misma.
 // Si algo falla no queda nada a medias, y el pedido devuelve el error.
 async function prepararBase() {
+  // Atajo para el caso de todos los días: si el esquema ya está aplicado en
+  // esta versión y hay usuarios, no hay nada que hacer. Es UNA consulta en vez
+  // de mandar el schema.sql entero, y en Vercel esto corre en cada arranque en
+  // frío. Si las tablas todavía no existen, la consulta falla y se sigue por el
+  // camino completo.
+  try {
+    const r = await pool.query(
+      `SELECT (SELECT valor->>'hash' FROM configuracion WHERE clave = 'esquema') AS hash,
+              EXISTS (SELECT 1 FROM usuarios) AS hay_usuarios`
+    );
+    if (r.rows[0].hash === HASH && r.rows[0].hay_usuarios) return;
+  } catch (err) {
+    if (err.code !== '42P01') throw err;   // 42P01 = la tabla no existe: base nueva
+  }
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');

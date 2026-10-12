@@ -107,4 +107,8 @@ async function guardar() {
 .seg button.on { background: var(--tan); color: #fff; font-weight: 600; }
 .linea { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-top: 1px solid var(--bor); }
 @media (max-width: 900px) { .grilla { grid-template-columns: 1fr; } }
+
+@media (max-width: 600px) {
+  .seg button { width: 46px; padding: 8px 0; }
+}
 </style>

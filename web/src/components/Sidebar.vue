@@ -1,13 +1,19 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import Icono from './Icono.vue';
 import MiCuenta from './MiCuenta.vue';
 import logo from '../logo.jpg';
 import { st, puede, esAdmin } from '../lib/store';
 import { api } from '../lib/api';
 
+// En pantallas chicas el menú es un cajón que se abre desde la barra de arriba
+// (App.vue). Se cierra solo al cambiar de pantalla.
+const props = defineProps({ abierto: Boolean });
+const emit = defineEmits(['cerrar']);
 const router = useRouter();
+const route = useRoute();
+watch(() => route.fullPath, () => { if (props.abierto) emit('cerrar'); });
 
 // Cada ítem dice qué permiso necesita para aparecer. Están agrupados por para
 // qué se usan: el trabajo del día, la plata, y la configuración del estudio.
@@ -34,14 +40,14 @@ const grupos = computed(() => [
 const cuenta = ref(false);
 
 // ---------- Tema ----------
-const tema = ref(localStorage.getItem('ck-tema') || 'claro');
-function aplicarTema() { document.documentElement.dataset.tema = tema.value; }
+// Se aplica en main.js antes de montar, así la pantalla de carga ya sale con
+// el tema elegido; acá solo se alterna.
+const tema = ref(document.documentElement.dataset.tema || 'claro');
 function alternarTema() {
   tema.value = tema.value === 'oscuro' ? 'claro' : 'oscuro';
   localStorage.setItem('ck-tema', tema.value);
-  aplicarTema();
+  document.documentElement.dataset.tema = tema.value;
 }
-aplicarTema();
 
 // ---------- Notificaciones ----------
 const notifs = ref([]);
@@ -78,11 +84,13 @@ async function salir() {
 </script>
 
 <template>
-  <aside class="sb">
+  <div v-if="abierto" class="sb-fondo" @click="emit('cerrar')" />
+  <aside class="sb" :class="{ abierto }" aria-label="Menú principal">
     <div class="sb-top">
       <img :src="logo" alt="" class="sb-logo">
       <span class="sb-titulo">Click Hub</span>
       <span class="sb-badge">{{ esAdmin ? 'Admin' : (st.yo?.rolNombre || 'Equipo') }}</span>
+      <button class="icono-btn sb-cerrar" aria-label="Cerrar menú" @click="emit('cerrar')"><Icono n="cerrar" /></button>
     </div>
 
     <nav class="sb-nav">
@@ -160,4 +168,22 @@ async function salir() {
 }
 .notif-item.nueva { color: var(--txt); background: var(--sur3); }
 .notif-item:hover { background: var(--sur2); }
+.sb-cerrar, .sb-fondo { display: none; }
+
+/* ---------- Pantallas chicas: el menú es un cajón ---------- */
+@media (max-width: 900px) {
+  .sb {
+    position: fixed; top: 0; bottom: 0; left: 0; z-index: 90; width: min(300px, 86vw);
+    transform: translateX(-100%); transition: transform .22s ease; box-shadow: var(--sombra);
+    padding-top: 18px;
+  }
+  .sb.abierto { transform: none; }
+  .sb-top { padding-bottom: 20px; }
+  .sb-cerrar { display: inline-flex; margin-left: auto; }
+  .sb-fondo { display: block; position: fixed; inset: 0; z-index: 89; background: var(--velo); }
+  .sb-item { padding: 12px; }   /* más alto: se toca con el dedo */
+  /* El panel de avisos se abre hacia arriba y ocupa el ancho del cajón. */
+  .notif-panel { position: fixed; left: 12px; right: 12px; bottom: 70px; width: auto; max-height: 60vh; }
+}
+@media (prefers-reduced-motion: reduce) { .sb { transition: none; } }
 </style>

@@ -68,8 +68,14 @@ h1, h2, h3 { font-family: 'Syne', sans-serif; font-weight: 600; }
 
 /* ---------- Estructura ---------- */
 .layout { display: flex; height: 100%; }
+.contenido { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .main { flex: 1; overflow-y: auto; }
 .pagina { padding: 36px 44px 60px; max-width: 1400px; }
+/* La barra de arriba con el botón del menú: solo en pantallas chicas. */
+.barra-movil { display: none; }
+/* Para lo que no entra a lo ancho en un celular (calendarios, tablas anchas):
+   se desplaza de costado en vez de romper la página. */
+.scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
 /* ---------- Encabezado de página ---------- */
 .pag-head { display: flex; align-items: center; gap: 10px; margin-bottom: 26px; }
@@ -79,7 +85,7 @@ h1, h2, h3 { font-family: 'Syne', sans-serif; font-weight: 600; }
 
 /* ---------- Tabs con contador ---------- */
 .barra { display: flex; align-items: flex-end; gap: 12px; border-bottom: 1px solid var(--bor); margin-bottom: 26px; }
-.tabs { display: flex; gap: 6px; }
+.tabs { display: flex; gap: 6px; min-width: 0; }
 .tab {
   background: none; border: none; cursor: pointer; padding: 10px 12px 12px;
   color: var(--mut); font-size: 15px; display: flex; align-items: center; gap: 8px;
@@ -208,3 +214,64 @@ h1, h2, h3 { font-family: 'Syne', sans-serif; font-weight: 600; }
 .avisos { position: fixed; top: 16px; right: 16px; z-index: 300; display: flex; flex-direction: column; gap: 8px; max-width: 340px; }
 .aviso { padding: 10px 14px; border-radius: var(--rs); font-size: 13px; box-shadow: var(--sombra); background: var(--redbg); color: var(--red); }
 .aviso.ok { background: var(--greenbg); color: var(--green); }
+
+/* ============================================================
+   RESPONSIVE
+   Tablet (≤ 900px): el menú pasa a cajón, todo se apila un poco.
+   Celular (≤ 600px): una columna, modales a pantalla completa,
+   tablas que se deslizan de costado.
+   ============================================================ */
+@media (max-width: 900px) {
+  .barra-movil {
+    display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+    padding: 10px 14px; background: var(--sur3); border-bottom: 1px solid var(--bor);
+    position: sticky; top: 0; z-index: 20;
+  }
+  .barra-logo { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; }
+  .barra-titulo { font-family: 'Syne', sans-serif; font-weight: 600; font-size: 17px; }
+
+  .pagina { padding: 22px 20px 48px; }
+  .pag-head { flex-wrap: wrap; margin-bottom: 18px; }
+  .pag-head h1 { font-size: 24px; }
+  .pag-head .der { width: 100%; margin-left: 0; justify-content: space-between; }
+
+  /* Las tabs se deslizan de costado; las acciones bajan a su propia fila. */
+  .barra { flex-wrap: wrap; align-items: stretch; gap: 0; }
+  .tabs { overflow-x: auto; scrollbar-width: none; flex: 1 1 100%; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { white-space: nowrap; flex-shrink: 0; }
+  .barra .acciones { margin-left: 0; width: 100%; flex-wrap: wrap; padding: 10px 0 12px; }
+  .barra .acciones .buscar { flex: 1 1 200px; }
+  .buscar input { width: 100% !important; }
+
+  /* Tablas: se deslizan de costado sin aplastar las columnas. */
+  .tabla { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; }
+  .tabla td, .tabla th { padding: 10px 12px; }
+
+  .kpis { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+  .kpi { padding: 14px 16px; }
+  .kpi .val { font-size: 22px; }
+
+  .modal.ancho { max-width: 100%; }
+  .avisos { left: 12px; right: 12px; max-width: none; }
+}
+
+@media (max-width: 600px) {
+  body { font-size: 15px; }
+  .pagina { padding: 16px 14px 40px; }
+  .fila, .fila3 { grid-template-columns: 1fr; gap: 0; }
+  .kpis { grid-template-columns: 1fr 1fr; }
+  .kpi .val { font-size: 20px; }
+  .barra .acciones > .btn, .barra .acciones > .sel { flex: 1 1 auto; justify-content: center; }
+
+  /* Modales a pantalla completa: en un celular un modal flotante deja poco lugar. */
+  .velo { padding: 0; align-items: stretch; }
+  .modal, .modal.ancho { max-width: none; max-height: none; height: 100%; border-radius: 0; border: none; }
+  .modal-cuerpo { padding: 20px 16px 28px; }
+  .modal-pie { position: sticky; bottom: 0; background: var(--sur); padding-top: 12px; flex-wrap: wrap; }
+  .modal-pie .btn { flex: 1 1 auto; justify-content: center; }
+  .modal-pie .izq { flex-basis: 100%; order: 2; }
+
+  /* Campos de 16px: así el iPhone no hace zoom al tocarlos. */
+  .campo input, .campo select, .campo textarea, .sel, .buscar input { font-size: 16px; }
+}

@@ -91,4 +91,9 @@ async function darDeBaja() {
 
 <style scoped>
 .link-fila { display: grid; grid-template-columns: 1fr 2fr 34px; gap: 8px; margin-bottom: 8px; }
+
+@media (max-width: 600px) {
+  .link-fila { grid-template-columns: 1fr 34px; }
+  .link-fila input:nth-child(2) { grid-column: 1; }
+}
 </style>

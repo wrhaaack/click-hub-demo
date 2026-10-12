@@ -156,4 +156,11 @@ const altoSem = (f) => 34 + Math.max(f.carriles, 1) * 28 + 8;
 .colores { display: flex; gap: 8px; }
 .color { width: 30px; height: 30px; border-radius: 8px; border: 2px solid transparent; cursor: pointer; }
 .color.on { border-color: var(--txt); }
+
+@media (max-width: 900px) {
+  .plan { overflow-x: auto; }
+  .plan-cab, .plan-sem { min-width: 680px; }
+  .plan-barra > div { width: 100%; margin-left: 0 !important; }
+  .plan-barra .btn { flex: 1; justify-content: center; }
+}
 </style>

@@ -3,6 +3,10 @@ import { createRouter, createWebHistory } from 'vue-router';
 import App from './App.vue';
 import './estilos.css';
 
+// El tema (claro u oscuro) se aplica antes de montar nada, así ni la pantalla
+// de carga ni el login aparecen un instante con el tema equivocado.
+document.documentElement.dataset.tema = localStorage.getItem('ck-tema') || 'claro';
+
 const router = createRouter({
   history: createWebHistory('/app/'),
   routes: [

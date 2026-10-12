@@ -90,4 +90,10 @@ const CAMPOS = [['nombre', 'Nombre'], ['ig', 'Instagram'], ['email', 'Email'], [
 .link span { color: var(--tand); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
 .link-fila { display: grid; grid-template-columns: 1fr 2fr 34px; gap: 8px; margin-bottom: 8px; }
 @media (max-width: 800px) { .grilla { grid-template-columns: 1fr; } }
+
+@media (max-width: 600px) {
+  .link { grid-template-columns: 20px 1fr; }
+  .link span { grid-column: 2; }
+  .link-fila { grid-template-columns: 1fr 34px; }
+}
 </style>

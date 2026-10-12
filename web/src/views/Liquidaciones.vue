@@ -153,4 +153,8 @@ async function guardarTarifas() {
 .grupo { background: var(--sur); border: 1px solid var(--bor); border-radius: var(--r); margin-bottom: 18px; overflow: hidden; }
 .grupo .tabla th { background: var(--sur3); }
 .grupo .tabla thead tr th:first-child, .grupo .tabla td:first-child { padding-left: 18px; }
+
+@media (max-width: 600px) {
+  .grupo { border-radius: var(--rs); }
+}
 </style>

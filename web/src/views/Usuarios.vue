@@ -224,4 +224,11 @@ async function guardarRoles() {
 .clave input { flex: 1; }
 .excep { display: grid; grid-template-columns: 1fr 200px; align-items: center; gap: 10px; margin-bottom: 6px; font-size: 14px; }
 .nota { font-size: 12.5px; color: var(--hin); }
+
+@media (max-width: 600px) {
+  .permiso { grid-template-columns: 1fr; gap: 8px; }
+  .excep { grid-template-columns: 1fr; gap: 4px; margin-bottom: 12px; }
+  .rol-cab { flex-wrap: wrap; padding: 14px 16px; }
+  .permisos { padding: 4px 16px 12px; }
+}
 </style>

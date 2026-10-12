@@ -182,4 +182,13 @@ async function borrarEvento() {
 .vistas { display: inline-flex; background: var(--sur2); border-radius: var(--rs); padding: 3px; margin-bottom: 18px; }
 .vista { border: none; background: none; padding: 6px 16px; border-radius: 6px; cursor: pointer; color: var(--mut); font-size: 14px; }
 .vista.on { background: var(--sur); color: var(--txt); font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+
+/* En celular la grilla no se aplasta: cada día conserva un ancho legible y la
+   semana se desliza de costado. */
+@media (max-width: 900px) {
+  .cal { grid-template-columns: repeat(7, minmax(96px, 1fr)); overflow-x: auto; }
+  .cal-dia { min-height: 96px; }
+  .vistas { width: 100%; }
+  .vista { flex: 1; }
+}
 </style>

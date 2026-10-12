@@ -159,4 +159,10 @@ const dias = computed(() => {
 .act { display: flex; gap: 10px; padding: 9px 0; border-top: 1px solid var(--bor); font-size: 13.5px; }
 .act-fecha { font-size: 12px; color: var(--hin); }
 @media (max-width: 1000px) { .cols { grid-template-columns: 1fr; } }
+
+@media (max-width: 600px) {
+  .aumentos { padding: 12px 14px; }
+  .cab-sec { flex-wrap: wrap; gap: 6px; }
+  .cols .tarjeta { padding: 16px; }
+}
 </style>
