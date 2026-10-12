@@ -13,6 +13,10 @@ export function avisar(mensaje, tipo = 'error') {
   }, 4000);
 }
 
+// El último error de configuración del servidor (faltan variables, la base no
+// responde). La app lo muestra en pantalla completa en vez de un aviso suelto.
+export const fallaServidor = reactive({ mensaje: '' });
+
 export async function api(url, { method = 'GET', body } = {}) {
   let res;
   try {
@@ -33,7 +37,9 @@ export async function api(url, { method = 'GET', body } = {}) {
   let data = null;
   try { data = await res.json(); } catch { data = null; }
   if (!res.ok) {
-    avisar((data && data.error) || 'No se pudo completar la acción.');
+    if (data?.configuracion) fallaServidor.mensaje = data.error;
+    else if (res.status >= 500 && !data?.error) fallaServidor.mensaje = 'El servidor no responde. Probá de nuevo en un momento.';
+    else avisar((data && data.error) || 'No se pudo completar la acción.');
     return null;
   }
   return data === null ? {} : data;

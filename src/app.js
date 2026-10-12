@@ -13,7 +13,7 @@ const { revisarAlertas } = require('./lib/alertas');
 const FALTAN = ['DATABASE_URL', 'SESSION_SECRET'].filter((v) => !process.env[v]);
 if (FALTAN.length) {
   // Sin estas dos no hay app posible: mejor fallar con el motivo a la vista.
-  throw new Error(`Falta ${FALTAN.join(' y ')} en las variables de entorno. Ver EMPEZAR-ACA.md.`);
+  throw new Error(`falta ${FALTAN.join(' y ')} en las variables de entorno (ver DESPLIEGUE-VERCEL.md o EMPEZAR-ACA.md).`);
 }
 
 const enVercel = !!process.env.VERCEL;
@@ -27,7 +27,10 @@ app.use(express.json({ limit: '1mb' }));
 let lista = null;
 app.use('/api', (req, res, next) => {
   lista = lista || prepararBase().catch((err) => { lista = null; throw err; });
-  lista.then(() => next(), next);
+  lista.then(() => next(), (err) => {
+    console.error('No se pudo preparar la base:', err);
+    res.status(503).json({ error: `No se pudo conectar con la base de datos: ${err.message}`, configuracion: true });
+  });
 });
 
 app.use(session({

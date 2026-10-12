@@ -26,7 +26,10 @@ async function entrar() {
       body: JSON.stringify({ email: email.value.trim(), password: password.value }),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) { error.value = data.error || 'No se pudo iniciar sesión.'; return; }
+    if (!res.ok) {
+      error.value = data.error || (res.status >= 500 ? 'El servidor no responde. Probá de nuevo en un momento.' : 'No se pudo iniciar sesión.');
+      return;
+    }
     // Recarga entera y no un cambio de ruta: así la app arranca de cero con
     // los datos y permisos de quien acaba de entrar.
     window.location.href = '/app/';
