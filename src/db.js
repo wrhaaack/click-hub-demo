@@ -1,5 +1,5 @@
-// Conexión a Postgres. Railway inyecta DATABASE_URL automáticamente
-// cuando conectás un servicio de Postgres al mismo proyecto.
+// Conexión a Postgres. DATABASE_URL la carga la plataforma: Railway al
+// conectar su Postgres, Vercel al conectar una base de Neon desde Storage.
 const { Pool, types } = require('pg');
 
 // Por defecto el driver devuelve los BIGINT como texto, porque un bigint puede
@@ -24,12 +24,19 @@ function configuracionSSL() {
   if (process.env.DATABASE_SSL === 'off') return false;   // escotilla de escape
   if (process.env.DATABASE_SSL === 'on') return { rejectUnauthorized: false };
   if (/\.railway\.internal|localhost|127\.0\.0\.1|\[::1\]/.test(url)) return false;
-  return process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false;
+  return process.env.NODE_ENV === 'production' || process.env.VERCEL ? { rejectUnauthorized: false } : false;
 }
 
+// En Vercel cada instancia de la función atiende de a un pedido y puede haber
+// muchas a la vez: pocas conexiones por instancia y que se suelten rápido, para
+// no agotar las de la base. En un servidor propio, un pool normal.
+const enVercel = !!process.env.VERCEL;
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: configuracionSSL(),
+  max: enVercel ? 3 : 10,
+  idleTimeoutMillis: enVercel ? 5000 : 30000,
+  connectionTimeoutMillis: 10000,
 });
 
 module.exports = { pool };

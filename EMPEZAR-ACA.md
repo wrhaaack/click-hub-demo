@@ -1,7 +1,8 @@
 # Click Hub — cómo dejarlo andando en tu compu
 
 Hace falta **Node.js 18 o mayor** ([nodejs.org](https://nodejs.org)). Para
-subirlo a internet, seguí después con [DESPLIEGUE.md](DESPLIEGUE.md).
+subirlo a internet: [DESPLIEGUE-VERCEL.md](DESPLIEGUE-VERCEL.md) o
+[DESPLIEGUE.md](DESPLIEGUE.md) (Railway).
 
 ## 1. Instalar
 

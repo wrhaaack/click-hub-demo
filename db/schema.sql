@@ -264,4 +264,12 @@ INSERT INTO configuracion (clave, valor) VALUES
   ('tarifas', '{"diseno":{"N1":10000,"N2":15000,"N3":20000},"video":{"N1":27700,"N2":41500,"N3":60000},"puntoCotizador":30000,"topeEdicion":0.3}')
 ON CONFLICT (clave) DO NOTHING;
 
--- La tabla de sesiones la crea connect-pg-simple en el primer arranque.
+-- ---------- SESIONES (express-session + connect-pg-simple) ----------
+-- Es la tabla que espera connect-pg-simple. Se crea acá y no la deja crear a
+-- él porque en Vercel su archivo .sql no siempre viaja con la función.
+CREATE TABLE IF NOT EXISTS "session" (
+  "sid"    VARCHAR NOT NULL COLLATE "default" PRIMARY KEY,
+  "sess"   JSON NOT NULL,
+  "expire" TIMESTAMP(6) NOT NULL
+);
+CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire");

@@ -8,3 +8,6 @@ node_modules/
 
 # La app de Vue compilada (npm run build la genera)
 web/dist/
+
+# Vercel CLI
+.vercel/

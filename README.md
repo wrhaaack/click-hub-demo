@@ -5,6 +5,7 @@ calendario, planificación para el cliente (exportable como imagen),
 brainstorming, liquidaciones al equipo, pauta publicitaria y cotizador.
 
 - Ponerlo a andar en tu compu: **[EMPEZAR-ACA.md](EMPEZAR-ACA.md)**
+- Subirlo a Vercel: **[DESPLIEGUE-VERCEL.md](DESPLIEGUE-VERCEL.md)**
 - Subirlo a Railway: **[DESPLIEGUE.md](DESPLIEGUE.md)**
 
 ## Cómo está armado
@@ -13,8 +14,11 @@ Una app de **Vue 3 + Vite** (la pantalla) sobre un servidor **Express +
 PostgreSQL** (los datos, el login y los permisos).
 
 ```
-server.js              arranque: sesiones, /api y la app en /app
+server.js              servidor propio (tu compu, Railway): la app + la pantalla + el puerto
+api/index.js           la función de Vercel (la misma app)
+vercel.json            build, rutas y cron de Vercel
 src/
+  app.js               la app de Express: sesiones y /api (la usan los dos de arriba)
   db.js                pool de Postgres
   middleware/auth.js   requireAuth / requireAdmin / requireSectionAccess
   lib/
@@ -39,7 +43,8 @@ db/
   seed-admin.js        recuperar el acceso
 ```
 
-`npm run build` compila `web/` a `web/dist`, que es lo que sirve `server.js`.
+`npm run build` compila `web/` a `web/dist`. En un servidor propio lo sirve
+`server.js`; en Vercel, la propia plataforma.
 
 ## Pantallas
 

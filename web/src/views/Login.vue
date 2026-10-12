@@ -9,6 +9,12 @@ const ver = ref(false);
 const error = ref('');
 const enviando = ref(false);
 
+// Si ya hay sesión, no tiene sentido mostrar el login. En el servidor propio
+// eso lo resuelve server.js; en Vercel la pantalla es estática y se pregunta acá.
+fetch('/api/auth/me', { credentials: 'include' })
+  .then((r) => { if (r.ok) window.location.replace('/app/'); })
+  .catch(() => {});
+
 async function entrar() {
   error.value = '';
   enviando.value = true;

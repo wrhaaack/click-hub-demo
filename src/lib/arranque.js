@@ -9,9 +9,9 @@ const bcrypt = require('bcryptjs');
 const { pool } = require('../db');
 
 // Un número cualquiera, pero el mismo en todas las instancias: es la llave del
-// lock. Si Railway levanta dos réplicas juntas, dos CREATE TABLE simultáneos
-// pueden trabarse entre sí; con esto la segunda espera y encuentra el trabajo
-// hecho en vez de chocar.
+// lock. Si arrancan dos instancias juntas (réplicas en Railway, funciones en
+// Vercel), dos CREATE TABLE simultáneos pueden trabarse; con esto la segunda
+// espera y encuentra el trabajo hecho.
 const LLAVE_LOCK = 528491;
 
 async function aplicarEsquema(client) {
@@ -74,16 +74,22 @@ async function crearPrimerAdmin(client) {
   return true;
 }
 
-// Si esto falla, el servidor no arranca: una base a medio armar da errores
-// sueltos y confusos más adelante, y es peor que no arrancar.
+// Todo va en una transacción con un lock de transacción (y no de sesión): así
+// funciona también detrás de un pooler como el de Neon, donde cada sentencia
+// puede ir por otra conexión y un unlock de sesión nunca llegaría a la misma.
+// Si algo falla no queda nada a medias, y el pedido devuelve el error.
 async function prepararBase() {
   const client = await pool.connect();
   try {
-    await client.query('SELECT pg_advisory_lock($1)', [LLAVE_LOCK]);
+    await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock($1)', [LLAVE_LOCK]);
     await aplicarEsquema(client);
     await crearPrimerAdmin(client);
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw err;
   } finally {
-    await client.query('SELECT pg_advisory_unlock($1)', [LLAVE_LOCK]).catch(() => {});
     client.release();
   }
 }
